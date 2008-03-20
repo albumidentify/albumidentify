@@ -1,0 +1,74 @@
+#!/usr/bin/python
+import musicbrainz
+import parsemp3
+import sys
+import os
+import traceback
+
+# usage: $0 <path to directory with an album in it>
+
+def duration2str(dur):
+	dur=dur/1000.0
+	return "%02d:%02d:%05.02f" % (
+		dur/3600,
+		(dur/60) % 60,
+		dur % 60
+	)
+
+files=[]
+for i in os.listdir(sys.argv[1]):
+	if i in [".md5sum"] or i[-4:]==".m3u":
+		# Delete these files, we'll regenerate them later
+		continue
+	if i[-4:]!=".mp3":
+		print "Not an mp3 file?",`os.path.join(sys.argv[1],i)`
+		continue
+	try:
+		data=parsemp3.parsemp3(os.path.join(sys.argv[1],i))
+	except:
+		print `os.path.join(sys.argv[1],i)`
+		traceback.print_exc()
+		continue
+	parsemp3.validate(data)
+	files.append(data)
+
+files.sort(lambda a,b:cmp(a["v2"]["TRCK"],b["v2"]["TRCK"]))
+
+album=files[0]["v2"]["TALB"]
+year=files[0]["v2"]["TYER"]
+errors=[]
+tracks=[]
+for i in files:
+	if i["v2"]["TALB"]!=album:
+		errors.append("Album name disagrement %s vs %s" % (album,i["v2"]["TALB"]))
+	if i["v2"]["TYER"]!=year:
+		errors.append("Year disagrement %s vs %s" % (year,i["v2"]["TYER"]))
+	tracks.append(int(i["v2"]["TRCK"]))
+
+#tracks.sort()
+for i in files:
+	if i["errors"]!=[]:
+		print i["errors"]
+track=1
+for i in tracks:
+	while i!=track:
+		errors.append("Missing track %d" % i)
+		track=track+1
+	track=track+1
+
+if errors:
+	# Display album errors
+	print errors
+
+# Ok now lets query musicbrainz
+albumdata=musicbrainz.get_album_info(files[0]["v2"]["TPE1"],album)
+# SKip any versions of the album that have the wrong number of tracks
+albumdata=filter(lambda x:len(x["tracks"])==tracks[-1],albumdata)
+
+for i in albumdata:
+	print "%s(%d):" % (i["albumname"],i["album"])
+for i in range(len(files)):
+	print '',i,`files[i]["v2"]["TIT2"]`,files[i]["duration"]/1000.0,
+	for j in albumdata:
+		print j["tracks"][i]["duration"]/1000.0,"(",abs(files[i]["duration"]/1000.0-j["tracks"][i]["duration"]/1000.0),")",
+	print
