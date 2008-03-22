@@ -166,10 +166,14 @@ def strip_padding(x):
 	return x
 
 def parse_unicode(x):
-	if x.startswith("\xff\xfe"):
-		return x.decode("utf-16-be")
-	else:
-		return x.decode("utf-16-le")
+	try:
+		if not x.startswith("\xff\xfe"):
+			return x.decode("utf-16-be")[1:]
+		else:
+			return x.decode("utf-16-le")[1:]
+	except UnicodeDecodeError, e:
+		print "Can't decode unicode string %s: %s" % (`x`,str(e))
+		return x
 
 # How many bloody versions of id3 do we REALLY need?!
 
@@ -256,12 +260,12 @@ def v2_3_0(tag):
 		if tagid.startswith("T"):
 			if tagdata[0]=="\x00": # latin-1
 				tagdata=tagdata[1:]
-				if "\x00" in tagdata:
-					tagdata=tagdata[:tagdata.index("\x00")]
+				#if "\x00" in tagdata:
+				#	tagdata=tagdata[:tagdata.index("\x00")]
 				tagdata=tagdata.decode("ISO-8859-1")
 			elif tagdata[0]=="\x01": # utf16
-				if "\x00" in tagdata:
-					tagdata=tagdata[:tagdata.index("\x00")]
+				#if "\x00" in tagdata:
+				#	tagdata=tagdata[:tagdata.index("\x00")]
 				tagdata=parse_unicode(tagdata[1:])
 			else:
 				raise "Unknown Encoding"
@@ -517,8 +521,14 @@ def validate(song):
 				# Track numbers should be treated as numbers
 				if v2tagname=="TRCK":
 					# TODO: Deal with x/y
-					itagvalue=int(itagvalue)
-					jtagvalue=int(jtagvalue)
+					if "/" in itagvalue:
+						itagvalue=int(itagvalue.split("/")[0])
+					else:
+						itagvalue=int(itagvalue)
+					if "/" in jtagvalue:
+						jtagvalue=int(jtagvalue.split("/")[0])
+					else:
+						jtagvalue=int(jtagvalue)
 
 				# Do comparisons
 				if itagvalue==jtagvalue:
