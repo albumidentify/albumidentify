@@ -7,7 +7,7 @@
 # (C) 2008 Scott Raynel <scottraynel@gmail.com>
 #
 # TODO:
-#  - Embed IRSC into each track's metadata if the TOC contains it
+#  - Embed ISRC into each track's metadata if the TOC contains it
 #  - Disc x of y tags - this may require looking at the musicbrainz
 #    relationships system.
 #  - Set the COMPILATION tag appropriately - is a greatest hits release a
@@ -29,6 +29,7 @@ import musicbrainz2.utils as u
 import amazon4
 import toc
 import discid
+import shutil
 
 AMAZON_LICENSE_KEY='1WQQTEA14HEA9AERDMG2'
 
@@ -176,11 +177,11 @@ DATE=%s
 		os.system("metaflac --import-tags-from=" + tmpfile + " " + os.path.join(srcpath, file))
 		os.unlink(tmpfile)
 
-		os.renames(os.path.join(srcpath, file), os.path.join(newpath, newfilename))
+		shutil.copyfile(os.path.join(srcpath, file), os.path.join(newpath, newfilename))
 	
 	print os.path.join(srcpath, tocfilename) + " -> " + os.path.join(newpath, "data.toc")
-	os.renames(os.path.join(srcpath, tocfilename), os.path.join(newpath, "data.toc"))
-	os.system("rm \"%s\" -rf" % srcpath)
+	shutil.copyfile(os.path.join(srcpath, tocfilename), os.path.join(newpath, "data.toc"))
+	#os.system("rm \"%s\" -rf" % srcpath)
 	
 
 if __name__ == "__main__":
