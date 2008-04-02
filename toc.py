@@ -5,7 +5,7 @@
 # (C) 2008 Scott Raynel <scottraynel@gmail.com>
 #
 
-class Track():
+class Track:
 	def __init__(self, tracknum):
 		self.track_num = tracknum
 		self.track_start = 0
