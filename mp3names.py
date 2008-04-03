@@ -4,6 +4,7 @@ _filename_rules = [
 	(r"&"," and "), # & -> And
 	(r"[/\\]","-"), # / and \ -> -
 	(r"[?\"]",""),  # ? and " removed
+	("\x00",""),	# Urgh, \x00's in filenames would Be Bad
 	(r"[?%*:<>\"\[\]+]","_"), # Other stuff to _
 	(r"  +"," "),   # Remove duplicate spaces
 ]
@@ -35,6 +36,8 @@ if __name__=="__main__":
 	test("The Smashing Pumpkins",FixArtist,"Smashing Pumpkins, The")
 	test("On My Own (feat. Les Nubian & Mos Def)",
 		FixFilename,"On My Own (feat. Les Nubian and Mos Def)")
+	test("Test with :\x00: NUlls",
+		FixFilename,"Test with __ NUlls")
 
 
 		
