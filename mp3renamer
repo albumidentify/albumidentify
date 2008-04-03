@@ -4,6 +4,9 @@ import parsemp3
 import sys
 import os
 import traceback
+import math
+
+dest="/tmp"
 
 # usage: $0 <path to directory with an album in it>
 
@@ -15,10 +18,32 @@ def duration2str(dur):
 		dur % 60
 	)
 
+def cleanfilename(fname):
+	while "/" in fname:
+		fname=fname.replace("/","-")
+	while "&" in fname:
+		fname=fname.replace("&"," and ")
+	fname=fname.strip() # Remove any trailing whitespace
+	while '  ' in fname:
+		fname=fname.replace('  ',' ')
+	return fname
+
+def FixName(name):
+	if name.startswith("The "):
+		name=name[4:]+", The"
+
+	return name
+
 files=[]
 for i in os.listdir(sys.argv[1]):
 	if i in [".md5sum"] or i[-4:]==".m3u":
 		# Delete these files, we'll regenerate them later
+		continue
+	if i in ["Thumbs.db"]:
+		# Ignore crappy files
+		continue
+	if i.endswith(".jpg"):
+		print "Album art?",`os.path.join(sys.argv[1],i)`
 		continue
 	if i[-4:]!=".mp3":
 		print "Not an mp3 file?",`os.path.join(sys.argv[1],i)`
@@ -26,7 +51,7 @@ for i in os.listdir(sys.argv[1]):
 	try:
 		data=parsemp3.parsemp3(os.path.join(sys.argv[1],i))
 	except:
-		print `os.path.join(sys.argv[1],i)`
+		print "Parse Error:",`os.path.join(sys.argv[1],i)`
 		traceback.print_exc()
 		continue
 	parsemp3.validate(data)
@@ -51,7 +76,7 @@ for i in files:
 		print i["errors"]
 track=1
 for i in tracks:
-	while i!=track:
+	while i>track:
 		errors.append("Missing track %d" % i)
 		track=track+1
 	track=track+1
@@ -62,13 +87,60 @@ if errors:
 
 # Ok now lets query musicbrainz
 albumdata=musicbrainz.get_album_info(files[0]["v2"]["TPE1"],album)
-# SKip any versions of the album that have the wrong number of tracks
+if albumdata==[]:
+	print "Unknown:",`files[0]["v2"]["TPE1"]`,`album`
+	sys.exit(1)
+# Skip any versions of the album that have the wrong number of tracks
 albumdata=filter(lambda x:len(x["tracks"])==tracks[-1],albumdata)
 
 for i in albumdata:
 	print "%s(%d):" % (i["albumname"],i["album"])
+scores=[0*len(albumdata)]
 for i in range(len(files)):
 	print '',i,`files[i]["v2"]["TIT2"]`,files[i]["duration"]/1000.0,
-	for j in albumdata:
+	for jj in range(len(albumdata)):
+		j=albumdata[jj]
 		print j["tracks"][i]["duration"]/1000.0,"(",abs(files[i]["duration"]/1000.0-j["tracks"][i]["duration"]/1000.0),")",
+		scores[jj]+=(files[i]["duration"]/1000.0-j["tracks"][i]["duration"]/1000.0)**2
 	print
+print '','',
+best=0
+for i in range(len(albumdata)):
+	print math.sqrt(scores[jj])/len(files),
+	if scores[jj]<scores[best]:
+		best=jj
+print
+
+albumdata=albumdata[best]
+# albumdata now holds the data we think we have
+
+if errors==[]:
+	classification="good"
+elif filter(lambda (a,b):a!="warning",errors)==[]:
+	classification="bad"
+else:
+	classification="ugly"
+
+# Clean up filenames
+albumdata["artist"]=FixName(albumdata["artist"])
+for i in ["artist","year","albumname"]:
+	albumdata["fn-%s" % i]=cleanfilename(albumdata[i])
+
+
+# Now create the directory
+p=os.path.join(dest,classification,"%(fn-artist)s - %(fn-year)s - %(fn-albumname)s" % albumdata)
+try:
+	os.makedirs(p)
+except OSError, e:
+	pass
+for i in range(len(files)):
+	albumdata["tracks"][i]["artist"]=\
+		FixName(albumdata["tracks"][i]["artist"])
+	for j in ["artist","name"]:
+		albumdata["tracks"][i]["fn-%s" % j]=\
+			cleanfilename(albumdata["tracks"][i][j])
+	fname=os.path.join(p,"%(track)02i - %(fn-artist)s - %(fn-name)s.mp3" % albumdata["tracks"][i])
+	print "Writing",`fname`
+	f=open(fname,"w")
+	f.write(files[i]['bitstream'])
+	f.close()

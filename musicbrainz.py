@@ -5,31 +5,49 @@ db=pyPgSQL.PgSQL.connect(database='musicbrainz')
 
 def get_album_info(artist,album):
 	c=db.cursor()
-	c.execute("""SELECT album.name as albumname,albumjoin.*,track.* 
+	c.execute("""SELECT album.name as albumname,
+		trackartist.name as trackartist, albumartist.name as albumartist,
+		min(release.releasedate) as releasedate,
+		albumjoin.album, track.length,
+		albumjoin.sequence as sequence,
+		track.name as trackname
 		FROM album 
 		JOIN albumjoin ON album.id = albumjoin.album
-		JOIN artist ON album.artist = artist.id
 		JOIN track ON albumjoin.track = track.id
-		WHERE lower(artist.name) = lower(%s) and lower(album.name) = lower(%s)
+		JOIN artist AS trackartist ON track.artist = trackartist.id
+		JOIN artist AS albumartist ON album.artist = albumartist.id
+		JOIN release ON release.album = album.id
+		JOIN artistalias AS albumartistalias ON albumartistalias.ref = albumartist.id
+		WHERE (lower(albumartist.name) = lower(%s) 
+			OR lower(albumartistalias.name) = lower(%s)
+			OR lower(albumartist.sortname) = lower(%s))
+		AND lower(album.name) = lower(%s) 
+		GROUP BY albumjoin.album, albumjoin.sequence, albumname,
+			trackartist, albumartist, track.length, trackname
 		ORDER BY albumjoin.album,sequence
-		""",(artist,album))
+		""",(artist,artist,artist,album))
 
 	oldalbum=None
 	albums=[]
 	for i in c.fetchall():
 		if i["album"]!=oldalbum:
 			oldalbum=i["album"]
+			print i.items()
 			albums.append({
 				"albumname": i['albumname'],
 				"album" : i["album"],
-				"tracks" : []
+				"tracks" : [],
+				"artist" : i["albumartist"],
+				"year" : i["releasedate"].split("-")[0],
+				"releasedate" : i["releasedate"],
 				})
 			#print "%s(%d):" % (i["albumname"],i["album"])
 		#print i["sequence"],i["length"]/1000.0,i["name"]
 		albums[-1]["tracks"].append({
 			"track" : i["sequence"],
 			"duration" : i["length"],
-			"name" : i["name"],
+			"name" : i["trackname"],
+			"artist" : i["trackartist"],
 		})
 	return albums
 

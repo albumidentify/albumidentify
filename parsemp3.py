@@ -142,7 +142,6 @@ tagconvertfrom={
 	"ape" : {
 		"Track" : "TIT2",
 		"Album" : "TALB",
-		"CRC" : "",
 	},
 	"lyrics" : {
 		"IND" : "",	# Indication, specific to lyrics v2
@@ -150,6 +149,7 @@ tagconvertfrom={
 		"ETT" : "TIT2",
 		"EAR" : "TPE1",
 		"INF" : "",	# Doesn't match exactly with COMM
+		"CRC" : "",	# The CRC is pretty annoying.
 	},
 }
 
@@ -166,14 +166,10 @@ def strip_padding(x):
 	return x
 
 def parse_unicode(x):
-	try:
-		if not x.startswith("\xff\xfe"):
-			return x.decode("utf-16-be")[1:]
-		else:
-			return x.decode("utf-16-le")[1:]
-	except UnicodeDecodeError, e:
-		print "Can't decode unicode string %s: %s" % (`x`,str(e))
-		return x
+	if x.startswith("\xff\xfe"):
+		return x.decode("utf-16-be")
+	else:
+		return x.decode("utf-16-le")
 
 # How many bloody versions of id3 do we REALLY need?!
 
@@ -260,12 +256,12 @@ def v2_3_0(tag):
 		if tagid.startswith("T"):
 			if tagdata[0]=="\x00": # latin-1
 				tagdata=tagdata[1:]
-				#if "\x00" in tagdata:
-				#	tagdata=tagdata[:tagdata.index("\x00")]
+				if "\x00" in tagdata:
+					tagdata=tagdata[:tagdata.index("\x00")]
 				tagdata=tagdata.decode("ISO-8859-1")
 			elif tagdata[0]=="\x01": # utf16
-				#if "\x00" in tagdata:
-				#	tagdata=tagdata[:tagdata.index("\x00")]
+				if "\x00" in tagdata:
+					tagdata=tagdata[:tagdata.index("\x00")]
 				tagdata=parse_unicode(tagdata[1:])
 			else:
 				raise "Unknown Encoding"
@@ -377,6 +373,7 @@ def parsemp3(fname):
 		v2data={}
 
 	# Start decoding the mp3 stream
+	bitstream=""
 	frames=0
 	duration=0
 	bitrates={}
@@ -393,12 +390,15 @@ def parsemp3(fname):
 		if b=="":
 			print "Expected",flength-f.tell(),"more bytes!"
 			break
+		bitstream+=b
 		b=ord(b)
 		if b!=255:
 			#print "not a header 1",`chr(b)`
 			unknown+=chr(b)
 			continue
-		b=ord(f.read(1))
+		b=f.read(1)
+		bitstream+=b
+		b=ord(b)
 		if b&0xe0 != 0xe0:
 			unknown+=chr(255)+chr(b)
 			continue
@@ -413,7 +413,9 @@ def parsemp3(fname):
 
 		#print "version:",version,"layer:",layer
 
-		b=ord(f.read(1))
+		b=f.read(1)
+		bitstream+=b
+		b=ord(b)
 		try:
 			bitrate=bitratetbl[version][layer][(b>>4)&0x0F]*1000
 		except:
@@ -430,7 +432,9 @@ def parsemp3(fname):
 		padding=(b>>1)&0x01
 		private=(b&0x01)
 
-		b=ord(f.read(1))
+		b=f.read(1)
+		bitstream+=b
+		b=ord(b)
 		stereomode=(b>>6)&0x03
 		modeextension = (b>>4)&0x03
 		copyright = (b>>3)&0x01
@@ -470,6 +474,7 @@ def parsemp3(fname):
 		#print "duration:",frameduration
 		#print "skipping",framelengthinbytes
 		skip=f.read(framelengthinbytes-4)
+		bitstream+=skip
 		if len(skip) != framelengthinbytes-4:
 			#errors.append("Truncated frame, missing %d bytes" % (
 			#		(framelengthinbytes-4)-len(skip)))
@@ -488,6 +493,7 @@ def parsemp3(fname):
 		"ape" : apedata,
 		"errors" : errors,
 		"layers" : layers,
+		"bitstream" : bitstream,
 		}
 
 def validate(song):
@@ -501,11 +507,18 @@ def validate(song):
 			if i>=j:
 				continue
 			for itagname in song[i]:
-				v2tagname=tagconvertfrom[i][itagname]
+				try:
+					v2tagname=tagconvertfrom[i][itagname]
+				except:
+					print "Unknown tag %s: %s" % (`i`,`itagname`)
+					continue
 				# No tag that means this?
 				if v2tagname=="":
 					continue
-				jtagname=tagconvertto[j][v2tagname]
+				try:
+					jtagname=tagconvertto[j][v2tagname]
+				except:
+					print "Unknown tag %s: %s" % (`j`,`v2tagname`)
 
 				if jtagname not in song[j]:
 					continue
@@ -521,14 +534,8 @@ def validate(song):
 				# Track numbers should be treated as numbers
 				if v2tagname=="TRCK":
 					# TODO: Deal with x/y
-					if "/" in itagvalue:
-						itagvalue=int(itagvalue.split("/")[0])
-					else:
-						itagvalue=int(itagvalue)
-					if "/" in jtagvalue:
-						jtagvalue=int(jtagvalue.split("/")[0])
-					else:
-						jtagvalue=int(jtagvalue)
+					itagvalue=int(itagvalue)
+					jtagvalue=int(jtagvalue)
 
 				# Do comparisons
 				if itagvalue==jtagvalue:
