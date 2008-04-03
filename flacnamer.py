@@ -17,9 +17,6 @@
 #    using the webservice and a local copy of the database
 #  - In main(), switch from iterating over the files to iterating over the
 #    tracks
-#  - Don't write out a tempfile for flactags. We should be able to write to the
-#    process via popen2, though we then need to wait for the process to stop
-#    before moving the file.
 
 import sys
 import os
@@ -32,6 +29,7 @@ import discid
 import shutil
 import urllib
 import mp3names
+import subprocess
 
 AMAZON_LICENSE_KEY='1WQQTEA14HEA9AERDMG2'
 
@@ -155,8 +153,9 @@ def main():
 													track.title)
 		newfilename = mp3names.FixFilename(newfilename)
 
-		tmpfile = os.tmpnam()
-		f = open(tmpfile, "w")
+		print os.path.join(srcpath, file) + " -> " + os.path.join(newpath, newfilename)
+		shutil.copyfile(os.path.join(srcpath, file), os.path.join(newpath, newfilename))
+
 		flactags = '''TITLE=%s
 ARTIST=%s
 ALBUMARTIST=%s
@@ -173,16 +172,13 @@ DATE=%s
 			album, os.path.basename(release.id), os.path.basename(release.artist.id),
 			os.path.basename(track_artist.id), os.path.basename(track.id), mb_discid, releasedate)
 		flactags = flactags.encode("utf8")
-		f.write(flactags)
-		f.close()
 
-		print os.path.join(srcpath, file) + " -> " + os.path.join(newpath, newfilename)
+		p = subprocess.Popen(["metaflac", "--import-tags-from=-", os.path.join(newpath, newfilename)],
+							stdin=subprocess.PIPE)
+		p.stdin.write(flactags)
+		p.stdin.close()
+		p.wait()
 
-		os.system("metaflac --import-tags-from=" + tmpfile + " " + os.path.join(srcpath, file))
-		os.unlink(tmpfile)
-
-		shutil.copyfile(os.path.join(srcpath, file), os.path.join(newpath, newfilename))
-	
 	print os.path.join(srcpath, tocfilename) + " -> " + os.path.join(newpath, "data.toc")
 	shutil.copyfile(os.path.join(srcpath, tocfilename), os.path.join(newpath, "data.toc"))
 	#os.system("rm \"%s\" -rf" % srcpath)
