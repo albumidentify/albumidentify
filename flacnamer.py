@@ -30,6 +30,7 @@ import amazon4
 import toc
 import discid
 import shutil
+import urllib
 
 AMAZON_LICENSE_KEY='1WQQTEA14HEA9AERDMG2'
 
@@ -41,9 +42,6 @@ def get_album_art_url_for_asin(asin):
 	item = amazon4.search_by_asin(asin, license_key=AMAZON_LICENSE_KEY, response_group="Images")
 	return item.LargeImage.URL
 
-def download_album_art_url(URL, dest):
-	cmdline = "wget -O \"%s\" %s" % (dest, URL)
-	os.system(cmdline.encode("utf8"))
 
 def get_track_artist_for_track(track):
 	""" Returns the musicbrainz Artist object for the given track. This may
@@ -125,8 +123,9 @@ def main():
 
 	# Get album art
 	imageurl = get_album_art_url_for_asin(release.asin)
+	print imageurl
 	if imageurl is not None:
-		download_album_art_url(imageurl, os.path.join(newpath, "folder.jpg"))
+		urllib.urlretrieve(imageurl, os.path.join(newpath, "folder.jpg"))
 
 	# Warning: This code doesn't actually check if the number of tracks in the
 	# current directory matches the number of tracks in the release. It's
