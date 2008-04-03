@@ -31,6 +31,7 @@ import toc
 import discid
 import shutil
 import urllib
+import mp3names
 
 AMAZON_LICENSE_KEY='1WQQTEA14HEA9AERDMG2'
 
@@ -105,12 +106,13 @@ def main():
 	tracks = release.getTracks()
 	releasedate = release.getEarliestReleaseDate()
 
-	artist = release.artist.name
+	artist = mp3names.FixArtist(release.artist.name)
 	album = release.title
 	year = releasedate[0:4]
 
-	newpath = os.path.join(srcpath, "../%s - %s - %s/" % 
-							(release.artist.name, year, release.title))
+	newdir = "%s - %s - %s" % (artist, year, release.title)
+	newdir = mp3names.FixFilename(newdir)
+	newpath = os.path.join(srcpath, "../%s/" % newdir)
 	newpath = os.path.normpath(newpath)
 
 	print "Destination path: " + newpath
@@ -147,8 +149,11 @@ def main():
 		else:
 			track_artist = get_track_artist_for_track(track)
 
-		newfilename = "%s - %s - %s.flac" % (tracknum, track_artist.name,
+		track_artist_name = mp3names.FixArtist(track_artist.name)
+
+		newfilename = "%s - %s - %s.flac" % (tracknum, track_artist_name,
 													track.title)
+		newfilename = mp3names.FixFilename(newfilename)
 
 		tmpfile = os.tmpnam()
 		f = open(tmpfile, "w")
@@ -164,7 +169,7 @@ MUSICBRAINZ_ARTISTID=%s
 MUSICBRAINZ_TRACKID=%s
 MUSICBRAINZ_DISCID=%s
 DATE=%s
-	''' % (track.title, track_artist.name, release.artist.name, str(tracknum), str(len(tracks)), 
+	''' % (track.title, track_artist_name, release.artist.name, str(tracknum), str(len(tracks)), 
 			album, os.path.basename(release.id), os.path.basename(release.artist.id),
 			os.path.basename(track_artist.id), os.path.basename(track.id), mb_discid, releasedate)
 		flactags = flactags.encode("utf8")
