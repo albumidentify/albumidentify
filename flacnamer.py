@@ -7,7 +7,6 @@
 # (C) 2008 Scott Raynel <scottraynel@gmail.com>
 #
 # TODO:
-#  - Embed ISRC into each track's metadata if the TOC contains it
 #  - Disc x of y tags - this may require looking at the musicbrainz
 #    relationships system.
 #  - Set the COMPILATION tag appropriately - is a greatest hits release a
@@ -17,12 +16,14 @@
 #    using the webservice and a local copy of the database
 #  - In main(), switch from iterating over the files to iterating over the
 #    tracks
+#  - Deal with multi-mode discs
 
 import sys
 import os
 from datetime import timedelta
 import musicbrainz2.webservice as ws
 import musicbrainz2.utils as u
+import musicbrainz2.model
 import amazon4
 import toc
 import discid
@@ -94,23 +95,31 @@ def main():
 		print "No TOC in source path!"
 		sys.exit(4)
 
-	tracks = toc.parse_text_toc(os.path.join(srcpath, tocfilename))
-	(start, end, offsets) = toc.tracks_to_offsets(tracks)
-	mb_discid = discid.generate_musicbrainz_discid(start, end, offsets)
+	disc = toc.Disc(cdrdaotocfile=os.path.join(srcpath, tocfilename))
+	mb_discid = discid.generate_musicbrainz_discid(
+		disc.get_first_track_num(),
+		disc.get_last_track_num(),
+		disc.get_track_offsets())
 
 	print "Looking up musicbrainz discid " + mb_discid 
 	release = get_musicbrainz_release_for_discid(mb_discid)
 
-	tracks = release.getTracks()
-	releasedate = release.getEarliestReleaseDate()
+	releasetypes = release.getTypes()
 
-	artist = mp3names.FixArtist(release.artist.name)
-	album = release.title
-	year = releasedate[0:4]
+	disc.set_musicbrainz_tracks(release.getTracks())
+	disc.releasedate = release.getEarliestReleaseDate()
 
-	newdir = "%s - %s - %s" % (artist, year, release.title)
-	newdir = mp3names.FixFilename(newdir)
-	newpath = os.path.join(srcpath, "../%s/" % newdir)
+	disc.artist = mp3names.FixArtist(release.artist.name)
+	disc.album = release.title
+	disc.year = disc.releasedate[0:4]
+	disc.asin = release.asin
+	
+	if musicbrainz2.model.Release.TYPE_SOUNDTRACK in releasetypes:
+		newpath = "Soundtrack - %s - %s" % (disc.year, disc.album)
+	else:
+		newpath = "%s - %s - %s" % (disc.artist, disc.year, disc.album)
+	newpath = mp3names.FixFilename(newpath)
+	newpath = os.path.join(srcpath, "../%s/" % newpath)
 	newpath = os.path.normpath(newpath)
 
 	print "Destination path: " + newpath
@@ -122,7 +131,7 @@ def main():
 	os.mkdir(newpath)
 
 	# Get album art
-	imageurl = get_album_art_url_for_asin(release.asin)
+	imageurl = get_album_art_url_for_asin(disc.asin)
 	print imageurl
 	if imageurl is not None:
 		urllib.urlretrieve(imageurl, os.path.join(newpath, "folder.jpg"))
@@ -140,17 +149,18 @@ def main():
 			continue
 
 		tracknum = file[5:7]
-		track = tracks[int(tracknum) -1]
+		track = disc.tracks[int(tracknum) -1]
+		mbtrack = track.mb_track
 
 		if release.isSingleArtistRelease():
 			track_artist = release.artist
 		else:
-			track_artist = get_track_artist_for_track(track)
+			track_artist = get_track_artist_for_track(mbtrack)
 
 		track_artist_name = mp3names.FixArtist(track_artist.name)
 
 		newfilename = "%s - %s - %s.flac" % (tracknum, track_artist_name,
-													track.title)
+													mbtrack.title)
 		newfilename = mp3names.FixFilename(newfilename)
 
 		print os.path.join(srcpath, file) + " -> " + os.path.join(newpath, newfilename)
@@ -168,14 +178,21 @@ MUSICBRAINZ_ARTISTID=%s
 MUSICBRAINZ_TRACKID=%s
 MUSICBRAINZ_DISCID=%s
 DATE=%s
-	''' % (track.title, track_artist_name, release.artist.name, str(tracknum), str(len(tracks)), 
-			album, os.path.basename(release.id), os.path.basename(release.artist.id),
-			os.path.basename(track_artist.id), os.path.basename(track.id), mb_discid, releasedate)
-		flactags = flactags.encode("utf8")
+''' % (mbtrack.title, track_artist_name, disc.artist, str(tracknum), str(len(disc.tracks)), 
+			disc.album, os.path.basename(release.id), os.path.basename(release.artist.id),
+			os.path.basename(track_artist.id), os.path.basename(mbtrack.id), mb_discid, disc.releasedate)
+		
+		if track.isrc is not None:
+			flactags += "ISRC=%s\n" % track.isrc
+		if disc.mcn is not None:
+			flactags += "MCN=%s\n" % disc.mcn
+
+		for type in releasetypes:
+			flactags += "MUSICBRAINZ_RELEASE_ATTRIBUTE=%s\n" % musicbrainz2.utils.getReleaseTypeName(type)
 
 		p = subprocess.Popen(["metaflac", "--import-tags-from=-", os.path.join(newpath, newfilename)],
 							stdin=subprocess.PIPE)
-		p.stdin.write(flactags)
+		p.stdin.write(flactags.encode("utf8"))
 		p.stdin.close()
 		p.wait()
 

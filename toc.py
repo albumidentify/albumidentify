@@ -1,9 +1,85 @@
 #
 # toc.py
-# Functions to deal with parsing CD TOCs
+# Functions to deal with parsing CD TOCs and classes to describe Discs and
+# Tracks
 #
 # (C) 2008 Scott Raynel <scottraynel@gmail.com>
 #
+
+class Disc:
+	def __init__(self, cdrdaotocfile = None, cdrecordtocfile = None):
+		self.mcn = None
+		self.tracks = None 
+
+		if cdrdaotocfile is not None:
+			self.parse_cdrdao_toc(cdrdaotocfile)
+		elif cdrecordtocfile is not None:
+			# TODO: Write some code to deal with cdrecord TOCs
+			raise Exception("cdrecord-style TOCs not yet implemented")
+
+	def get_first_track_num(self):
+		if self.tracks is None:
+			raise Exception("disc.tracks is None")
+		return int(self.tracks[0].track_num)
+	
+	def get_last_track_num(self):
+		if self.tracks is None:
+			raise Exception("disc.tracks is None")
+		return int(self.tracks[len(self.tracks)-1].track_num)
+	
+	def get_track_offsets(self):
+		if self.tracks is None:
+			raise Exception("disc.tracks is None")
+
+		track_offsets = []
+		last_track = self.tracks[len(self.tracks)-1]
+		track_offsets.append(last_track.track_start + last_track.track_length)
+
+		for track in self.tracks:
+			track_offsets.append(track.track_start + track.track_offset)
+
+		return track_offsets
+
+	def parse_cdrdao_toc(self, filename):
+		""" Parse a cdrdao-style TOC file into this Disc object  """
+
+		self.mcn = None
+		self.tracks = []
+
+		f = open(filename, 'r')
+
+		type = f.readline()
+		if not type.startswith("CD_DA"):
+			raise Exception("Unsupported disc type: " + type)
+
+		curtrack = None
+		for line in f.readlines():
+			parts = line.split()
+			if line.startswith("CATALOG"):
+				self.mcn = parts[1].strip("\"")
+			if line.startswith("// Track"):
+				if curtrack is not None:
+					self.tracks.append(curtrack)
+				curtrack = Track(int(parts[2]))
+			elif line.startswith("FILE"):
+				curtrack.track_start = timestamp_to_sectors(parts[2]) + 150
+				curtrack.track_length = timestamp_to_sectors(parts[3])
+			elif line.startswith("START"):
+				curtrack.track_offset = timestamp_to_sectors(parts[1])
+			elif line.startswith("ISRC"):
+				curtrack.isrc = parts[1].strip("\"")
+		f.close()
+		self.tracks.append(curtrack)
+
+	def set_musicbrainz_tracks(self, mb_tracks):
+		""" Attack musicbrainz Track descriptions to each Track in this
+			Disc
+		"""
+		if len(self.tracks) != len(mb_tracks):
+			raise Exception("len(self.tracks) != len(mb_tracks)")
+		for i in range(len(self.tracks)):
+			self.tracks[i].mb_track = mb_tracks[i]
+
 
 class Track:
 	def __init__(self, tracknum):
@@ -11,6 +87,7 @@ class Track:
 		self.track_start = 0
 		self.track_length = 0
 		self.track_offset = 0
+		self.isrc = None
 
 	def __repr__(self):
 		return ("<track %i, start %i, length %i, offset %i, end %i>" % (self.tracknum, self.track_start,
@@ -27,51 +104,6 @@ def timestamp_to_sectors(ts):
 	seconds = int(parts[1])
 	sectors = int(parts[2])
 	return (((minutes * 60) + seconds) * 75) + sectors
-
-def parse_text_toc(filename):
-	""" Parse a cdrdao-style TOC and return a list of Track objects """
-	f = open(filename, 'r')
-
-	type = f.readline()
-	if not type.startswith("CD_DA"):
-		raise Exception("Unsupported disc type: " + type)
-
-	tracks = []
-	curtrack = None
-	for line in f.readlines():
-		parts = line.split()
-		if line.startswith("// Track"):
-			if curtrack is not None:
-				tracks.append(curtrack)
-			curtrack = Track(int(parts[2]))
-		elif line.startswith("FILE"):
-			curtrack.track_start = timestamp_to_sectors(parts[2]) + 150
-			curtrack.track_length = timestamp_to_sectors(parts[3])
-		elif line.startswith("START"):
-			curtrack.track_offset = timestamp_to_sectors(parts[1])
-
-	f.close()
-	tracks.append(curtrack)
-	return tracks
-
-def tracks_to_offsets(tracks):
-	""" Take a list of Track objects and return a tuple of the form:
-			(first_track_num, last_track_num, offsets)
-		Where offsets is a list of track offsets. The first item of the list
-		if the offset of the leadout track.
-	"""
-	offsets = []
-	last_track = tracks[len(tracks)-1]
-
-	first_track_num = tracks[0].track_num
-	last_track_num = last_track.track_num
-
-	offsets.append(last_track.track_start + last_track.track_length)
-	for track in tracks:
-		offsets.append(track.track_start + track.track_offset)
-
-	return (first_track_num, last_track_num, offsets)
-
 
 ####################
 # cdrecord-style tocs. This code isn't really needed anymore.
