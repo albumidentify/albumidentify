@@ -35,10 +35,12 @@ import subprocess
 AMAZON_LICENSE_KEY='1WQQTEA14HEA9AERDMG2'
 
 def print_usage():
-	print "usage: " + sys.argv[0] + " <srcpath> [release-id]"
+	print "usage: " + sys.argv[0] + " <srcpath> [OPTIONS]"
 	print "  srcpath     A path containing flacs and a TOC to tag"
-	print "  release-id  The Musicbrainz release id for this disc. Use this to manually"
-	print "              specify the release when discid lookup fails."
+	print " OPTIONS:"
+	print "  --release-id=ID     The Musicbrainz release id for this disc. Use this to"
+	print "                      specify the release when discid lookup fails."
+	print "  --no-embed-coverart Don't embed the cover-art in each flac file"
 
 def get_album_art_url_for_asin(asin):
 	print "Doing an Amazon Web Services lookup for ASIN " + asin
@@ -86,14 +88,18 @@ def get_musicbrainz_release(discid = None, releaseid = None):
 
 
 def main():
-	if len(sys.argv) < 2 or len(sys.argv) > 3:
+	if len(sys.argv) < 2:
 		print_usage()
 		sys.exit(1)
 
 	releaseid = None
-	if len(sys.argv) == 3:
-		releaseid = sys.argv[2]
-		# TODO: Check format of release id
+	embedcovers = True
+
+	for option in sys.argv[2:]:
+		if option.startswith("--release-id="):
+			releaseid = option.split("=")[1].strip()
+		elif option.startswith("--no-embed-coverart"):
+			embedcovers = False
 
 	srcpath = os.path.abspath(sys.argv[1])
 
@@ -211,8 +217,15 @@ DATE=%s
 		for type in releasetypes:
 			flactags += "MUSICBRAINZ_RELEASE_ATTRIBUTE=%s\n" % musicbrainz2.utils.getReleaseTypeName(type)
 
-		p = subprocess.Popen(["metaflac", "--import-tags-from=-", os.path.join(newpath, newfilename)],
-							stdin=subprocess.PIPE)
+		proclist = ["metaflac", "--import-tags-from=-"]
+
+		if embedcovers:
+			proclist.append("--import-picture-from=" + os.path.join(newpath, "folder.jpg"))
+
+		proclist.append(os.path.join(newpath, newfilename))
+
+
+		p = subprocess.Popen(proclist, stdin=subprocess.PIPE)
 		p.stdin.write(flactags.encode("utf8"))
 		p.stdin.close()
 		p.wait()
