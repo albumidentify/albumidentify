@@ -35,7 +35,10 @@ import subprocess
 AMAZON_LICENSE_KEY='1WQQTEA14HEA9AERDMG2'
 
 def print_usage():
-	print "usage: " + sys.argv[0] + " <srcpath>"
+	print "usage: " + sys.argv[0] + " <srcpath> [release-id]"
+	print "  srcpath     A path containing flacs and a TOC to tag"
+	print "  release-id  The Musicbrainz release id for this disc. Use this to manually"
+	print "              specify the release when discid lookup fails."
 
 def get_album_art_url_for_asin(asin):
 	print "Doing an Amazon Web Services lookup for ASIN " + asin
@@ -59,24 +62,38 @@ def get_track_artist_for_track(track):
 
 	return None
 
-def get_musicbrainz_release_for_discid(discid):
+def get_musicbrainz_release(discid = None, releaseid = None):
+	if discid is None and releaseid is None:
+		raise Exception("Specify at least one of discid or releaseid")
+
 	q = ws.Query()
-	filter = ws.ReleaseFilter(discId=discid)
-	results = q.getReleases(filter=filter)
 
-	if len(results) > 1:
-		raise Exception("Ambiguous DiscID. More than one release matches")
+	# If a discid has been specified we need to look that up first to get the
+	# releaseid.
+	if discid is not None:
+		filter = ws.ReleaseFilter(discId=discid)
+		results = q.getReleases(filter=filter)
+		if len(results) > 1:
+			raise Exception("Ambiguous DiscID. More than one release matches")
 
-	if len(results) == 0:
-		raise Exception("No result for DiscID " + discid)
+		if len(results) == 0:
+			raise Exception("No result for DiscID " + discid)
+		releaseid = results[0].release.id
 
 	includes = ws.ReleaseIncludes(artist=True, tracks=True, releaseEvents=True)
-	return q.getReleaseById(id_ = results[0].release.id, include=includes)
+	return q.getReleaseById(id_ = releaseid, include=includes)
+	
+
 
 def main():
-	if len(sys.argv) != 2:
+	if len(sys.argv) < 2 or len(sys.argv) > 3:
 		print_usage()
 		sys.exit(1)
+
+	releaseid = None
+	if len(sys.argv) == 3:
+		releaseid = sys.argv[2]
+		# TODO: Check format of release id
 
 	srcpath = os.path.abspath(sys.argv[1])
 
@@ -101,8 +118,12 @@ def main():
 		disc.get_last_track_num(),
 		disc.get_track_offsets())
 
-	print "Looking up musicbrainz discid " + mb_discid 
-	release = get_musicbrainz_release_for_discid(mb_discid)
+	if releaseid is None:
+		print "Looking up musicbrainz discid " + mb_discid 
+		release = get_musicbrainz_release(discid = mb_discid)
+	else:
+		print "Looking up musicbrainz releaseid " + releaseid
+		release = get_musicbrainz_release(releaseid = releaseid)
 
 	releasetypes = release.getTypes()
 
