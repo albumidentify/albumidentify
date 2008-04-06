@@ -80,7 +80,8 @@ def get_musicbrainz_release(discid = None, releaseid = None):
 			raise Exception("No result for DiscID " + discid)
 		releaseid = results[0].release.id
 
-	includes = ws.ReleaseIncludes(artist=True, tracks=True, releaseEvents=True)
+	includes = ws.ReleaseIncludes(artist=True, tracks=True, releaseEvents=True,
+									urlRelations=True)
 	return q.getReleaseById(id_ = releaseid, include=includes)
 
 def parse_album_name(albumname):
@@ -148,7 +149,10 @@ def main():
 		elif option.startswith("--no-embed-coverart"):
 			embedcovers = False
 		elif option.startswith("--release-asin="):
-			asin = option.split("=")[1].strip()
+			asin = option.split("=",1)[1].strip()
+			# Allow the user to specify an ASIN as a URI or just the number
+			if asin.find("/") != -1:
+				asin = asin.split("/")[-1]
 
 	srcpath = os.path.abspath(sys.argv[1])
 
@@ -194,8 +198,21 @@ def main():
 	if asin is not None:
 		disc.asin = asin
 	else:
-		disc.asin = release.asin
-
+		# The ASIN specified in release.asin isn't necessarily the only ASIN
+		# for the release. Sigh. So, we need to look at the release's relations
+		# to see if there are multiple ASINs, report this to the user, and
+		# bail. The user can then choose which ASIN they want to use and
+		# specify it on the command line next time.
+		asincount = 0
+		for relation in release.getRelations():
+			if relation.getType().find("AmazonAsin") != -1:
+				asincount += 1
+				print "Amazon ASIN: " + relation.getTargetId()
+		if asincount == 1:
+			disc.asin = release.asin
+		else:
+			raise Exception("Ambiguous ASIN. Select an ASIN and specify it using --release-asin")
+			
 	# Set the compilation tag appropriately
 	if musicbrainz2.model.Release.TYPE_COMPILATION in releasetypes:
 		disc.compilation = 1
@@ -232,8 +249,6 @@ def main():
 		disc.number = int(discnumber)
 		discs = get_all_discs_in_album(disc, albumname)
 		disc.totalnumber = len(discs)
-		for d in discs:
-			print d.title
 
 	print "disc " + str(disc.number) + " of " + str(disc.totalnumber)
 	# Warning: This code doesn't actually check if the number of tracks in the
