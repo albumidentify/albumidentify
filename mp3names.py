@@ -5,7 +5,9 @@ _filename_rules = [
 	(r"[/\\]","-"), # / and \ -> -
 	(r"[?\"]",""),  # ? and " removed
 	("\x00",""),	# Urgh, \x00's in filenames would Be Bad
-	(r"[?%*:<>\"\[\]+]","_"), # Other stuff to _
+	(r"\+"," plus "), # "+" -> " plus "
+	(r":", " - "), # ":" -> " - "
+	(r"[?%*:<>\"\[\]]","_"), # Other stuff to _
 	(r"  +"," "),   # Remove duplicate spaces
 ]
 
