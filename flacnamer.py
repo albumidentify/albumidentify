@@ -39,6 +39,9 @@ def print_usage():
 	print "  --release-id=ID     The Musicbrainz release id for this disc. Use this to"
 	print "                      specify the release when discid lookup fails."
 	print "  --no-embed-coverart Don't embed the cover-art in each flac file"
+	print "  --release-asin=ASIN Manually specify the Amazon ASIN number for discs that"
+	print "                      have more than one ASIN (useful to force the correct"
+	print "                      coverart image)."
 
 def get_album_art_url_for_asin(asin):
 	print "Doing an Amazon Web Services lookup for ASIN " + asin
@@ -92,12 +95,15 @@ def main():
 
 	releaseid = None
 	embedcovers = True
+	asin = None
 
 	for option in sys.argv[2:]:
 		if option.startswith("--release-id="):
 			releaseid = option.split("=")[1].strip()
 		elif option.startswith("--no-embed-coverart"):
 			embedcovers = False
+		elif option.startswith("--release-asin="):
+			asin = option.split("=")[1].strip()
 
 	srcpath = os.path.abspath(sys.argv[1])
 
@@ -137,8 +143,11 @@ def main():
 	disc.artist = mp3names.FixArtist(release.artist.name)
 	disc.album = release.title
 	disc.year = disc.releasedate[0:4]
-	disc.asin = release.asin
 	disc.compilation = 0
+	if asin is not None:
+		disc.asin = asin
+	else:
+		disc.asin = release.asin
 
 	if musicbrainz2.model.Release.TYPE_COMPILATION in releasetypes:
 		disc.compilation = 1
