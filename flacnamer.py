@@ -7,9 +7,6 @@
 # (C) 2008 Scott Raynel <scottraynel@gmail.com>
 #
 # TODO:
-#  - Disc x of y tags - this may require looking at the musicbrainz
-#    relationships system.
-#  - Set synonymous tags for things like TOTALTRACKS, etc.
 #  - Abstract out the musicbrainz access to make it easier to switch between
 #    using the webservice and a local copy of the database
 #  - In main(), switch from iterating over the files to iterating over the
@@ -29,6 +26,7 @@ import shutil
 import urllib
 import mp3names
 import subprocess
+import re
 
 AMAZON_LICENSE_KEY='1WQQTEA14HEA9AERDMG2'
 
@@ -47,7 +45,6 @@ def get_album_art_url_for_asin(asin):
 	print "Doing an Amazon Web Services lookup for ASIN " + asin
 	item = amazon4.search_by_asin(asin, license_key=AMAZON_LICENSE_KEY, response_group="Images")
 	return item.LargeImage.URL
-
 
 def get_track_artist_for_track(track):
 	""" Returns the musicbrainz Artist object for the given track. This may
@@ -85,9 +82,57 @@ def get_musicbrainz_release(discid = None, releaseid = None):
 
 	includes = ws.ReleaseIncludes(artist=True, tracks=True, releaseEvents=True)
 	return q.getReleaseById(id_ = releaseid, include=includes)
+
+def parse_album_name(albumname):
+	""" Pull apart an album name of the form 
+			"Stadium Arcadium (disc 1: Mars)"
+		and return a tuple of the form
+			(albumtitle, discnumber, disctitle)
+		so for the above, we would return
+			("Stadium Arcadium", "1", "Mars")
+		discnumber or disctitle will be set to None if they are unavailable
+	"""
+	# Note that we use a pretty ugly pattern here so that it's easy to separate
+	# out into groups.
+	pattern = r"^(.*?)( \(disc (\d+)(: (.*))?\))?$"
+	m = re.compile(pattern).search(albumname)
+	if m is None:
+		raise Exception("Malformed album name: %s" % albumname)
+
+	g = m.groups()
+	return (g[0].strip(), g[2], g[4])
+
+def get_all_discs_in_album(disc, albumname = None): 
+	""" Given a disc, talk to musicbrainz to see how many discs are in the
+	release.  Return a list of releases which correspond to all of the discs in
+	this release. Note that there is an easier way to accomplish this using a
+	newer version of python-musicbrainz2 which allows for Lucene searching in
+	the Filter objects, so we can search directly by ASIN, which would be
+	perfect.  For now though we need to do fuzzy matching on release title and
+	album artist and then count how many resulting releases share the asin with
+	the disc we have been given.  """
+
+	releases = []
+
+	if albumname is None:
+		(albumname, discnumber, disctitle) = parse_album_name(disc.album)
+	filter = ws.ReleaseFilter(title=albumname, artistName=disc.artist)
+	q = ws.Query()
+	rels = q.getReleases(filter)
+
+	for rel in rels:
+		r = rel.getRelease()
+		# Releases can have multiple ASINs, so we need to get the entire list
+		# and check them all. Pain.
+		includes = ws.ReleaseIncludes(artist=True, urlRelations = True)
+		release = q.getReleaseById(r.id, includes)
+		for relation in release.getRelations():
+			if relation.getType().find("AmazonAsin") != -1:
+				asin = relation.getTargetId().split("/")[-1].strip()
+				if asin == disc.asin:
+					releases.append(release)
+	return releases
 	
-
-
 def main():
 	if len(sys.argv) < 2:
 		print_usage()
@@ -144,14 +189,18 @@ def main():
 	disc.album = release.title
 	disc.year = disc.releasedate[0:4]
 	disc.compilation = 0
+	disc.number = 0
+	disc.totalnumber = 0
 	if asin is not None:
 		disc.asin = asin
 	else:
 		disc.asin = release.asin
 
+	# Set the compilation tag appropriately
 	if musicbrainz2.model.Release.TYPE_COMPILATION in releasetypes:
 		disc.compilation = 1
 	
+	# Name the target folder differently for soundtracks
 	if musicbrainz2.model.Release.TYPE_SOUNDTRACK in releasetypes:
 		newpath = "Soundtrack - %s - %s" % (disc.year, disc.album)
 	else:
@@ -174,6 +223,19 @@ def main():
 	if imageurl is not None:
 		urllib.urlretrieve(imageurl, os.path.join(newpath, "folder.jpg"))
 
+	# Deal with disc x of y numbering
+	(albumname, discnumber, disctitle) = parse_album_name(disc.album)
+	if discnumber is None:
+		disc.number = 1
+		disc.totalnumber = 1
+	else:
+		disc.number = int(discnumber)
+		discs = get_all_discs_in_album(disc, albumname)
+		disc.totalnumber = len(discs)
+		for d in discs:
+			print d.title
+
+	print "disc " + str(disc.number) + " of " + str(disc.totalnumber)
 	# Warning: This code doesn't actually check if the number of tracks in the
 	# current directory matches the number of tracks in the release. It's
 	# assumed that seeing as the TOC describes this directory and the discId is
@@ -209,6 +271,7 @@ ARTIST=%s
 ALBUMARTIST=%s
 TRACKNUMBER=%s
 TRACKTOTAL=%s
+TOTALTRACKS=%s
 ALBUM=%s
 MUSICBRAINZ_ALBUMID=%s
 MUSICBRAINZ_ALBUMARTISTID=%s
@@ -216,11 +279,16 @@ MUSICBRAINZ_ARTISTID=%s
 MUSICBRAINZ_TRACKID=%s
 MUSICBRAINZ_DISCID=%s
 DATE=%s
+YEAR=%s
 COMPILATION=%s
-''' % (mbtrack.title, track_artist_name, disc.artist, str(tracknum), str(len(disc.tracks)), 
+DISC=%s
+DISCC=%s
+DISCNUMBER=%s
+DISCTOTAL=%s
+''' % (mbtrack.title, track_artist_name, disc.artist, str(tracknum), str(len(disc.tracks)), str(len(disc.tracks)), 
 			disc.album, os.path.basename(release.id), os.path.basename(release.artist.id),
-			os.path.basename(track_artist.id), os.path.basename(mbtrack.id), mb_discid, disc.releasedate,
-			str(disc.compilation))
+			os.path.basename(track_artist.id), os.path.basename(mbtrack.id), mb_discid, disc.releasedate, disc.year,
+			str(disc.compilation), str(disc.number), str(disc.totalnumber), str(disc.number), str(disc.totalnumber))
 		
 		if track.isrc is not None:
 			flactags += "ISRC=%s\n" % track.isrc
