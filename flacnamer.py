@@ -208,7 +208,7 @@ def main():
 			if relation.getType().find("AmazonAsin") != -1:
 				asincount += 1
 				print "Amazon ASIN: " + relation.getTargetId()
-		if asincount == 1:
+		if asincount == 1 or asincount == 0:
 			disc.asin = release.asin
 		else:
 			raise Exception("Ambiguous ASIN. Select an ASIN and specify it using --release-asin")
