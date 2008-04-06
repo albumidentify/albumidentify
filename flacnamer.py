@@ -9,8 +9,6 @@
 # TODO:
 #  - Disc x of y tags - this may require looking at the musicbrainz
 #    relationships system.
-#  - Set the COMPILATION tag appropriately - is a greatest hits release a
-#    compilation, or is a compilation just a release with various artists?
 #  - Set synonymous tags for things like TOTALTRACKS, etc.
 #  - Abstract out the musicbrainz access to make it easier to switch between
 #    using the webservice and a local copy of the database
@@ -140,6 +138,10 @@ def main():
 	disc.album = release.title
 	disc.year = disc.releasedate[0:4]
 	disc.asin = release.asin
+	disc.compilation = 0
+
+	if musicbrainz2.model.Release.TYPE_COMPILATION in releasetypes:
+		disc.compilation = 1
 	
 	if musicbrainz2.model.Release.TYPE_SOUNDTRACK in releasetypes:
 		newpath = "Soundtrack - %s - %s" % (disc.year, disc.album)
@@ -205,9 +207,11 @@ MUSICBRAINZ_ARTISTID=%s
 MUSICBRAINZ_TRACKID=%s
 MUSICBRAINZ_DISCID=%s
 DATE=%s
+COMPILATION=%s
 ''' % (mbtrack.title, track_artist_name, disc.artist, str(tracknum), str(len(disc.tracks)), 
 			disc.album, os.path.basename(release.id), os.path.basename(release.artist.id),
-			os.path.basename(track_artist.id), os.path.basename(mbtrack.id), mb_discid, disc.releasedate)
+			os.path.basename(track_artist.id), os.path.basename(mbtrack.id), mb_discid, disc.releasedate,
+			str(disc.compilation))
 		
 		if track.isrc is not None:
 			flactags += "ISRC=%s\n" % track.isrc
