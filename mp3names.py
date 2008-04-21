@@ -9,6 +9,7 @@ _filename_rules = [
 	(r":", " - "), # ":" -> " - "
 	(r"[?%*:<>\"\[\]]","_"), # Other stuff to _
 	(r"  +"," "),   # Remove duplicate spaces
+	(r"\.$"," "), 	# Windows doesn't deal well with filenames that end with a .
 ]
 
 def FixFilename(fname):
@@ -17,6 +18,9 @@ def FixFilename(fname):
 		fname = sre.sub(src,rpl,fname)
 			
 	fname=fname.strip() # Remove any trailing whitespace
+	if type(fname)==type(u""):
+		# Filenames are presumed to be in utf8
+		fname=fname.encode("utf8")
 	return fname
 
 
