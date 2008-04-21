@@ -44,7 +44,9 @@ def print_usage():
 def get_album_art_url_for_asin(asin):
 	print "Doing an Amazon Web Services lookup for ASIN " + asin
 	item = amazon4.search_by_asin(asin, license_key=AMAZON_LICENSE_KEY, response_group="Images")
-	return item.LargeImage.URL
+	if hasattr(item,"LargeImage"):
+		return item.LargeImage.URL
+	return None
 
 def get_track_artist_for_track(track):
 	""" Returns the musicbrainz Artist object for the given track. This may
