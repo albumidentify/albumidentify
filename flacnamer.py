@@ -191,7 +191,11 @@ def main():
 
 	disc.artist = mp3names.FixArtist(release.artist.name)
 	disc.album = release.title
-	disc.year = disc.releasedate[0:4]
+	if disc.releasedate is not None:
+		disc.year = disc.releasedate[0:4]
+	else:
+		raise Exception("Unknown year: %s %s " % (`disc.artist`,`disc.album`))
+
 	disc.compilation = 0
 	disc.number = 0
 	disc.totalnumber = 0
@@ -310,8 +314,8 @@ DISCTOTAL=%s
 		if disc.mcn is not None:
 			flactags += "MCN=%s\n" % disc.mcn
 
-		for type in releasetypes:
-			flactags += "MUSICBRAINZ_RELEASE_ATTRIBUTE=%s\n" % musicbrainz2.utils.getReleaseTypeName(type)
+		for rtype in releasetypes:
+			flactags += "MUSICBRAINZ_RELEASE_ATTRIBUTE=%s\n" % musicbrainz2.utils.getReleaseTypeName(rtype)
 
 		proclist = ["metaflac", "--import-tags-from=-"]
 
