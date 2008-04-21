@@ -10,6 +10,8 @@ class Disc:
 	def __init__(self, cdrdaotocfile = None, cdrecordtocfile = None):
 		self.mcn = None
 		self.tracks = None 
+		self.title = None
+		self.performer = None
 
 		if cdrdaotocfile is not None:
 			self.parse_cdrdao_toc(cdrdaotocfile)
@@ -68,11 +70,21 @@ class Disc:
 				curtrack.track_offset = timestamp_to_sectors(parts[1])
 			elif line.startswith("ISRC"):
 				curtrack.isrc = parts[1].strip("\"")
+			elif line.strip().startswith("TITLE"):
+				if curtrack is not None:
+					curtrack.title=" ".join(parts[1:]).strip('"')
+				else:
+					self.title=" ".join(parts[1:]).strip('"')
+			elif line.strip().startswith("PERFORMER"):
+				if curtrack is not None:
+					curtrack.performer=" ".join(parts[1:]).strip('"')
+				else:
+					self.performer=" ".join(parts[1:]).strip('"')
 		f.close()
 		self.tracks.append(curtrack)
 
 	def set_musicbrainz_tracks(self, mb_tracks):
-		""" Attack musicbrainz Track descriptions to each Track in this
+		""" Attach musicbrainz Track descriptions to each Track in this
 			Disc
 		"""
 		if len(self.tracks) != len(mb_tracks):
@@ -88,6 +100,8 @@ class Track:
 		self.track_length = 0
 		self.track_offset = 0
 		self.isrc = None
+		self.title = None
+		self.performer = None
 
 	def __repr__(self):
 		return ("<track %i, start %i, length %i, offset %i, end %i>" % (self.tracknum, self.track_start,
