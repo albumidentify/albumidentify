@@ -39,13 +39,14 @@ v2_2_0_to_v2_4_0 = {
 #	"PIC":,		# Attached Picture
 #	"POP":,		# Popularimeter
 #	"REV":,		# Reverb
-#	"RVA":,		# Relative Volume Adjustment
+	"RVA":"RVAD",	# Relative Volume Adjustment
 #	"SLT":,		# Syncronised Text/Lyrics
 #	"STC":,		# Synconrised Tempo Codes
 	"TAL":"TALB",	# Album/Movie/Show Title
-#	"TBP":,		# BPM
+	"TBP":"TBPM",		# BPM
 	"TCM":"TCOM",	# Composer
-#	"TCO":,		# Content Type
+	"TCO":"TCON",		# Content Type
+	"TCP":"TCP",	# Compilation. DEPRECATED IN 2.4
 #	"TCR":,		# Copyright Message
 #	"TDA":,		# Textual Data
 #	"TDA":,		# Date
@@ -66,7 +67,7 @@ v2_2_0_to_v2_4_0 = {
 # "TP2":,		# Band/Orchestra/Accompaniment
 # "TP3":,		# Conductor/Performer refinement
 # "TP4":,		# Interpreted, remixed, or otherwise modified by
-# "TPA":,		# Part of a set
+ "TPA":"TPOS",		# Part of a set
 # "TPB":,		# Publisher
 # "TRC":,		# ISRC (International Standard Recording Code)
 # "TRD":,		# Recording dates
@@ -88,6 +89,7 @@ v2_2_0_to_v2_4_0 = {
 # "WCP":,		# Copyright/Legal information
 # "WPB":,		# Publishers official webpage
 # "WXX":,		# User defined URL link frame
+ "CM1":"CM1",		# Hmm.  What's this?
 }
 
 genres = [ 
