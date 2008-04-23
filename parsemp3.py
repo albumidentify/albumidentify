@@ -216,7 +216,7 @@ def v2_2_0(tag):
 				if "\x00" in tagdata:
 					tagdata=tagdata[:tagdata.index("\x00")]
 				tagdata=tagdata.decode("ISO-8859-1")
-			elif tagdata[0]=="\x01": # utf8
+			elif tagdata[0]=="\x01": # utf16
 				if "\x00" in tagdata:
 					tagdata=tagdata[:tagdata.index("\x00")]
 				tagdata=parse_unicode(tagdata[1:])

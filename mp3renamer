@@ -5,6 +5,9 @@ import sys
 import os
 import traceback
 import math
+import mp3names
+import serialisemp3
+import pprint
 
 dest="/tmp"
 
@@ -17,22 +20,6 @@ def duration2str(dur):
 		(dur/60) % 60,
 		dur % 60
 	)
-
-def cleanfilename(fname):
-	while "/" in fname:
-		fname=fname.replace("/","-")
-	while "&" in fname:
-		fname=fname.replace("&"," and ")
-	fname=fname.strip() # Remove any trailing whitespace
-	while '  ' in fname:
-		fname=fname.replace('  ',' ')
-	return fname
-
-def FixName(name):
-	if name.startswith("The "):
-		name=name[4:]+", The"
-
-	return name
 
 files=[]
 for i in os.listdir(sys.argv[1]):
@@ -122,9 +109,9 @@ else:
 	classification="ugly"
 
 # Clean up filenames
-albumdata["artist"]=FixName(albumdata["artist"])
+albumdata["artist"]=mp3names.FixArtist(albumdata["artist"])
 for i in ["artist","year","albumname"]:
-	albumdata["fn-%s" % i]=cleanfilename(albumdata[i])
+	albumdata["fn-%s" % i]=mp3names.FixFilename(albumdata[i])
 
 
 # Now create the directory
@@ -135,12 +122,24 @@ except OSError, e:
 	pass
 for i in range(len(files)):
 	albumdata["tracks"][i]["artist"]=\
-		FixName(albumdata["tracks"][i]["artist"])
+		mp3names.FixArtist(albumdata["tracks"][i]["artist"])
 	for j in ["artist","name"]:
 		albumdata["tracks"][i]["fn-%s" % j]=\
-			cleanfilename(albumdata["tracks"][i][j])
+			mp3names.FixFilename(albumdata["tracks"][i][j])
 	fname=os.path.join(p,"%(track)02i - %(fn-artist)s - %(fn-name)s.mp3" % albumdata["tracks"][i])
 	print "Writing",`fname`
-	f=open(fname,"w")
-	f.write(files[i]['bitstream'])
-	f.close()
+
+	id3={
+		"TIT2" : albumdata["tracks"][i]["name"].decode("utf8"),
+		"TPE1" : albumdata["tracks"][i]["artist"].decode("utf8"),
+		"TALB" : albumdata["albumname"].decode("utf8"),
+		"TYER" : albumdata["releasedate"][:4],
+		"TDAT" : albumdata["releasedate"][8:10]+albumdata["releasedate"][5:7],
+		"TRCK" : "%d/%d" % (i+1,len(albumdata["tracks"])),
+			# +1 because humans count from 1...
+		"TLEN" : str(reduce(lambda l,r:l+r,map(lambda x:x["duration"],albumdata["tracks"]))),
+		"bitstream" : files[i]["bitstream"],
+		"COMM" : "",
+	}
+	serialisemp3.output(fname,id3)
+
