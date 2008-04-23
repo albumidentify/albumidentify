@@ -27,6 +27,7 @@ import urllib
 import mp3names
 import subprocess
 import re
+import time
 
 AMAZON_LICENSE_KEY='1WQQTEA14HEA9AERDMG2'
 
@@ -76,6 +77,8 @@ def get_musicbrainz_release(discid = None, releaseid = None):
 		filter = ws.ReleaseFilter(discId=discid)
 		results = q.getReleases(filter=filter)
 		if len(results) > 1:
+			for result in results:
+				print result.release.id
 			raise Exception("Ambiguous DiscID. More than one release matches")
 
 		if len(results) == 0:
@@ -129,6 +132,7 @@ def get_all_discs_in_album(disc, albumname = None):
 		# and check them all. Pain.
 		includes = ws.ReleaseIncludes(artist=True, urlRelations = True)
 		release = q.getReleaseById(r.id, includes)
+		time.sleep(1)
 		for relation in release.getRelations():
 			if relation.getType().find("AmazonAsin") != -1:
 				asin = relation.getTargetId().split("/")[-1].strip()
@@ -236,6 +240,7 @@ def main():
 
 	if (os.path.exists(newpath)):
 		print "Destination path already exists, skipping" 
+		time.sleep(1)
 		sys.exit(3)
 
 	os.mkdir(newpath)
@@ -339,4 +344,5 @@ DISCTOTAL=%s
 
 if __name__ == "__main__":
 	main()
+	time.sleep(1)
 	sys.exit(0)
