@@ -618,5 +618,5 @@ if __name__=="__main__":
 
 	except:
 		print
-		print "filename:",sys.argv[1]
+		print "filename:",filename
 		raise
