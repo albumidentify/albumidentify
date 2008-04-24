@@ -1,4 +1,4 @@
-import sre
+import re
 
 _filename_rules = [
 	(r"&"," and "), # & -> And
@@ -15,7 +15,7 @@ _filename_rules = [
 def FixFilename(fname):
 	"Convert a string into a form usable in a filename"
 	for (src,rpl) in _filename_rules:
-		fname = sre.sub(src,rpl,fname)
+		fname = re.sub(src,rpl,fname)
 			
 	fname=fname.strip() # Remove any trailing whitespace
 	if type(fname)==type(u""):
