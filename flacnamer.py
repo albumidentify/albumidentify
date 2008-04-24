@@ -67,29 +67,40 @@ def get_track_artist_for_track(track):
 
 	return None
 
-def get_musicbrainz_release(discid = None, releaseid = None):
-	if discid is None and releaseid is None:
+def get_release_by_releaseid(releaseid):
+	q = ws.Query()
+	includes = ws.ReleaseIncludes(artist=True, tracks=True, releaseEvents=True,
+									urlRelations=True)
+	return q.getReleaseById(id_ = releaseid, include=includes)
+
+def get_musicbrainz_release(disc):
+	if disc.discid is None and disc.releaseid is None:
 		raise Exception("Specify at least one of discid or releaseid")
 
 	q = ws.Query()
 
-	# If a discid has been specified we need to look that up first to get the
-	# releaseid.
-	if discid is not None:
-		filter = ws.ReleaseFilter(discId=discid)
-		results = q.getReleases(filter=filter)
-		if len(results) > 1:
-			for result in results:
-				print result.release.id
-			raise Exception("Ambiguous DiscID. More than one release matches")
+	# If a release id has been specified, that takes precedence
+	if disc.releaseid is not None:
+		return get_release_by_releaseid(disc.releaseid)
 
-		if len(results) == 0:
-			raise Exception("No result for DiscID " + discid)
+	# Otherwise, lookup the releaseid using the discid as a key
+	filter = ws.ReleaseFilter(discId=disc.discid)
+	results = q.getReleases(filter=filter)
+	if len(results) > 1:
+		for result in results:
+			print result.release.id
+		raise Exception("Ambiguous DiscID. More than one release matches")
+
+	# We have an exact match, use this.
+	if len(results) == 1:
 		releaseid = results[0].release.id
+		return get_release_by_releaseid(results[0].release.id)
 
-	includes = ws.ReleaseIncludes(artist=True, tracks=True, releaseEvents=True,
-									urlRelations=True)
-	return q.getReleaseById(id_ = releaseid, include=includes)
+	# Otherwise, use CD-TEXT if present to guess the release
+
+	# Last resort, use audio finger-printing to guess the release
+
+	return None
 
 def parse_album_name(albumname):
 	""" Pull apart an album name of the form 
@@ -180,17 +191,19 @@ def main():
 		sys.exit(4)
 
 	disc = toc.Disc(cdrdaotocfile=os.path.join(srcpath, tocfilename))
-	mb_discid = discid.generate_musicbrainz_discid(
-		disc.get_first_track_num(),
-		disc.get_last_track_num(),
-		disc.get_track_offsets())
 
-	if releaseid is None:
-		print "Looking up musicbrainz discid " + mb_discid 
-		release = get_musicbrainz_release(discid = mb_discid)
-	else:
-		print "Looking up musicbrainz releaseid " + releaseid
-		release = get_musicbrainz_release(releaseid = releaseid)
+	disc.discid = discid.generate_musicbrainz_discid(
+			disc.get_first_track_num(),
+			disc.get_last_track_num(),
+			disc.get_track_offsets())
+
+	if releaseid:
+		disc.releaseid = releaseid
+	
+	release = get_musicbrainz_release(disc)
+
+	if release is None:
+		raise Exception("Couldn't find a matching release. Sorry, I tried.")
 
 	releasetypes = release.getTypes()
 

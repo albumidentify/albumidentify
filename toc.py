@@ -12,6 +12,8 @@ class Disc:
 		self.tracks = None 
 		self.title = None
 		self.performer = None
+		self.discid = None
+		self.releaseid = None
 
 		if cdrdaotocfile is not None:
 			self.parse_cdrdao_toc(cdrdaotocfile)
