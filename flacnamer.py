@@ -256,6 +256,8 @@ def main():
 	if imageurl is not None:
 		print imageurl
 		urllib.urlretrieve(imageurl, os.path.join(newpath, "folder.jpg"))
+	else:
+		embedcovers = False
 
 	# Deal with disc x of y numbering
 	(albumname, discnumber, disctitle) = parse_album_name(disc.album)
