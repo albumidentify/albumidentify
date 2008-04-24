@@ -28,6 +28,7 @@ import mp3names
 import subprocess
 import re
 import time
+import submit #musicbrainz_submission_url()
 
 AMAZON_LICENSE_KEY='1WQQTEA14HEA9AERDMG2'
 
@@ -67,13 +68,39 @@ def get_track_artist_for_track(track):
 
 	return None
 
+def get_releases_by_metadata(disc):
+	""" Given a Disc object, use the performer, title and number of tracks to
+	lookup the release in musicbrainz. This method returns a list of possible
+	results, or the empty list if there were no matches. """
+
+	releases = []
+
+	q = ws.Query()
+	filter = ws.ReleaseFilter(title=disc.title, artistName=disc.performer)
+	rels = q.getReleases(filter)
+	
+	# Filter out of the list releases with a different number of tracks to the
+	# Disc.
+	for rel in rels:
+		release = rel.getRelease()
+		if release.getTracksCount() == len(disc.tracks):
+			releases.append(get_release_by_releaseid(release.id))
+
+	return releases
+
+
 def get_release_by_releaseid(releaseid):
+	""" Given a musicbrainz release-id, fetch the release from musicbrainz. """
 	q = ws.Query()
 	includes = ws.ReleaseIncludes(artist=True, tracks=True, releaseEvents=True,
 									urlRelations=True)
 	return q.getReleaseById(id_ = releaseid, include=includes)
 
 def get_musicbrainz_release(disc):
+	""" Given a Disc object, try a bunch of methods to look up the release in
+	musicbrainz.  If a releaseid is specified, use this, otherwise search by
+	discid, then search by CD-TEXT and finally search by audio-fingerprinting.
+	"""
 	if disc.discid is None and disc.releaseid is None:
 		raise Exception("Specify at least one of discid or releaseid")
 
@@ -97,9 +124,25 @@ def get_musicbrainz_release(disc):
 		return get_release_by_releaseid(results[0].release.id)
 
 	# Otherwise, use CD-TEXT if present to guess the release
+	if disc.performer is not None and disc.title is not None:
+		print "Trying to look up release via CD-TEXT"
+		print "Performer: " + disc.performer
+		print "Title    : " + disc.title
+		results = get_releases_by_metadata(disc)
+		if len(results) == 1:
+			print "Got result via CD-TEXT lookup!"
+			print "Suggest submitting TOC and discID to musicbrainz:"
+			print "Release URL: " + results[0].id + ".html"
+			print "Submit URL : " + submit.musicbrainz_submission_url(disc)
+			return results[0]
+		elif len(results) > 1:
+			for release in results:
+				print release.id
+			raise Exception("Ambiguous CD-TEXT. Select a release with --release-id")
+		else:
+			print "No results from CD-TEXT lookup."
 
 	# Last resort, use audio finger-printing to guess the release
-
 	return None
 
 def parse_album_name(albumname):
@@ -197,6 +240,8 @@ def main():
 			disc.get_last_track_num(),
 			disc.get_track_offsets())
 
+	print "discID: " + disc.discid
+
 	if releaseid:
 		disc.releaseid = releaseid
 	
@@ -204,6 +249,8 @@ def main():
 
 	if release is None:
 		raise Exception("Couldn't find a matching release. Sorry, I tried.")
+
+	print "release id: " + release.id
 
 	releasetypes = release.getTypes()
 

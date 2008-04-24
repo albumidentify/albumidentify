@@ -17,22 +17,26 @@ def parse_toc(srcpath):
 
         return toc.Disc(cdrdaotocfile=os.path.join(srcpath, tocfilename))
 
-disctoc=parse_toc(sys.argv[1])
-
-print "Title:",disctoc.title
-print "Performer:",disctoc.performer
-print urlparse.urlunparse((
-	'http',
-	'musicbrainz.org',
-	'/bare/cdlookup.html',
-	'',
-	urllib.urlencode({ 'id' : discid.generate_musicbrainz_discid(
+def musicbrainz_submission_url(disctoc):
+	return  urlparse.urlunparse((
+		'http',
+		'musicbrainz.org',
+		'/bare/cdlookup.html',
+		'',
+		urllib.urlencode({ 'id' : discid.generate_musicbrainz_discid(
+				disctoc.get_first_track_num(),
+				disctoc.get_last_track_num(),
+				disctoc.get_track_offsets()),
+		  'toc' : " ".join(map(str,[
 			disctoc.get_first_track_num(),
-			disctoc.get_last_track_num(),
-			disctoc.get_track_offsets()),
-	  'toc' : " ".join(map(str,[
-		disctoc.get_first_track_num(),
-		disctoc.get_last_track_num()]+disctoc.get_track_offsets())),
-	  'tracks' : len(disctoc.get_track_offsets()) }),
-	''
-))
+			disctoc.get_last_track_num()]+disctoc.get_track_offsets())),
+		  'tracks' : len(disctoc.get_track_offsets()) }),
+		''
+	))
+
+if __name__ == "__main__":
+	disctoc=parse_toc(sys.argv[1])
+	print "Title:",disctoc.title
+	print "Performer:",disctoc.performer
+	print musicbrainz_submission_url(disctoc)
+
