@@ -43,6 +43,8 @@ def print_usage():
 	print "                      coverart image)."
 
 def get_album_art_url_for_asin(asin):
+	if asin is None:
+		return None
 	print "Doing an Amazon Web Services lookup for ASIN " + asin
 	item = amazon4.search_by_asin(asin, license_key=AMAZON_LICENSE_KEY, response_group="Images")
 	if hasattr(item,"LargeImage"):
@@ -218,10 +220,14 @@ def main():
 			if relation.getType().find("AmazonAsin") != -1:
 				asincount += 1
 				print "Amazon ASIN: " + relation.getTargetId()
-		if asincount == 1 or asincount == 0:
+		if asincount == 1:
 			disc.asin = release.asin
+		elif asincount == 0:
+			print "WARNING: No ASIN for this release"
+			disc.asin = None
 		else:
-			raise Exception("Ambiguous ASIN. Select an ASIN and specify it using --release-asin")
+			print "WARNING: Ambiguous ASIN. Select an ASIN and specify it using --release-asin"
+			disc.asin = None
 			
 	# Set the compilation tag appropriately
 	if musicbrainz2.model.Release.TYPE_COMPILATION in releasetypes:
@@ -247,8 +253,8 @@ def main():
 
 	# Get album art
 	imageurl = get_album_art_url_for_asin(disc.asin)
-	print imageurl
 	if imageurl is not None:
+		print imageurl
 		urllib.urlretrieve(imageurl, os.path.join(newpath, "folder.jpg"))
 
 	# Deal with disc x of y numbering
@@ -257,6 +263,9 @@ def main():
 		disc.number = 1
 		disc.totalnumber = 1
 	else:
+		if disc.asin is None:
+			raise Exception("This disc is part of a multi-disc set, but we have no ASIN!")
+
 		disc.number = int(discnumber)
 		discs = get_all_discs_in_album(disc, albumname)
 		disc.totalnumber = len(discs)
