@@ -88,6 +88,17 @@ def get_releases_by_metadata(disc):
 
 	return releases
 
+def get_track_by_puid(puid):
+	""" Lookup a PUID in the musicbrainz databased and return the associated
+	Track object """
+	q = ws.Query()
+	
+
+def get_release_by_puids(disc):
+	""" Given a Disc, look up the tracks via their PUIDs and find the release
+	that they all appear on. """
+	for t in disc.tracks:
+		tr = get_track_by_puid(t.puid)
 
 def get_release_by_releaseid(releaseid):
 	""" Given a musicbrainz release-id, fetch the release from musicbrainz. """
@@ -235,6 +246,7 @@ def main():
 
 	disc = toc.Disc(cdrdaotocfile=os.path.join(srcpath, tocfilename))
 
+	disc.tocfilename = tocfilename
 	disc.discid = discid.generate_musicbrainz_discid(
 			disc.get_first_track_num(),
 			disc.get_last_track_num(),
@@ -252,7 +264,7 @@ def main():
 
 	print "release id: " + release.id
 
-	releasetypes = release.getTypes()
+	disc.releasetypes = release.getTypes()
 
 	disc.set_musicbrainz_tracks(release.getTracks())
 	disc.releasedate = release.getEarliestReleaseDate()
@@ -290,11 +302,11 @@ def main():
 			disc.asin = None
 			
 	# Set the compilation tag appropriately
-	if musicbrainz2.model.Release.TYPE_COMPILATION in releasetypes:
+	if musicbrainz2.model.Release.TYPE_COMPILATION in disc.releasetypes:
 		disc.compilation = 1
 	
 	# Name the target folder differently for soundtracks
-	if musicbrainz2.model.Release.TYPE_SOUNDTRACK in releasetypes:
+	if musicbrainz2.model.Release.TYPE_SOUNDTRACK in disc.releasetypes:
 		newpath = "Soundtrack - %s - %s" % (disc.year, disc.album)
 	else:
 		newpath = "%s - %s - %s" % (disc.artist, disc.year, disc.album)
@@ -333,6 +345,9 @@ def main():
 		disc.totalnumber = len(discs)
 
 	print "disc " + str(disc.number) + " of " + str(disc.totalnumber)
+	flacname(disc, release, srcpath, newpath, embedcovers)
+
+def flacname(disc, release, srcpath, newpath, embedcovers=False, move=False):
 	# Warning: This code doesn't actually check if the number of tracks in the
 	# current directory matches the number of tracks in the release. It's
 	# assumed that seeing as the TOC describes this directory and the discId is
@@ -392,7 +407,7 @@ DISCTOTAL=%s
 		if disc.mcn is not None:
 			flactags += "MCN=%s\n" % disc.mcn
 
-		for rtype in releasetypes:
+		for rtype in disc.releasetypes:
 			flactags += "MUSICBRAINZ_RELEASE_ATTRIBUTE=%s\n" % musicbrainz2.utils.getReleaseTypeName(rtype)
 
 		proclist = ["metaflac", "--import-tags-from=-"]
@@ -402,14 +417,13 @@ DISCTOTAL=%s
 
 		proclist.append(os.path.join(newpath, newfilename))
 
-
 		p = subprocess.Popen(proclist, stdin=subprocess.PIPE)
 		p.stdin.write(flactags.encode("utf8"))
 		p.stdin.close()
 		p.wait()
 
-	print os.path.join(srcpath, tocfilename) + " -> " + os.path.join(newpath, "data.toc")
-	shutil.copyfile(os.path.join(srcpath, tocfilename), os.path.join(newpath, "data.toc"))
+	print os.path.join(srcpath, disc.tocfilename) + " -> " + os.path.join(newpath, "data.toc")
+	shutil.copyfile(os.path.join(srcpath, disc.tocfilename), os.path.join(newpath, "data.toc"))
 	#os.system("rm \"%s\" -rf" % srcpath)
 	
 

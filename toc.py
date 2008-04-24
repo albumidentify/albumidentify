@@ -104,6 +104,7 @@ class Track:
 		self.isrc = None
 		self.title = None
 		self.performer = None
+		self.puid = None
 
 	def __repr__(self):
 		return ("<track %i, start %i, length %i, offset %i, end %i>" % (self.tracknum, self.track_start,
