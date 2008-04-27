@@ -17,13 +17,18 @@ success = 0
 unk_year = 0
 multi = 0
 fails = 0
+unprocessed = 0
 
 for d in sys.argv[1:]:
-	f = open(os.path.join(d, "result.txt"), 'r')
-	s = f.read()
-	f.close()
 	total = total + 1
 	failure = 0
+	fname=os.path.join(d, "result.txt")
+	if not os.path.exists(fname):
+		unprocessed = unprocessed + 1
+		continue
+	f = open(fname, 'r')
+	s = f.read()
+	f.close()
 	if s.find("Ambiguous ASIN") != -1:
 		amb_asin = amb_asin + 1
 	if s.find("Exception: Couldn't find a") != -1:
@@ -45,14 +50,17 @@ for d in sys.argv[1:]:
 
 	if failure == 1:
 		fails = fails + 1
+	else:
+		success = success + 1
 	s = ""
 
-print "Total Discs    : " + str(total)
-print "Failures       : " + str(fails)
-print "  No Match     : " + str(no_match)
-print "  Unknown year : " + str(unk_year)
-print "  Ambig. Discid: " + str(amb_discid)
-print "  Multi disc   : " + str(multi)
-print "Successful     : " + str(success)
-print "  No ASIN      : " + str(no_asin)
-print "  Ambig. ASIN  : " + str(amb_asin)
+print "Total Discs    : %3d" % (total)
+print "Failures       : %3d" % (fails)
+print "  No Match     : %3d" % (no_match)
+print "  Unknown year : %3d" % (unk_year)
+print "  Ambig. Discid: %3d" % (amb_discid)
+print "  Multi disc   : %3d" % (multi)
+print "Successful     : %3d" % (success)
+print "  No ASIN      : %3d" % (no_asin)
+print "  Ambig. ASIN  : %3d" % (amb_asin)
+print "Unprocessed    : %3d" % (unprocessed)
