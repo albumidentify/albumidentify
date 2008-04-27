@@ -421,14 +421,14 @@ def parsemp3(fname):
 		try:
 			bitrate=bitratetbl[version][layer][(b>>4)&0x0F]*1000
 		except:
-			errors.append("Unknown bitrate, V%d/%d enc: %d" %
-				(version,layer,(b>>4)&0x0f))
+			errors.append(("error","Unknown bitrate, V%d/%d enc: %d" %
+				(version,layer,(b>>4)&0x0f)))
 			continue
 		try:
 			samplerate=sampleratetbl[version][(b>>2)&0x03]
 		except:
-			errors.append("Unknown samplerate, v%d enc: %d" % 
-				(version,(b>>2)&0x03))
+			errors.append(("error","Unknown samplerate, v%d enc: %d" % 
+				(version,(b>>2)&0x03)))
 			continue
 
 		padding=(b>>1)&0x01
@@ -485,6 +485,7 @@ def parsemp3(fname):
 		unknowns.append((frames,unknown))
 		unknown=""
 	return { 
+		"filename" : fname,
 		"duration" : duration,
 		"frames": frames,
 		"bitrates":bitrates,
@@ -503,7 +504,7 @@ def validate(song):
 	for i in ["v1","v2","ape","lyrics"]:
 		for j in song[i]:
 			if type(song[i][j])==type(u"") and song[i][j].strip()!=song[i][j]:
-				errors.append("%s %s tag has bad whitespace (%s)" % (i,j,`song[i][j]`))
+				errors.append(("warning","%s %s tag has bad whitespace (%s)" % (i,j,`song[i][j]`)))
 		for j in ["v1","v2","ape","lyrics"]:
 			# No point in comparing stuff against itself
 			if i>=j:
@@ -545,24 +546,20 @@ def validate(song):
 				# Is one tag truncated?
 				if len(itagvalue)<len(jtagvalue):
 					if type(jtagvalue)==type(u"") and jtagvalue.startswith(itagvalue):
-						errors.append("%s %s tag truncated: (%s: %s vs %s: %s)" % (i,itagname,i,`itagvalue`,j,`jtagvalue`))
+						errors.append(("warning","%s %s tag truncated: (%s: %s vs %s: %s)" % (i,itagname,i,`itagvalue`,j,`jtagvalue`)))
 						continue
 				elif len(jtagvalue)<len(itagvalue):
 					if type(itagvalue)==type(u"") and itagvalue.startswith(jtagvalue):
-						errors.append("%s %s tag truncated: (%s: %s vs %s: %s)" % (j,jtagname,j,`jtagvalue`,i,`itagvalue`))
+						errors.append(("warning","%s %s tag truncated: (%s: %s vs %s: %s)" % (j,jtagname,j,`jtagvalue`,i,`itagvalue`)))
 						continue
 				# Is there case differences?
 				if type(itagvalue)==type(u"") and itagvalue.lower()==jtagvalue.lower():
-					errors.append("%s %s tag and %s %s tag differ in case (%s: %s vs %s: %s)" % (i,itagname,j,jtagname,i,`itagvalue`,j,`jtagvalue`))
+					errors.append(("warning","%s %s tag and %s %s tag differ in case (%s: %s vs %s: %s)" % (i,itagname,j,jtagname,i,`itagvalue`,j,`jtagvalue`)))
 					continue
 
-				errors.append("%s %s tag and %s %s tag don't match (%s: %s vs %s: %s)" % (i,itagname,j,jtagname,i,`itagvalue`,j,`jtagvalue`))
+				errors.append(("warning","%s %s tag and %s %s tag don't match (%s: %s vs %s: %s)" % (i,itagname,j,jtagname,i,`itagvalue`,j,`jtagvalue`)))
 					
-			
-
 	return errors
-
-	
 
 if __name__=="__main__":
 	import sys

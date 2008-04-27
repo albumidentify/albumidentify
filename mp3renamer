@@ -52,9 +52,9 @@ errors=[]
 tracks=[]
 for i in files:
 	if i["v2"]["TALB"]!=album:
-		errors.append("Album name disagrement %s vs %s" % (album,i["v2"]["TALB"]))
+		errors.append(("warning","Album name disagrement %s vs %s" % (album,i["v2"]["TALB"])))
 	if i["v2"]["TYER"]!=year:
-		errors.append("Year disagrement %s vs %s" % (year,i["v2"]["TYER"]))
+		errors.append(("warning","Year disagrement %s vs %s" % (year,i["v2"]["TYER"])))
 	tracks.append(int(i["v2"]["TRCK"]))
 
 #tracks.sort()
@@ -64,7 +64,7 @@ for i in files:
 track=1
 for i in tracks:
 	while i>track:
-		errors.append("Missing track %d" % i)
+		errors.append(("error","Missing track %d" % i))
 		track=track+1
 	track=track+1
 
@@ -143,3 +143,18 @@ for i in range(len(files)):
 	}
 	serialisemp3.output(fname,id3)
 
+
+# Write out a log file for us
+errfname = os.path.join(p,"renamer.log")
+f=open(errfname,"w")
+for i in files:
+	if i["errors"]:
+		print >>f,i["filename"],":"
+		for j in i["errors"]:
+			print >>f,i
+		print >>f
+if errors:
+	print >>f,"album errors:"
+	for i in errors:
+		print >>f,i
+f.close()
