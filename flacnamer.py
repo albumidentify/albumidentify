@@ -29,8 +29,11 @@ import subprocess
 import re
 import time
 import submit #musicbrainz_submission_url()
+import fingerprint
+import musicdns
 
 AMAZON_LICENSE_KEY='1WQQTEA14HEA9AERDMG2'
+MUSICDNS_KEY='a7f6063296c0f1c9b75c7f511861b89b'
 
 def print_usage():
 	print "usage: " + sys.argv[0] + " <srcpath> [OPTIONS]"
@@ -82,30 +85,89 @@ def get_releases_by_metadata(disc):
 	# Filter out of the list releases with a different number of tracks to the
 	# Disc.
 	for rel in rels:
-		release = rel.getRelease()
-		if release.getTracksCount() == len(disc.tracks):
-			releases.append(get_release_by_releaseid(release.id))
+		release = get_release_by_releaseid(rel.id)
+		if len(release.getTracks()) == len(disc.tracks):
+			releases.append(rel)
 
 	return releases
 
-def get_track_by_puid(puid):
-	""" Lookup a PUID in the musicbrainz databased and return the associated
-	Track object """
+def get_tracks_by_puid(puid):
+	""" Lookup a list of musicbrainz tracks by PUID. Returns a list of Track
+	objects. """ 
 	q = ws.Query()
-	
-
-def get_release_by_puids(disc):
-	""" Given a Disc, look up the tracks via their PUIDs and find the release
-	that they all appear on. """
-	for t in disc.tracks:
-		tr = get_track_by_puid(t.puid)
+	filter = ws.TrackFilter(puid=puid)
+	results = []
+	rs = q.getTracks(filter=filter)
+	for r in rs:
+		results.append(r.getTrack())
+	return results
 
 def get_release_by_releaseid(releaseid):
 	""" Given a musicbrainz release-id, fetch the release from musicbrainz. """
 	q = ws.Query()
-	includes = ws.ReleaseIncludes(artist=True, tracks=True, releaseEvents=True,
+	includes = ws.ReleaseIncludes(artist=True, counts=True, tracks=True, releaseEvents=True,
 									urlRelations=True)
 	return q.getReleaseById(id_ = releaseid, include=includes)
+
+def track_number(tracks, trackname):
+	""" Lookup trackname in a list of tracks and return the track number
+	(indexed starting at 1) """
+	tracknum = 1
+	for t in tracks:
+		if t.title == trackname:
+			return tracknum
+		tracknum += 1
+	return -1
+
+def get_release_by_fingerprints(disc):
+	""" Try to determine the release of a disc based on audio fingerprinting each track. 
+	"""
+	possible_releases = {}
+	tracknum = 0
+	for t in disc.tracks:
+		tracknum += 1
+
+		print "Decoding..."
+		tmp = os.tmpnam() + ".wav"
+		os.system("flac -d --totally-silent -o " +  tmp +  " " + t.filename)
+
+		print "Fingerprinting..."
+		(fp, duration) = fingerprint.fingerprint(tmp)
+		(artist, trackname, puid) = musicdns.lookup_fingerprint(fp, duration, MUSICDNS_KEY)
+		os.unlink(tmp)
+		if puid is None:
+			print "Fingerprinting for " + t.filename + " failed."
+			continue
+		print "Fingerprinting for " + t.filename + " succeeded."
+		print " PUID: " + puid
+
+		tracks = get_tracks_by_puid(puid)
+		for track in tracks:
+			print "  Could be " + track.id
+			releases = track.getReleases()
+			for r in releases:
+				print "     Which is on " + r.id
+				release = get_release_by_releaseid(r.id)
+
+				# Filter releases with the wrong number of tracks
+				if len(release.getTracks()) != len(disc.tracks):
+					print "      Which has " + str(len(release.getTracks())) + " tracks instead of " + str(len(disc.tracks))
+					continue
+				
+				# Filter releases where this track is not in the correct
+				# position.
+				if track_number(release.getTracks(), track.title) != tracknum:
+					print "      Incorrect track number"
+					continue
+
+				if possible_releases.has_key(release.id):
+					possible_releases[release.id] += 1
+				else:
+					possible_releases[release.id] = 1
+	print "Found " + str(len(possible_releases.keys())) + " possible releases"
+	for r in possible_releases.keys():
+		print r + " (" + str(possible_releases[r]) + ")"
+	return possible_releases.keys()
 
 def get_musicbrainz_release(disc):
 	""" Given a Disc object, try a bunch of methods to look up the release in
@@ -154,6 +216,18 @@ def get_musicbrainz_release(disc):
 			print "No results from CD-TEXT lookup."
 
 	# Last resort, use audio finger-printing to guess the release
+	releases = get_release_by_fingerprints(disc)
+	if len(releases) == 1:
+		release = get_release_by_releaseid(releases[0])
+		print "Got result via audio fingerprinting!"
+		print "Suggest submitting TOC and discID to musicbrainz:"
+		print "Release URL: " + release.id + ".html"
+		print "Submit URL : " + submit.musicbrainz_submission_url(disc)
+		return release
+	elif len(releases) > 1:
+		raise Exception("Ambiguous PUID matches. Select a release with --release-id")
+	else:
+		print "No results from fingerprinting."
 	return None
 
 def parse_album_name(albumname):
@@ -251,6 +325,9 @@ def main():
 			disc.get_first_track_num(),
 			disc.get_last_track_num(),
 			disc.get_track_offsets())
+
+	for i in range(len(disc.tracks)):
+		disc.tracks[i].filename = os.path.join(srcpath,  "track" + str(i + 1).zfill(2) + ".flac")
 
 	print "discID: " + disc.discid
 
@@ -429,5 +506,6 @@ DISCTOTAL=%s
 
 if __name__ == "__main__":
 	main()
+	print "Success"
 	time.sleep(1)
 	sys.exit(0)
