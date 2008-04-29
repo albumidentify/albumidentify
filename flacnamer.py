@@ -36,6 +36,15 @@ AMAZON_LICENSE_KEY='1WQQTEA14HEA9AERDMG2'
 MUSICDNS_KEY='a7f6063296c0f1c9b75c7f511861b89b'
 lastwsquery = time.time()
 
+def waitforws(cb):
+	global lastwsquery
+	if time.time()-lastwsquery<2:
+		wait=2-(time.time()-lastwsquery)
+		time.sleep(wait)
+	ret=cb()
+	lastwsquery=time.time()
+	return ret
+
 def print_usage():
 	print "usage: " + sys.argv[0] + " <srcpath> [OPTIONS]"
 	print "  srcpath     A path containing flacs and a TOC to tag"
@@ -65,7 +74,7 @@ def get_track_artist_for_track(track):
 
 	q = ws.Query()
 	includes = ws.TrackIncludes(artist = True)
-	t = q.getTrackById(track.id, includes)
+	t = waitforws(lambda :q.getTrackById(track.id, includes))
 
 	if t is not None:
 		return t.artist
@@ -81,7 +90,7 @@ def get_releases_by_metadata(disc):
 
 	q = ws.Query()
 	filter = ws.ReleaseFilter(title=disc.title, artistName=disc.performer)
-	rels = q.getReleases(filter)
+	rels = waitforws(lambda :q.getReleases(filter))
 	
 	# Filter out of the list releases with a different number of tracks to the
 	# Disc.
@@ -96,14 +105,10 @@ def get_releases_by_metadata(disc):
 def get_tracks_by_puid(puid):
 	""" Lookup a list of musicbrainz tracks by PUID. Returns a list of Track
 	objects. """ 
-	global lastwsquery
 	q = ws.Query()
 	filter = ws.TrackFilter(puid=puid)
 	results = []
-	if time.time()-lastwsquery<2:
-		time.sleep(time.time()-lastwsquery)
-	rs = q.getTracks(filter=filter)
-	lastwsquery=time.time()
+	rs = waitforws(lambda :q.getTracks(filter=filter))
 	for r in rs:
 		results.append(r.getTrack())
 	return results
@@ -111,8 +116,8 @@ def get_tracks_by_puid(puid):
 def get_release_by_releaseid(releaseid):
 	""" Given a musicbrainz release-id, fetch the release from musicbrainz. """
 	q = ws.Query()
-	includes = ws.ReleaseIncludes(artist=True, counts=True, tracks=True, releaseEvents=True,
-									urlRelations=True)
+	includes = waitforws(lambda :ws.ReleaseIncludes(artist=True, counts=True, tracks=True, releaseEvents=True,
+									urlRelations=True))
 	return q.getReleaseById(id_ = releaseid, include=includes)
 
 def track_number(tracks, trackname):
@@ -190,7 +195,7 @@ def get_musicbrainz_release(disc):
 
 	# Otherwise, lookup the releaseid using the discid as a key
 	filter = ws.ReleaseFilter(discId=disc.discid)
-	results = q.getReleases(filter=filter)
+	results = waitforws(lambda :q.getReleases(filter=filter))
 	if len(results) > 1:
 		for result in results:
 			print result.release.id
@@ -270,7 +275,7 @@ def get_all_discs_in_album(disc, albumname = None):
 		(albumname, discnumber, disctitle) = parse_album_name(disc.album)
 	filter = ws.ReleaseFilter(title=albumname, artistName=disc.artist)
 	q = ws.Query()
-	rels = q.getReleases(filter)
+	rels = waitforws(lambda :q.getReleases(filter))
 
 	for rel in rels:
 		r = rel.getRelease()
