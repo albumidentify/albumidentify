@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2.5
 #
 # Test out the various components of audio-fingerprinting
 #
