@@ -55,6 +55,9 @@ def print_usage():
 	print "  --release-asin=ASIN Manually specify the Amazon ASIN number for discs that"
 	print "                      have more than one ASIN (useful to force the correct"
 	print "                      coverart image)."
+	print "  --year=YEAR         Overwrite the album release year.  Use to force a"
+	print "                      re-issue to the date of the original release or to"
+	print "                      provide a date where one is missing"
 
 def get_album_art_url_for_asin(asin):
 	if asin is None:
@@ -299,6 +302,7 @@ def main():
 	releaseid = None
 	embedcovers = True
 	asin = None
+	year = None
 
 	for option in sys.argv[2:]:
 		if option.startswith("--release-id="):
@@ -310,6 +314,8 @@ def main():
 			# Allow the user to specify an ASIN as a URI or just the number
 			if asin.find("/") != -1:
 				asin = asin.split("/")[-1]
+		elif option.startswith("--year="):
+			year = option.split("=")[1].strip()
 
 	srcpath = os.path.abspath(sys.argv[1])
 
@@ -351,7 +357,7 @@ def main():
 	if release is None:
 		raise Exception("Couldn't find a matching release. Sorry, I tried.")
 
-	print "release id: " + release.id
+	print "release id: %s.html" % (release.id)
 
 	disc.releasetypes = release.getTypes()
 
@@ -360,7 +366,9 @@ def main():
 
 	disc.artist = mp3names.FixArtist(release.artist.name)
 	disc.album = release.title
-	if disc.releasedate is not None:
+	if year is not None:
+		disc.year = year
+	elif disc.releasedate is not None:
 		disc.year = disc.releasedate[0:4]
 	else:
 		raise Exception("Unknown year: %s %s " % (`disc.artist`,`disc.album`))
