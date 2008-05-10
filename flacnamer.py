@@ -58,6 +58,7 @@ def print_usage():
 	print "  --year=YEAR         Overwrite the album release year.  Use to force a"
 	print "                      re-issue to the date of the original release or to"
 	print "                      provide a date where one is missing"
+	print "  -n                  Don't actually tag and rename files"
 
 def get_album_art_url_for_asin(asin):
 	if asin is None:
@@ -303,6 +304,7 @@ def main():
 	embedcovers = True
 	asin = None
 	year = None
+	noact = False
 
 	for option in sys.argv[2:]:
 		if option.startswith("--release-id="):
@@ -316,12 +318,17 @@ def main():
 				asin = asin.split("/")[-1]
 		elif option.startswith("--year="):
 			year = option.split("=")[1].strip()
+		elif option.startswith("-n"):
+			noact = True
 
 	srcpath = os.path.abspath(sys.argv[1])
 
 	if not os.path.exists(srcpath):
 		print_usage()
 		sys.exit(2)
+	
+	if not noact:
+		print "Performing dry-run"
 
 	print "Source path: " + srcpath
 
@@ -417,13 +424,15 @@ def main():
 		print "Destination path already exists, skipping" 
 		sys.exit(3)
 
-	os.mkdir(newpath)
+	if not noact:
+		os.mkdir(newpath)
 
 	# Get album art
 	imageurl = get_album_art_url_for_asin(disc.asin)
 	if imageurl is not None:
 		print imageurl
-		urllib.urlretrieve(imageurl, os.path.join(newpath, "folder.jpg"))
+		if not noact:
+			urllib.urlretrieve(imageurl, os.path.join(newpath, "folder.jpg"))
 	else:
 		embedcovers = False
 
@@ -441,9 +450,9 @@ def main():
 		disc.totalnumber = len(discs)
 
 	print "disc " + str(disc.number) + " of " + str(disc.totalnumber)
-	flacname(disc, release, srcpath, newpath, embedcovers)
+	flacname(disc, release, srcpath, newpath, embedcovers, noact)
 
-def flacname(disc, release, srcpath, newpath, embedcovers=False, move=False):
+def flacname(disc, release, srcpath, newpath, embedcovers=False, noact=False, move=False):
 	# Warning: This code doesn't actually check if the number of tracks in the
 	# current directory matches the number of tracks in the release. It's
 	# assumed that seeing as the TOC describes this directory and the discId is
@@ -472,7 +481,8 @@ def flacname(disc, release, srcpath, newpath, embedcovers=False, move=False):
 		newfilename = mp3names.FixFilename(newfilename)
 
 		print os.path.join(srcpath, file) + " -> " + os.path.join(newpath, newfilename)
-		shutil.copyfile(os.path.join(srcpath, file), os.path.join(newpath, newfilename))
+		if not noact:
+			shutil.copyfile(os.path.join(srcpath, file), os.path.join(newpath, newfilename))
 
 		flactags = '''TITLE=%s
 ARTIST=%s
@@ -513,13 +523,15 @@ DISCTOTAL=%s
 
 		proclist.append(os.path.join(newpath, newfilename))
 
-		p = subprocess.Popen(proclist, stdin=subprocess.PIPE)
-		p.stdin.write(flactags.encode("utf8"))
-		p.stdin.close()
-		p.wait()
+		if not noact:
+			p = subprocess.Popen(proclist, stdin=subprocess.PIPE)
+			p.stdin.write(flactags.encode("utf8"))
+			p.stdin.close()
+			p.wait()
 
 	print os.path.join(srcpath, disc.tocfilename) + " -> " + os.path.join(newpath, "data.toc")
-	shutil.copyfile(os.path.join(srcpath, disc.tocfilename), os.path.join(newpath, "data.toc"))
+	if not noact:
+		shutil.copyfile(os.path.join(srcpath, disc.tocfilename), os.path.join(newpath, "data.toc"))
 	#os.system("rm \"%s\" -rf" % srcpath)
 	
 
