@@ -144,7 +144,7 @@ def get_release_by_fingerprints(disc):
 
 		tmp = os.tmpnam() + ".wav"
 		if os.system("flac -d --totally-silent -o " +  tmp +  " " + t.filename)!=0:
-			raise Exception("flac %s failed!" % t.filanem )
+			raise Exception("flac %s failed!" % t.filename )
 
 		(fp, duration) = fingerprint.fingerprint(tmp)
 		(artist, trackname, puid) = musicdns.lookup_fingerprint(fp, duration, MUSICDNS_KEY)
@@ -327,7 +327,7 @@ def main():
 		print_usage()
 		sys.exit(2)
 	
-	if not noact:
+	if noact:
 		print "Performing dry-run"
 
 	print "Source path: " + srcpath
