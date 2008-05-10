@@ -17,15 +17,15 @@ def get_album_info(artist,album):
 		JOIN artist AS trackartist ON track.artist = trackartist.id
 		JOIN artist AS albumartist ON album.artist = albumartist.id
 		JOIN release ON release.album = album.id
-		JOIN artistalias AS albumartistalias ON albumartistalias.ref = albumartist.id
-		WHERE (lower(albumartist.name) = lower(%s) 
-			OR lower(albumartistalias.name) = lower(%s)
-			OR lower(albumartist.sortname) = lower(%s))
-		AND lower(album.name) = lower(%s) 
+		LEFT JOIN artistalias AS albumartistalias ON albumartistalias.ref = albumartist.id
+		WHERE (lower(albumartist.name) = lower(%(albumartist)s) 
+			OR lower(albumartistalias.name) = lower(%(albumartist)s)
+			OR lower(albumartist.sortname) = lower(%(albumartist)s))
+		AND lower(album.name) = lower(%(albumname)s) 
 		GROUP BY albumjoin.album, albumjoin.sequence, albumname,
 			trackartist, albumartist, track.length, trackname
 		ORDER BY albumjoin.album,sequence
-		""",(artist,artist,artist,album))
+		""",{"albumname" : album, "albumartist" : artist})
 
 	oldalbum=None
 	albums=[]
