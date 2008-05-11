@@ -429,7 +429,12 @@ def main():
 
 	# Get album art
 	imageurl = get_album_art_url_for_asin(disc.asin)
-	if imageurl is not None:
+	# Check for manual image
+	if os.path.exists(os.path.join(srcpath, "folder.jpg")):
+		print "Using existing image"
+		if not noact:
+			shutil.copyfile(os.path.join(srcpath, "folder.jpg"), os.path.join(newpath, "folder.jpg"))
+	elif imageurl is not None:
 		print imageurl
 		if not noact:
 			urllib.urlretrieve(imageurl, os.path.join(newpath, "folder.jpg"))
