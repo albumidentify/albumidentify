@@ -60,11 +60,11 @@ def print_usage():
 	print "                      provide a date where one is missing"
 	print "  -n                  Don't actually tag and rename files"
 
-def get_album_art_url_for_asin(mp, asin):
+def get_album_art_url_for_asin(asin):
 	if asin is None:
 		return None
 	print "Doing an Amazon Web Services lookup for ASIN " + asin
-	item = amazon4.search_by_asin(mp, asin, license_key=AMAZON_LICENSE_KEY, response_group="Images")
+	item = amazon4.search_by_asin(asin, license_key=AMAZON_LICENSE_KEY, response_group="Images")
 	if hasattr(item,"LargeImage"):
 		return item.LargeImage.URL
 	return None
@@ -313,9 +313,6 @@ def main():
 			embedcovers = False
 		elif option.startswith("--release-asin="):
 			asin = option.split("=",1)[1].strip()
-			# Allow the user to specify an ASIN as a URI or just the number
-			if asin.find("/") != -1:
-				asin = asin.split("/")[-1]
 		elif option.startswith("--year="):
 			year = option.split("=")[1].strip()
 		elif option.startswith("-n"):
@@ -391,19 +388,15 @@ def main():
 		# to see if there are multiple ASINs, report this to the user, and
 		# bail. The user can then choose which ASIN they want to use and
 		# specify it on the command line next time.
-		asincount = 0
+		asins = []
 		for relation in release.getRelations():
 			if relation.getType().find("AmazonAsin") != -1:
-				asincount += 1
 				asinurl = relation.getTargetId()
+				asins.append(asinurl)
 				print "Amazon ASIN: " + asinurl
-		if asincount == 1:
-			disc.asin = release.asin
-			if asinurl.find(".co.uk") != -1:
-				disc.mp = ".co.uk"
-			else:
-				disc.mp = ".com"
-		elif asincount == 0:
+		if len(asins) == 1:
+			disc.asin = asins[0]
+		elif len(asins) == 0:
 			print "WARNING: No ASIN for this release"
 			disc.asin = None
 		else:
@@ -433,7 +426,7 @@ def main():
 		os.mkdir(newpath)
 
 	# Get album art
-	imageurl = get_album_art_url_for_asin(disc.mp, disc.asin)
+	imageurl = get_album_art_url_for_asin(disc.asin)
 	# Check for manual image
 	if os.path.exists(os.path.join(srcpath, "folder.jpg")):
 		print "Using existing image"
