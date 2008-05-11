@@ -60,11 +60,11 @@ def print_usage():
 	print "                      provide a date where one is missing"
 	print "  -n                  Don't actually tag and rename files"
 
-def get_album_art_url_for_asin(asin):
+def get_album_art_url_for_asin(mp, asin):
 	if asin is None:
 		return None
 	print "Doing an Amazon Web Services lookup for ASIN " + asin
-	item = amazon4.search_by_asin(asin, license_key=AMAZON_LICENSE_KEY, response_group="Images")
+	item = amazon4.search_by_asin(mp, asin, license_key=AMAZON_LICENSE_KEY, response_group="Images")
 	if hasattr(item,"LargeImage"):
 		return item.LargeImage.URL
 	return None
@@ -395,9 +395,14 @@ def main():
 		for relation in release.getRelations():
 			if relation.getType().find("AmazonAsin") != -1:
 				asincount += 1
-				print "Amazon ASIN: " + relation.getTargetId()
+				asinurl = relation.getTargetId()
+				print "Amazon ASIN: " + asinurl
 		if asincount == 1:
 			disc.asin = release.asin
+			if asinurl.find(".co.uk") != -1:
+				disc.mp = ".co.uk"
+			else:
+				disc.mp = ".com"
 		elif asincount == 0:
 			print "WARNING: No ASIN for this release"
 			disc.asin = None
@@ -428,7 +433,7 @@ def main():
 		os.mkdir(newpath)
 
 	# Get album art
-	imageurl = get_album_art_url_for_asin(disc.asin)
+	imageurl = get_album_art_url_for_asin(disc.mp, disc.asin)
 	# Check for manual image
 	if os.path.exists(os.path.join(srcpath, "folder.jpg")):
 		print "Using existing image"

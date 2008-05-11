@@ -40,8 +40,12 @@ def unmarshal(element):
             rc = int(rc)
     return rc
 
-def build_url(license_key, operation, asin, version='2007-01-15', response_group=None):
-	url = "http://webservices.amazon.com/onca/xml?Service=AWSECommerceService"
+def build_url(marketplace, license_key, operation, asin, version='2007-01-15', response_group=None):
+	if marketplace != ".co.uk" and marketplace != ".com":
+		mp = ".com"
+	else:
+		mp = marketplace
+	url = "http://webservices.amazon" + mp + "/onca/xml?Service=AWSECommerceService"
 	url += "&AWSAccessKeyId=" + license_key
 	url += "&Operation=" + operation
 	url += "&Version=" + version
@@ -51,8 +55,8 @@ def build_url(license_key, operation, asin, version='2007-01-15', response_group
 		
 	return url
 
-def search_by_asin(asin, license_key, response_group="", http_proxies=None):
-	url = build_url(license_key = license_key, operation="ItemLookup", 
+def search_by_asin(marketplace, asin, license_key, response_group="", http_proxies=None):
+	url = build_url(marketplace = marketplace, license_key = license_key, operation="ItemLookup", 
 					asin = asin, response_group="Images")
 	u = urllib.FancyURLopener(http_proxies)
 	usock = u.open(url)
