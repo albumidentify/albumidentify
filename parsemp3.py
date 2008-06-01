@@ -142,8 +142,13 @@ tagconvertfrom={
 		"TCON" : "TCON",
 	},
 	"ape" : {
+		"title" : "TIT2",
 		"Track" : "TIT2",
 		"Album" : "TALB",
+		"album" : "TALB",
+		"artist": "TPE1",
+		"Year"  : "TYER",
+		"genre" : "TCON",
 	},
 	"lyrics" : {
 		"IND" : "",	# Indication, specific to lyrics v2
@@ -513,7 +518,7 @@ def validate(song):
 				try:
 					v2tagname=tagconvertfrom[i][itagname]
 				except:
-					print "Unknown tag %s: %s" % (`i`,`itagname`)
+					print "Unknown tag %s: %s (%s)" % (`i`,`itagname`,song[i][itagname])
 					continue
 				# No tag that means this?
 				if v2tagname=="":
