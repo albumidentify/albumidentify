@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 dir=$(date +%Y%m%d%H%M%S)
 

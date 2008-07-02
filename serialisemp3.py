@@ -47,7 +47,7 @@ def _id3v2(f,data):
 	outp+=_texttag("TRCK",data["TRCK"])
 	#outp+=_tag("TLEN",data["TLEN"])
 	#outp+=_tag("TLEN",str(data["TLEN"]))
-	f.write("\x00\x00\x00"+chr(len(outp)))
+	f.write("\x00\x00"+chr(len(outp)>>7)+chr(len(outp)&0x7f))
 	f.write(outp)
 
 def output(fname,data):
