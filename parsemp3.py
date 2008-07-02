@@ -89,7 +89,7 @@ v2_2_0_to_v2_4_0 = {
 # "WCP":,		# Copyright/Legal information
 # "WPB":,		# Publishers official webpage
 # "WXX":,		# User defined URL link frame
- "CM1":"CM1",		# Hmm.  What's this?
+ "CM1":"CM1",		# Apple proprietary rating/popularity
 }
 
 genres = [ 
@@ -174,9 +174,9 @@ def strip_padding(x):
 
 def parse_unicode(x):
 	if x.startswith("\xff\xfe"):
-		return x.decode("utf-16-be")
-	else:
 		return x.decode("utf-16-le")
+	else:
+		return x.decode("utf-16-be")
 
 # How many bloody versions of id3 do we REALLY need?!
 
@@ -223,7 +223,10 @@ def v2_2_0(tag):
 				tagdata=tagdata.decode("ISO-8859-1")
 			elif tagdata[0]=="\x01": # utf16
 				if "\x00" in tagdata:
-					tagdata=tagdata[:tagdata.index("\x00")]
+					# This is meant to remove extra null's at the end of
+					# the string, but it eats into the string.
+					# tagdata=tagdata[:tagdata.index("\x00")]
+					pass
 				tagdata=parse_unicode(tagdata[1:])
 			else:
 				raise "Unknown Encoding"
@@ -489,6 +492,7 @@ def parsemp3(fname):
 	if unknown!="":
 		unknowns.append((frames,unknown))
 		unknown=""
+
 	return { 
 		"filename" : fname,
 		"duration" : duration,
@@ -540,13 +544,25 @@ def validate(song):
 					itagvalue=itagvalue[:30]
 
 				# Track numbers should be treated as numbers
+				itagvala = 0
+				itagvalb = 0
+				jtagvala = 0
+				jtagvalb = 0
+				if jtagvalue=="":
+					jtagvalue="0"
 				if v2tagname=="TRCK":
 					# TODO: Deal with x/y
-					itagvalue=int(itagvalue)
-					jtagvalue=int(jtagvalue)
+					if type(itagvalue) == type(u"") and itagvalue.find("/") != -1:
+						[itagvala, itagvalb] = itagvalue.split("/")
+					else:
+						itagvala = itagvalb = int(itagvalue)
+					if type(jtagvalue) == type(u"") and jtagvalue.find("/") != -1:
+						[jtagvala, jtagvalb] = jtagvalue.split("/")
+					else:
+						jtagvala = jtagvalb = int(jtagvalue)
 
 				# Do comparisons
-				if itagvalue==jtagvalue:
+				if itagvala == jtagvala and itagvalb == jtagvalb:
 					continue
 				# Is one tag truncated?
 				if len(itagvalue)<len(jtagvalue):
