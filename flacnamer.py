@@ -117,12 +117,16 @@ def get_tracks_by_puid(puid):
 		results.append(r.getTrack())
 	return results
 
+release_by_releaseid_cache={}
 def get_release_by_releaseid(releaseid):
 	""" Given a musicbrainz release-id, fetch the release from musicbrainz. """
-	q = ws.Query()
-	includes = waitforws(lambda :ws.ReleaseIncludes(artist=True, counts=True, tracks=True, releaseEvents=True,
-									urlRelations=True))
-	return q.getReleaseById(id_ = releaseid, include=includes)
+	global release_by_releaseid_cache
+	if releaseid not in release_by_releaseid_cache:
+		q = ws.Query()
+		includes = waitforws(lambda :ws.ReleaseIncludes(artist=True, counts=True, tracks=True, releaseEvents=True,
+										urlRelations=True))
+		release_by_releaseid_cache[releaseid]=q.getReleaseById(id_ = releaseid, include=includes)
+	return release_by_releaseid_cache[releaseid]
 
 def track_number(tracks, trackname):
 	""" Lookup trackname in a list of tracks and return the track number
