@@ -17,7 +17,7 @@ def get_dir_info(dirname):
 	tracknum=0
 	trackinfo={}
 	for i in files:
-		if not i.endswith(".mp3"):
+		if not i.lower().endswith(".mp3"):
 			print "Skipping non mp3 file",`i`
 			continue
 		tracknum=tracknum+1
@@ -26,19 +26,52 @@ def get_dir_info(dirname):
 		# and checks if it exists, and doesn't decode if it does.
 		# This is for speed while debugging, should be changed with
 		# tmpname later
-		#toname=os.path.join("/tmp/",i[:-3]+"wav")
-		toname=os.path.join("/tmp/tmp.wav")
+		toname=os.path.join("/tmp/",i[:-3]+"wav")
+		#toname=os.path.join("/tmp/tmp.wav")
 		if not os.path.exists(toname):
+			print "decoding"
 			decode(fname,toname)
 		(fp, dur) = fingerprint.fingerprint(toname)
-		os.unlink(toname)
+		#os.unlink(toname)
 
 		(trackname, artist, puid) = musicdns.lookup_fingerprint(fp, dur, key)
 		print "***",tracknum,`artist`,`trackname`,puid
 		tracks = flacnamer.get_tracks_by_puid(puid)
-		#print [ y.title for x in tracks for y in x.releases]
+		print [ y.title for x in tracks for y in x.releases]
 		trackinfo[tracknum]=(fname,artist,trackname,dur,tracks)
 	return trackinfo
+
+def get_track_by_id(id):
+	q = flacnamer.ws.Query()
+	results = []
+	includes = flacnamer.waitforws(lambda :flacnamer.ws.TrackIncludes(artist=True, releases=True, puids=True))
+	t = q.getTrackById(id_ = id, include = includes)
+	return t
+
+def check_release(r, track, tracknum, trackinfo, possible_releases):
+	print `r.title`
+	if tracknum>1 and (
+		r.id not in possible_releases 
+		or possible_releases[r.id] != tracknum-1):
+		# Skip this album -- we know it's not going to
+		# be a final candidate
+		print "skipping already worthless",r.id
+		return None
+	# Get the information about this release
+	release = flacnamer.get_release_by_releaseid(r.id)
+	# Skip if this album has the wrong number of tracks.
+	if len(release.tracks) != len(trackinfo):
+		print release.title,"has wrong number of tracks (expected",len(trackinfo)," not ",len(release.tracks),")"
+		#for i in release.tracks:
+		#	print ">",i.title
+		return None
+	# Skip if the tracks in the wrong place on this album
+	if flacnamer.track_number(release.tracks, track.title) != tracknum:
+		print release.title,"doesn't have track in right position"
+		return None
+	print release.title,"looks ok!"
+	return release
+
 
 def guess_album(trackinfo):
 	# tracinfo is
@@ -47,40 +80,53 @@ def guess_album(trackinfo):
 	# returns a list of possible release id's
 	possible_releases={}
 	for (tracknum,(fname,artist,trackname,dur,tracks)) in trackinfo.items():
+		gotone = False
 		for track in tracks:
-			#print "***",tracknum,`artist`,`trackname`
+			print "***",tracknum,`artist`,`trackname`
 			for r in track.releases:
-				#print `r.title`
-				if tracknum>1 and (
-					r.id not in possible_releases 
-					or possible_releases[r.id] != tracknum-1):
-					# Skip this album -- we know it's not going to
-					# be a final candidate
-					#print "skipping already worthless",r.id
+				release = check_release(r, track, tracknum, trackinfo, possible_releases)
+				if release is None:
 					continue
-				# Get the information about this release
-				release = flacnamer.get_release_by_releaseid(r.id)
-				# Skip if this album has the wrong number of tracks.
-				if len(release.tracks) != len(trackinfo):
-					#print release.title,"has wrong number of tracks (expected",len(trackinfo)," not ",len(release.tracks),")"
-					#for i in release.tracks:
-					#	print ">",i.title
-					continue
-				# Skip if the tracks in the wrong place on this album
-				if flacnamer.track_number(release.tracks, track.title) != tracknum:
-					#print release.title,"doesn't have track in right position"
-					continue
-				#print release.title,"looks ok!"
 				if release.id in possible_releases:
 					possible_releases[release.id] += 1
 				else:
 					possible_releases[release.id] = 1
+				gotone = True
+		if not gotone:
+			print "No release found for this track, trying harder"
+			newtracks = []
+			puids = []
+			for t in tracks:
+				newt = get_track_by_id(t.id)
+				for p in newt.puids:
+					if p not in puids:
+						print p
+						puids.append(p)
+						ts = flacnamer.get_tracks_by_puid(p)
+						for u in ts:
+							if u not in newtracks and u not in tracks:
+								newtracks.append(u)
+			gotone = False
+			for track in newtracks:
+				print "***",tracknum,`artist`,`trackname`
+				for r in track.releases:
+					release = check_release(r, track, tracknum, trackinfo, possible_releases)
+					if release is None:
+						continue
+					if release.id in possible_releases:
+						possible_releases[release.id] += 1
+					else:
+						possible_releases[release.id] = 1
+					gotone = True
+			if not gotone:
+				print "Sorry, still couldn't find a release for this track"
+
 	releasedata=[]
 
 	for rid in [x for x in possible_releases if possible_releases[x]==len(trackinfo)]:
 		release = flacnamer.get_release_by_releaseid(rid)
 		albumartist=release.artist
-		#print albumartist.name,":",release.title+" ("+rid+")"
+		print albumartist.name,":",release.title+" ("+rid+".html)"
 		releaseevents=release.getReleaseEvents()
 		#print "Release dates:"
 		#for ev in releaseevents:
@@ -97,11 +143,13 @@ def guess_album(trackinfo):
 				artist=trk.artist.name
 			#print " ",tracknum+1,"-",artist,"-",trk.title,"%2d:%06.3f" % (int(dur/60000),(dur%6000)/1000),`fname`
 			trackdata.append((tracknum+1,artist,trk.title,dur,fname))
+		asin = flacnamer.get_asin_from_release(release)
 		albuminfo = (
 			albumartist.name,
 			release.title,
 			rid+".html",
 			[x.date for x in releaseevents],
+			asin,
 			trackdata
 		)
 		releasedata.append(albuminfo)
