@@ -1,0 +1,57 @@
+#!/usr/bin/python2.5
+import sys
+sys.path.append("/usr/local/mp3parser")
+import albumidentify
+import parsemp3
+import os
+import serialisemp3
+import mp3names
+
+dest=sys.argv[2]
+dir = albumidentify.get_dir_info(sys.argv[1])
+
+data = albumidentify.guess_album(dir)
+
+if len(data)<1:
+	print "Couldn't identify album",sys.argv[1]
+	print data
+	sys.exit(1)
+
+(artist,album,rid,events,trackdata) = data[0]
+
+date=events[0]
+if "-" in date:
+	year=date.split("-")[0]
+else:
+	year=date
+
+destdir=mp3names.FixFilename(os.path.join(dest,"%(artist)s - %(date)s - %(name)s" % {
+	"artist" : mp3names.fixartist(artist.strip()),
+	"date" : year,
+	"name" : album.strip(),
+	}))
+print "Renaming to",destdir
+try:
+	os.mkdir(destdir)
+except OSError,e:
+	pass
+
+for (tracknum,artist,title,dur,origname) in trackdata:
+	destname=mp3names.FixFilename("%(tracknum)02d - %(artist)s - %(title)s.mp3" % {
+		"tracknum" : tracknum,
+		"artist" : mp3names.FixArtist(artist.strip()),
+		"title" : title.strip(),
+		})
+	data=parsemp3.parsemp3(origname)
+	destfile=os.path.join(destdir,destname)
+	print origname,"->",destfile
+	serialisemp3.output(destfile,{
+		"TIT2" : title,
+		"TPE1" : artist,
+		"TALB" : album,
+		"TYER" : year,
+		"TDAT" : date,
+		"TRCK" : "%d/%d" % (tracknum,len(trackdata)),
+		"COMM" : "",
+		"bitstream" : data["bitstream"],
+		})
