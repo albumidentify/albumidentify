@@ -298,6 +298,27 @@ def get_all_discs_in_album(disc, albumname = None):
 				if asin == disc.asin:
 					releases.append(release)
 	return releases
+
+def get_asin_from_release(release):
+	# The ASIN specified in release.asin isn't necessarily the only ASIN
+	# for the release. Sigh. So, we need to look at the release's relations
+	# to see if there are multiple ASINs, report this to the user, and
+	# bail. The user can then choose which ASIN they want to use and
+	# specify it on the command line next time.
+	asins = []
+	for relation in release.getRelations():
+		if relation.getType().find("AmazonAsin") != -1:
+			asinurl = relation.getTargetId()
+			asins.append(asinurl)
+			print "Amazon ASIN: " + asinurl
+	if len(asins) == 1:
+		return asins[0]
+	elif len(asins) == 0:
+		print "WARNING: No ASIN for this release"
+		return None
+	else:
+		print "WARNING: Ambiguous ASIN. Select an ASIN and specify it using --release-asin"
+		return None
 	
 def main():
 	if len(sys.argv) < 2:
@@ -387,25 +408,7 @@ def main():
 	if asin is not None:
 		disc.asin = asin
 	else:
-		# The ASIN specified in release.asin isn't necessarily the only ASIN
-		# for the release. Sigh. So, we need to look at the release's relations
-		# to see if there are multiple ASINs, report this to the user, and
-		# bail. The user can then choose which ASIN they want to use and
-		# specify it on the command line next time.
-		asins = []
-		for relation in release.getRelations():
-			if relation.getType().find("AmazonAsin") != -1:
-				asinurl = relation.getTargetId()
-				asins.append(asinurl)
-				print "Amazon ASIN: " + asinurl
-		if len(asins) == 1:
-			disc.asin = asins[0]
-		elif len(asins) == 0:
-			print "WARNING: No ASIN for this release"
-			disc.asin = None
-		else:
-			print "WARNING: Ambiguous ASIN. Select an ASIN and specify it using --release-asin"
-			disc.asin = None
+		disc.asin = get_asin_from_release(release)
 			
 	# Set the compilation tag appropriately
 	if musicbrainz2.model.Release.TYPE_COMPILATION in disc.releasetypes:
