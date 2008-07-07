@@ -96,7 +96,7 @@ def guess_album(trackinfo):
 					if p not in puids:
 						print p
 						puids.append(p)
-						ts = flacnamer.get_tracks_by_puid(p)
+						ts = lookups.get_tracks_by_puid(p)
 						for u in ts:
 							if u not in newtracks and u not in tracks:
 								newtracks.append(u)
@@ -137,7 +137,7 @@ def guess_album(trackinfo):
 				artist=trk.artist.name
 			#print " ",tracknum+1,"-",artist,"-",trk.title,"%2d:%06.3f" % (int(dur/60000),(dur%6000)/1000),`fname`
 			trackdata.append((tracknum+1,artist,trk.title,dur,fname))
-		asin = flacnamer.get_asin_from_release(release)
+		asin = lookups.get_asin_from_release(release)
 		albuminfo = (
 			albumartist.name,
 			release.title,

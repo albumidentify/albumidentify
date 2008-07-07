@@ -66,6 +66,8 @@ def get_track_artist_for_track(track):
 	if t is not None:
 		return t.artist
 
+	return None
+
 def get_all_discs_in_album(disc, albumname = None): 
 	""" Given a disc, talk to musicbrainz to see how many discs are in the
 	release.  Return a list of releases which correspond to all of the discs in
@@ -98,5 +100,34 @@ def get_all_discs_in_album(disc, albumname = None):
 					releases.append(release)
 	return releases
 
+
+def get_album_art_url_for_asin(asin):
+	if asin is None:
+		return None
+	print "Doing an Amazon Web Services lookup for ASIN " + asin
+	item = amazon4.search_by_asin(asin, license_key=AMAZON_LICENSE_KEY, response_group="Images")
+	if hasattr(item,"LargeImage"):
+		return item.LargeImage.URL
 	return None
+
+def get_asin_from_release(release):
+	# The ASIN specified in release.asin isn't necessarily the only ASIN
+	# for the release. Sigh. So, we need to look at the release's relations
+	# to see if there are multiple ASINs, report this to the user, and
+	# bail. The user can then choose which ASIN they want to use and
+	# specify it on the command line next time.
+	asins = []
+	for relation in release.getRelations():
+		if relation.getType().find("AmazonAsin") != -1:
+			asinurl = relation.getTargetId()
+			asins.append(asinurl)
+			print "Amazon ASIN: " + asinurl
+	if len(asins) == 1:
+		return asins[0]
+	elif len(asins) == 0:
+		print "WARNING: No ASIN for this release"
+		return None
+	else:
+		print "WARNING: Ambiguous ASIN. Select an ASIN and specify it using --release-asin"
+		return None
 

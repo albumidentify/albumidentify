@@ -51,15 +51,6 @@ def print_usage():
 	print "                      provide a date where one is missing"
 	print "  -n                  Don't actually tag and rename files"
 
-def get_album_art_url_for_asin(asin):
-	if asin is None:
-		return None
-	print "Doing an Amazon Web Services lookup for ASIN " + asin
-	item = amazon4.search_by_asin(asin, license_key=AMAZON_LICENSE_KEY, response_group="Images")
-	if hasattr(item,"LargeImage"):
-		return item.LargeImage.URL
-	return None
-
 
 def get_releases_by_metadata(disc):
 	""" Given a Disc object, use the performer, title and number of tracks to
@@ -210,28 +201,6 @@ def parse_album_name(albumname):
 	g = m.groups()
 	return (g[0].strip(), g[2], g[4])
 
-
-def get_asin_from_release(release):
-	# The ASIN specified in release.asin isn't necessarily the only ASIN
-	# for the release. Sigh. So, we need to look at the release's relations
-	# to see if there are multiple ASINs, report this to the user, and
-	# bail. The user can then choose which ASIN they want to use and
-	# specify it on the command line next time.
-	asins = []
-	for relation in release.getRelations():
-		if relation.getType().find("AmazonAsin") != -1:
-			asinurl = relation.getTargetId()
-			asins.append(asinurl)
-			print "Amazon ASIN: " + asinurl
-	if len(asins) == 1:
-		return asins[0]
-	elif len(asins) == 0:
-		print "WARNING: No ASIN for this release"
-		return None
-	else:
-		print "WARNING: Ambiguous ASIN. Select an ASIN and specify it using --release-asin"
-		return None
-	
 def main():
 	if len(sys.argv) < 2:
 		print_usage()
@@ -320,7 +289,7 @@ def main():
 	if asin is not None:
 		disc.asin = asin
 	else:
-		disc.asin = get_asin_from_release(release)
+		disc.asin = lookups.get_asin_from_release(release)
 			
 	# Set the compilation tag appropriately
 	if musicbrainz2.model.Release.TYPE_COMPILATION in disc.releasetypes:
@@ -345,7 +314,7 @@ def main():
 		os.mkdir(newpath)
 
 	# Get album art
-	imageurl = get_album_art_url_for_asin(disc.asin)
+	imageurl = lookups.get_album_art_url_for_asin(disc.asin)
 	# Check for manual image
 	if os.path.exists(os.path.join(srcpath, "folder.jpg")):
 		print "Using existing image"
