@@ -6,7 +6,7 @@ import parsemp3
 import os
 import serialisemp3
 import mp3names
-import flacnamer
+import lookups
 import urllib
 
 dest=sys.argv[2]
@@ -69,7 +69,7 @@ for (tracknum,artist,title,dur,origname,artistid,trkid) in trackdata:
 		})
 
 if asin is not None:
-	imageurl = flacnamer.get_album_art_url_for_asin(asin)
+	imageurl = lookups.get_album_art_url_for_asin(asin)
 	if imageurl is not None:
 		print imageurl
 		urllib.urlretrieve(imageurl, os.path.join(destdir, "folder.jpg"))
