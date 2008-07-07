@@ -180,25 +180,6 @@ def get_musicbrainz_release(disc):
 		print "No results from fingerprinting."
 	return None
 
-def parse_album_name(albumname):
-	""" Pull apart an album name of the form 
-			"Stadium Arcadium (disc 1: Mars)"
-		and return a tuple of the form
-			(albumtitle, discnumber, disctitle)
-		so for the above, we would return
-			("Stadium Arcadium", "1", "Mars")
-		discnumber or disctitle will be set to None if they are unavailable
-	"""
-	# Note that we use a pretty ugly pattern here so that it's easy to separate
-	# out into groups.
-	pattern = r"^(.*?)( \(disc (\d+)(: (.*))?\))?$"
-	m = re.compile(pattern).search(albumname)
-	if m is None:
-		raise Exception("Malformed album name: %s" % albumname)
-
-	g = m.groups()
-	return (g[0].strip(), g[2], g[4])
-
 def main():
 	if len(sys.argv) < 2:
 		print_usage()
@@ -326,7 +307,7 @@ def main():
 		embedcovers = False
 
 	# Deal with disc x of y numbering
-	(albumname, discnumber, disctitle) = parse_album_name(disc.album)
+	(albumname, discnumber, disctitle) = lookups.parse_album_name(disc.album)
 	if discnumber is None:
 		disc.number = 1
 		disc.totalnumber = 1

@@ -1,6 +1,7 @@
 import musicbrainz2.webservice as ws
 import time
 import amazon4
+import re
 
 AMAZON_LICENSE_KEY='1WQQTEA14HEA9AERDMG2'
 
@@ -133,4 +134,24 @@ def get_asin_from_release(release):
 	else:
 		print "WARNING: Ambiguous ASIN. Select an ASIN and specify it using --release-asin"
 		return None
+
+def parse_album_name(albumname):
+	""" Pull apart an album name of the form 
+			"Stadium Arcadium (disc 1: Mars)"
+		and return a tuple of the form
+			(albumtitle, discnumber, disctitle)
+		so for the above, we would return
+			("Stadium Arcadium", "1", "Mars")
+		discnumber or disctitle will be set to None if they are unavailable
+	"""
+	# Note that we use a pretty ugly pattern here so that it's easy to separate
+	# out into groups.
+	pattern = r"^(.*?)( \(disc (\d+)(: (.*))?\))?$"
+	m = re.compile(pattern).search(albumname)
+	if m is None:
+		raise Exception("Malformed album name: %s" % albumname)
+
+	g = m.groups()
+	return (g[0].strip(), g[2], g[4])
+
 
