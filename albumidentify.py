@@ -4,6 +4,7 @@ import fingerprint
 import musicdns
 import os
 import lookups
+import parsemp3
 
 key = 'a7f6063296c0f1c9b75c7f511861b89b'
 
@@ -87,7 +88,7 @@ def guess_album(trackinfo):
 					possible_releases[release.id] = 1
 				gotone = True
 		if not gotone:
-			print "No release found for this track, trying harder"
+			print "No release found for this track (%d), trying harder" % tracknum
 			newtracks = []
 			puids = []
 			for t in tracks:
@@ -112,8 +113,23 @@ def guess_album(trackinfo):
 					else:
 						possible_releases[release.id] = 1
 					gotone = True
-			if not gotone:
-				print "Sorry, still couldn't find a release for this track"
+		if not gotone:
+			print "Still cant find a release for this track.  Trying text matching"
+			gotone = False
+			mp3data = parsemp3.parsemp3(fname)
+			ftrackname = mp3data["v2"]["TIT2"]
+			for (rid,v) in possible_releases.iteritems():
+				release = lookups.get_release_by_releaseid(rid)
+				rtrackname = release.tracks[tracknum-1].title
+				#print "tag name",ftrackname,"release name",rtrackname
+				if trackname == trackname:
+					gotone = True
+					print " * track name matches release info."
+					possible_releases[rid] += 1
+
+
+		if not gotone:
+			print "Sorry, still couldn't find a release for this track"
 
 	releasedata=[]
 
