@@ -1,5 +1,8 @@
 import musicbrainz2.webservice as ws
 import time
+import amazon4
+
+AMAZON_LICENSE_KEY='1WQQTEA14HEA9AERDMG2'
 
 lastwsquery = time.time()
 

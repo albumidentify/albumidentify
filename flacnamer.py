@@ -19,7 +19,6 @@ from datetime import timedelta
 import musicbrainz2.webservice as ws
 import musicbrainz2.utils as u
 import musicbrainz2.model
-import amazon4
 import toc
 import discid
 import shutil
@@ -33,7 +32,6 @@ import fingerprint
 import musicdns
 import lookups
 
-AMAZON_LICENSE_KEY='1WQQTEA14HEA9AERDMG2'
 MUSICDNS_KEY='a7f6063296c0f1c9b75c7f511861b89b'
 
 def print_usage():
