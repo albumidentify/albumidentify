@@ -133,10 +133,12 @@ def guess_album(trackinfo):
 			(fname,artist,trackname,dur,trackprints) = trackinfo[tracknum+1]
 			if trk.artist is None:
 				artist=albumartist.name
+				artistid=albumartist.id
 			else:
 				artist=trk.artist.name
+				artistid=trk.artist.id
 			#print " ",tracknum+1,"-",artist,"-",trk.title,"%2d:%06.3f" % (int(dur/60000),(dur%6000)/1000),`fname`
-			trackdata.append((tracknum+1,artist,trk.title,dur,fname))
+			trackdata.append((tracknum+1,artist,trk.title,dur,fname,artistid,trk.id))
 		asin = lookups.get_asin_from_release(release)
 		albuminfo = (
 			albumartist.name,
@@ -144,7 +146,9 @@ def guess_album(trackinfo):
 			rid+".html",
 			[x.date for x in releaseevents],
 			asin,
-			trackdata
+			trackdata,
+			albumartist.id,
+			release.id,
 		)
 		releasedata.append(albuminfo)
 	return releasedata
