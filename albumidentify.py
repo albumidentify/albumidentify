@@ -3,7 +3,7 @@ import sys
 import fingerprint
 import musicdns
 import os
-import flacnamer
+import lookups
 
 key = 'a7f6063296c0f1c9b75c7f511861b89b'
 
@@ -36,17 +36,11 @@ def get_dir_info(dirname):
 
 		(trackname, artist, puid) = musicdns.lookup_fingerprint(fp, dur, key)
 		print "***",tracknum,`artist`,`trackname`,puid
-		tracks = flacnamer.get_tracks_by_puid(puid)
+		tracks = lookups.get_tracks_by_puid(puid)
 		print [ y.title for x in tracks for y in x.releases]
 		trackinfo[tracknum]=(fname,artist,trackname,dur,tracks)
 	return trackinfo
 
-def get_track_by_id(id):
-	q = flacnamer.ws.Query()
-	results = []
-	includes = flacnamer.waitforws(lambda :flacnamer.ws.TrackIncludes(artist=True, releases=True, puids=True))
-	t = q.getTrackById(id_ = id, include = includes)
-	return t
 
 def check_release(r, track, tracknum, trackinfo, possible_releases):
 	print `r.title`
@@ -58,7 +52,7 @@ def check_release(r, track, tracknum, trackinfo, possible_releases):
 		print "skipping already worthless",r.id
 		return None
 	# Get the information about this release
-	release = flacnamer.get_release_by_releaseid(r.id)
+	release = lookups.get_release_by_releaseid(r.id)
 	# Skip if this album has the wrong number of tracks.
 	if len(release.tracks) != len(trackinfo):
 		print release.title,"has wrong number of tracks (expected",len(trackinfo)," not ",len(release.tracks),")"
@@ -66,7 +60,7 @@ def check_release(r, track, tracknum, trackinfo, possible_releases):
 		#	print ">",i.title
 		return None
 	# Skip if the tracks in the wrong place on this album
-	if flacnamer.track_number(release.tracks, track.title) != tracknum:
+	if lookups.track_number(release.tracks, track.title) != tracknum:
 		print release.title,"doesn't have track in right position"
 		return None
 	print release.title,"looks ok!"
@@ -97,7 +91,7 @@ def guess_album(trackinfo):
 			newtracks = []
 			puids = []
 			for t in tracks:
-				newt = get_track_by_id(t.id)
+				newt = lookups.get_track_by_id(t.id)
 				for p in newt.puids:
 					if p not in puids:
 						print p
@@ -124,7 +118,7 @@ def guess_album(trackinfo):
 	releasedata=[]
 
 	for rid in [x for x in possible_releases if possible_releases[x]==len(trackinfo)]:
-		release = flacnamer.get_release_by_releaseid(rid)
+		release = lookups.get_release_by_releaseid(rid)
 		albumartist=release.artist
 		print albumartist.name,":",release.title+" ("+rid+".html)"
 		releaseevents=release.getReleaseEvents()

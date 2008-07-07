@@ -31,19 +31,10 @@ import time
 import submit #musicbrainz_submission_url()
 import fingerprint
 import musicdns
+import lookups
 
 AMAZON_LICENSE_KEY='1WQQTEA14HEA9AERDMG2'
 MUSICDNS_KEY='a7f6063296c0f1c9b75c7f511861b89b'
-lastwsquery = time.time()
-
-def waitforws(cb):
-	global lastwsquery
-	if time.time()-lastwsquery<2:
-		wait=2-(time.time()-lastwsquery)
-		time.sleep(wait)
-	ret=cb()
-	lastwsquery=time.time()
-	return ret
 
 def print_usage():
 	print "usage: " + sys.argv[0] + " <srcpath> [OPTIONS]"
@@ -69,21 +60,6 @@ def get_album_art_url_for_asin(asin):
 		return item.LargeImage.URL
 	return None
 
-def get_track_artist_for_track(track):
-	""" Returns the musicbrainz Artist object for the given track. This may
-		require a webservice lookup
-	"""
-	if track.artist is not None:
-		return track.artist
-
-	q = ws.Query()
-	includes = ws.TrackIncludes(artist = True)
-	t = waitforws(lambda :q.getTrackById(track.id, includes))
-
-	if t is not None:
-		return t.artist
-
-	return None
 
 def get_releases_by_metadata(disc):
 	""" Given a Disc object, use the performer, title and number of tracks to
@@ -94,7 +70,7 @@ def get_releases_by_metadata(disc):
 
 	q = ws.Query()
 	filter = ws.ReleaseFilter(title=disc.title, artistName=disc.performer)
-	rels = waitforws(lambda :q.getReleases(filter))
+	rels = lookups.waitforws(lambda :q.getReleases(filter))
 	
 	# Filter out of the list releases with a different number of tracks to the
 	# Disc.
@@ -104,39 +80,6 @@ def get_releases_by_metadata(disc):
 			releases.append(rel)
 
 	return releases
-
-
-def get_tracks_by_puid(puid):
-	""" Lookup a list of musicbrainz tracks by PUID. Returns a list of Track
-	objects. """ 
-	q = ws.Query()
-	filter = ws.TrackFilter(puid=puid)
-	results = []
-	rs = waitforws(lambda :q.getTracks(filter=filter))
-	for r in rs:
-		results.append(r.getTrack())
-	return results
-
-release_by_releaseid_cache={}
-def get_release_by_releaseid(releaseid):
-	""" Given a musicbrainz release-id, fetch the release from musicbrainz. """
-	global release_by_releaseid_cache
-	if releaseid not in release_by_releaseid_cache:
-		q = ws.Query()
-		includes = waitforws(lambda :ws.ReleaseIncludes(artist=True, counts=True, tracks=True, releaseEvents=True,
-										urlRelations=True))
-		release_by_releaseid_cache[releaseid]=q.getReleaseById(id_ = releaseid, include=includes)
-	return release_by_releaseid_cache[releaseid]
-
-def track_number(tracks, trackname):
-	""" Lookup trackname in a list of tracks and return the track number
-	(indexed starting at 1) """
-	tracknum = 1
-	for t in tracks:
-		if t.title == trackname:
-			return tracknum
-		tracknum += 1
-	return -1
 
 def get_release_by_fingerprints(disc):
 	""" Try to determine the release of a disc based on audio fingerprinting each track. 
@@ -159,13 +102,13 @@ def get_release_by_fingerprints(disc):
 		print "Fingerprinting for " + t.filename + " succeeded."
 		print " PUID: " + puid
 
-		tracks = get_tracks_by_puid(puid)
+		tracks = lookups.get_tracks_by_puid(puid)
 		for track in tracks:
 			print "  Could be " + track.id + " (%s)" % track.title
 			releases = track.getReleases()
 			for r in releases:
 				print "     Which is on " + r.id + " (%s)" % r.title
-				release = get_release_by_releaseid(r.id)
+				release = lookups.get_release_by_releaseid(r.id)
 
 				# Filter releases with the wrong number of tracks
 				if len(release.getTracks()) != len(disc.tracks):
@@ -174,7 +117,7 @@ def get_release_by_fingerprints(disc):
 				
 				# Filter releases where this track is not in the correct
 				# position.
-				if track_number(release.getTracks(), track.title) != tracknum:
+				if lookups.track_number(release.getTracks(), track.title) != tracknum:
 					print "      Incorrect track number"
 					continue
 
@@ -199,11 +142,11 @@ def get_musicbrainz_release(disc):
 
 	# If a release id has been specified, that takes precedence
 	if disc.releaseid is not None:
-		return get_release_by_releaseid(disc.releaseid)
+		return lookups.get_release_by_releaseid(disc.releaseid)
 
 	# Otherwise, lookup the releaseid using the discid as a key
 	filter = ws.ReleaseFilter(discId=disc.discid)
-	results = waitforws(lambda :q.getReleases(filter=filter))
+	results = lookups.waitforws(lambda :q.getReleases(filter=filter))
 	if len(results) > 1:
 		for result in results:
 			print result.release.id
@@ -212,7 +155,7 @@ def get_musicbrainz_release(disc):
 	# We have an exact match, use this.
 	if len(results) == 1:
 		releaseid = results[0].release.id
-		return get_release_by_releaseid(results[0].release.id)
+		return lookups.get_release_by_releaseid(results[0].release.id)
 
 	# Otherwise, use CD-TEXT if present to guess the release
 	if disc.performer is not None and disc.title is not None:
@@ -236,7 +179,7 @@ def get_musicbrainz_release(disc):
 	# Last resort, use audio finger-printing to guess the release
 	releases = get_release_by_fingerprints(disc)
 	if len(releases) == 1:
-		release = get_release_by_releaseid(releases[0])
+		release = lookups.get_release_by_releaseid(releases[0])
 		print "Got result via audio fingerprinting!"
 		print "Suggest submitting TOC and discID to musicbrainz:"
 		print "Release URL: " + release.id + ".html"
@@ -267,37 +210,6 @@ def parse_album_name(albumname):
 	g = m.groups()
 	return (g[0].strip(), g[2], g[4])
 
-def get_all_discs_in_album(disc, albumname = None): 
-	""" Given a disc, talk to musicbrainz to see how many discs are in the
-	release.  Return a list of releases which correspond to all of the discs in
-	this release. Note that there is an easier way to accomplish this using a
-	newer version of python-musicbrainz2 which allows for Lucene searching in
-	the Filter objects, so we can search directly by ASIN, which would be
-	perfect.  For now though we need to do fuzzy matching on release title and
-	album artist and then count how many resulting releases share the asin with
-	the disc we have been given.  """
-
-	releases = []
-
-	if albumname is None:
-		(albumname, discnumber, disctitle) = parse_album_name(disc.album)
-	filter = ws.ReleaseFilter(title=albumname, artistName=disc.artist)
-	q = ws.Query()
-	rels = waitforws(lambda :q.getReleases(filter))
-
-	for rel in rels:
-		r = rel.getRelease()
-		# Releases can have multiple ASINs, so we need to get the entire list
-		# and check them all. Pain.
-		includes = ws.ReleaseIncludes(artist=True, urlRelations = True)
-		release = q.getReleaseById(r.id, includes)
-		time.sleep(1)
-		for relation in release.getRelations():
-			if relation.getType().find("AmazonAsin") != -1:
-				asin = relation.getTargetId().split("/")[-1].strip()
-				if asin == disc.asin:
-					releases.append(release)
-	return releases
 
 def get_asin_from_release(release):
 	# The ASIN specified in release.asin isn't necessarily the only ASIN
@@ -456,7 +368,7 @@ def main():
 			raise Exception("This disc is part of a multi-disc set, but we have no ASIN!")
 
 		disc.number = int(discnumber)
-		discs = get_all_discs_in_album(disc, albumname)
+		discs = lookups.get_all_discs_in_album(disc, albumname)
 		disc.totalnumber = len(discs)
 
 	print "disc " + str(disc.number) + " of " + str(disc.totalnumber)
@@ -482,7 +394,7 @@ def flacname(disc, release, srcpath, newpath, embedcovers=False, noact=False, mo
 		if release.isSingleArtistRelease():
 			track_artist = release.artist
 		else:
-			track_artist = get_track_artist_for_track(mbtrack)
+			track_artist = lookups.get_track_artist_for_track(mbtrack)
 
 		track_artist_name = mp3names.FixArtist(track_artist.name)
 
