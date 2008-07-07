@@ -45,6 +45,11 @@ def _id3v2(f,data):
 	outp+=_texttag("TYER",data["TYER"])
 	outp+=_texttag("TDAT",data["TDAT"])
 	outp+=_texttag("TRCK",data["TRCK"])
+	if "UFID" in data:
+		outp+=_tag("UFID",data["UFID"][0]+"\x00"+data["UFID"][1])
+	if "TXXX" in data:
+		for (k,v) in data["TXXX"]:
+			outp+=_texttag("TXXX",k+"\x00"+v)
 	#outp+=_tag("TLEN",data["TLEN"])
 	#outp+=_tag("TLEN",str(data["TLEN"]))
 	f.write("\x00\x00"+chr(len(outp)>>7)+chr(len(outp)&0x7f))
