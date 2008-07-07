@@ -25,9 +25,9 @@ def get_tracks_by_puid(puid):
 	return results
 
 def get_track_by_id(id):
-	q = flacnamer.ws.Query()
+	q = ws.Query()
 	results = []
-	includes = flacnamer.waitforws(lambda :flacnamer.ws.TrackIncludes(artist=True, releases=True, puids=True))
+	includes = waitforws(lambda :ws.TrackIncludes(artist=True, releases=True, puids=True))
 	t = q.getTrackById(id_ = id, include = includes)
 	return t
 
@@ -61,7 +61,7 @@ def get_track_artist_for_track(track):
 
 	q = ws.Query()
 	includes = ws.TrackIncludes(artist = True)
-	t = lookups.waitforws(lambda :q.getTrackById(track.id, includes))
+	t = waitforws(lambda :q.getTrackById(track.id, includes))
 
 	if t is not None:
 		return t.artist
@@ -84,7 +84,7 @@ def get_all_discs_in_album(disc, albumname = None):
 		(albumname, discnumber, disctitle) = parse_album_name(disc.album)
 	filter = ws.ReleaseFilter(title=albumname, artistName=disc.artist)
 	q = ws.Query()
-	rels = lookups.waitforws(lambda :q.getReleases(filter))
+	rels = waitforws(lambda :q.getReleases(filter))
 
 	for rel in rels:
 		r = rel.getRelease()
