@@ -273,8 +273,12 @@ def v2_3_0(tag):
 				if "\x00" in tagdata:
 					tagdata=tagdata[:tagdata.index("\x00")]
 				tagdata=parse_unicode(tagdata[1:])
+			elif tagdata[0]=="\x03": # utf8
+				if "\x00" in tagdata:
+					tagdata=tagdata[:tagdata.index("\x00")]
+				tagdata=tagdata.decode("utf8")
 			else:
-				raise "Unknown Encoding"
+				raise "Unknown Encoding",`tagdata[0]`
 		data[tagid]=tagdata
 	return data
 
@@ -372,10 +376,10 @@ def parsemp3(fname):
 		tag=f.read(id3len)
 		if int(id3version)==2:
 			v2data=v2_2_0(tag)
-		elif int(id3version)==3:
+		elif int(id3version) in [3,4]:
 			v2data=v2_3_0(tag)
 		else:
-			print "Unknown tag version"
+			print "Unknown tag version ID3v2.",int(id3version)
 			v2data={}
 		v2data["version"]=u"ID3v2.%s" % unicode(id3version)
 	else:
