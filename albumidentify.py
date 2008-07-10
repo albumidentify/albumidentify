@@ -30,13 +30,15 @@ def get_dir_info(dirname):
 		toname=os.path.join("/tmp/",i[:-3]+"wav")
 		#toname=os.path.join("/tmp/tmp.wav")
 		if not os.path.exists(toname):
-			print "decoding"
+			print "decoding",fname
 			decode(fname,toname)
 		(fp, dur) = fingerprint.fingerprint(toname)
 		#os.unlink(toname)
 
 		(trackname, artist, puid) = musicdns.lookup_fingerprint(fp, dur, key)
 		print "***",tracknum,`artist`,`trackname`,puid
+		if puid is None:
+			raise "Can't identify Track"
 		tracks = lookups.get_tracks_by_puid(puid)
 		print [ y.title for x in tracks for y in x.releases]
 		trackinfo[tracknum]=(fname,artist,trackname,dur,tracks)
@@ -50,7 +52,7 @@ def check_release(r, track, tracknum, trackinfo, possible_releases):
 		or possible_releases[r.id] != tracknum-1):
 		# Skip this album -- we know it's not going to
 		# be a final candidate
-		print "skipping already worthless",r.id
+		#print "skipping already worthless",r.id
 		return None
 	# Get the information about this release
 	release = lookups.get_release_by_releaseid(r.id)
@@ -76,8 +78,8 @@ def guess_album(trackinfo):
 	possible_releases={}
 	for (tracknum,(fname,artist,trackname,dur,tracks)) in trackinfo.items():
 		gotone = False
+		print "***",tracknum,`artist`,`trackname`
 		for track in tracks:
-			print "***",tracknum,`artist`,`trackname`
 			for r in track.releases:
 				release = check_release(r, track, tracknum, trackinfo, possible_releases)
 				if release is None:
@@ -103,7 +105,6 @@ def guess_album(trackinfo):
 								newtracks.append(u)
 			gotone = False
 			for track in newtracks:
-				print "***",tracknum,`artist`,`trackname`
 				for r in track.releases:
 					release = check_release(r, track, tracknum, trackinfo, possible_releases)
 					if release is None:
@@ -117,6 +118,9 @@ def guess_album(trackinfo):
 			print "Still cant find a release for this track.  Trying text matching"
 			gotone = False
 			mp3data = parsemp3.parsemp3(fname)
+			if "TIT2" not in mp3data["v2"]:
+				print "No v2 title tag, giving up"
+				break
 			ftrackname = mp3data["v2"]["TIT2"]
 			for (rid,v) in possible_releases.iteritems():
 				release = lookups.get_release_by_releaseid(rid)
@@ -127,16 +131,16 @@ def guess_album(trackinfo):
 					print " * track name matches release info."
 					possible_releases[rid] += 1
 
-
 		if not gotone:
 			print "Sorry, still couldn't find a release for this track"
+			break # Give up
 
 	releasedata=[]
 
 	for rid in [x for x in possible_releases if possible_releases[x]==len(trackinfo)]:
 		release = lookups.get_release_by_releaseid(rid)
 		albumartist=release.artist
-		print albumartist.name,":",release.title+" ("+rid+".html)"
+		#print albumartist.name,":",release.title+" ("+rid+".html)"
 		releaseevents=release.getReleaseEvents()
 		#print "Release dates:"
 		#for ev in releaseevents:
@@ -171,6 +175,13 @@ def guess_album(trackinfo):
 
 if __name__=="__main__":
 	trackinfo=get_dir_info(sys.argv[1])
-	#print trackinfo
-	print guess_album(trackinfo)
+	for (albumartist,release,rid,releases,asin,trackdata,albumartistid,releaseid) in guess_album(trackinfo):
+		print albumartist,"-",release
+		print "ASIN:",asin
+		print "Release Dates:",
+		for i in releases:
+			print "",i
+		for (tracknum,artist,title,dur,fname,artistid,trkid) in trackdata:
+			print "",tracknum,"-",artist,"-",title,"%2d:%06.3f" % (int(dur/60000),(dur % 60000)/1000)
+			print " ",fname
 
