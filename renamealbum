@@ -49,13 +49,11 @@ if os.path.exists(destdir):
 	if not os.path.exists(fname):
 		report_file=open(fname,"w")
 		print >>report_file,"Destination (%s) already exists" % destdir
-	report_file.close()
+		report_file.close()
 
 else:
-	try:
+	if not os.path.exists(destdir):
 		os.mkdir(destdir)
-	except OSError,e:
-		pass
 
 	parsed_data={}
 	for (tracknum,artist,title,dur,origname,artistid,trkid) in trackdata:
