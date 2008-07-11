@@ -36,7 +36,7 @@ v2_2_0_to_v2_4_0 = {
 #	"LNK":,		# Linked Information
 #	"MCI":,		# Music CD Identifier
 #	"MUL":,		# MPEG Location Lookup Table
-#	"PIC":,		# Attached Picture
+	"PIC":"APIC",	# Attached Picture
 #	"POP":,		# Popularimeter
 #	"REV":,		# Reverb
 	"RVA":"RVAD",	# Relative Volume Adjustment
