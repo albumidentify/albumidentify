@@ -126,7 +126,7 @@ def guess_album(trackinfo):
 				release = lookups.get_release_by_releaseid(rid)
 				rtrackname = release.tracks[tracknum-1].title
 				#print "tag name",ftrackname,"release name",rtrackname
-				if trackname == trackname:
+				if rtrackname == trackname:
 					gotone = True
 					print " * track name matches release info."
 					possible_releases[rid] += 1
