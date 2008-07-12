@@ -46,7 +46,6 @@ def get_dir_info(dirname):
 
 
 def check_release(r, track, tracknum, trackinfo, possible_releases):
-	print `r.title`
 	if tracknum>1 and (
 		r.id not in possible_releases 
 		or possible_releases[r.id] != tracknum-1):
@@ -63,11 +62,36 @@ def check_release(r, track, tracknum, trackinfo, possible_releases):
 		#	print ">",i.title
 		return None
 	# Skip if the tracks in the wrong place on this album
-	if lookups.track_number(release.tracks, track.title) != tracknum:
-		print release.title,"doesn't have track in right position"
+	found_tracknumber=lookups.track_number(release.tracks, track.title)
+	if found_tracknumber != tracknum:
+		print release.title,"doesn't have track in right position (expected",tracknum,"not",found_tracknumber,")"
 		return None
 	print release.title,"looks ok!"
 	return release
+
+def find_more_tracks(tracks):
+	# There is a n:n mapping of puid's to tracks.
+	# All puid's that match a track should be the same song.
+	# Thus if PUIDa maps to TrackA, which also has PUIDb
+	# and PUIDb maps to TrackB too, then PUIDa should map to
+	# TrackB too...
+	tracks=tracks[:]
+	donetracks=[]
+	donepuids=[]
+
+	while tracks!=[]:
+		t=tracks.pop()
+		donetracks.append(t)
+		newt = lookups.get_track_by_id(t.id)
+		for p in newt.puids:
+			if p not in donepuids:
+				donepuids.append(p)
+				ts = lookups.get_tracks_by_puid(p)
+				for u in ts:
+					if u not in donetracks and u not in tracks:
+						print [y.title for y in u.releases]
+						tracks.append(u)
+	return donetracks
 
 
 def guess_album(trackinfo):
@@ -78,7 +102,7 @@ def guess_album(trackinfo):
 	possible_releases={}
 	for (tracknum,(fname,artist,trackname,dur,tracks)) in trackinfo.items():
 		gotone = False
-		print "***",tracknum,`artist`,`trackname`
+		print "???",tracknum,`artist`,`trackname`
 		for track in tracks:
 			for r in track.releases:
 				release = check_release(r, track, tracknum, trackinfo, possible_releases)
@@ -91,18 +115,7 @@ def guess_album(trackinfo):
 				gotone = True
 		if not gotone:
 			print "No release found for this track (%d), trying harder" % tracknum
-			newtracks = []
-			puids = []
-			for t in tracks:
-				newt = lookups.get_track_by_id(t.id)
-				for p in newt.puids:
-					if p not in puids:
-						print p
-						puids.append(p)
-						ts = lookups.get_tracks_by_puid(p)
-						for u in ts:
-							if u not in newtracks and u not in tracks:
-								newtracks.append(u)
+			newtracks = find_more_tracks(tracks)
 			gotone = False
 			for track in newtracks:
 				for r in track.releases:
