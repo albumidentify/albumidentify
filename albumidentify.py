@@ -33,7 +33,7 @@ def get_dir_info(dirname):
 			print "decoding",fname
 			decode(fname,toname)
 		(fp, dur) = fingerprint.fingerprint(toname)
-		#os.unlink(toname)
+		os.unlink(toname)
 
 		(trackname, artist, puid) = musicdns.lookup_fingerprint(fp, dur, key)
 		print "***",tracknum,`artist`,`trackname`,puid
@@ -78,19 +78,32 @@ def find_more_tracks(tracks):
 	tracks=tracks[:]
 	donetracks=[]
 	donepuids=[]
+	donetrackids=[]
+	paths={}
 
 	while tracks!=[]:
 		t=tracks.pop()
 		donetracks.append(t)
 		newt = lookups.get_track_by_id(t.id)
 		for p in newt.puids:
-			if p not in donepuids:
-				donepuids.append(p)
-				ts = lookups.get_tracks_by_puid(p)
-				for u in ts:
-					if u not in donetracks and u not in tracks:
-						print [y.title for y in u.releases]
-						tracks.append(u)
+			if p in donepuids:
+				continue
+			donepuids.append(p)
+			ts = lookups.get_tracks_by_puid(p)
+			for u in ts:
+				if u.id in donetrackids:
+					continue
+				tracks.append(u)
+				donetrackids.append(u.id)
+				print u.id,[y.title for y in u.releases]
+				if t.id in paths:
+					path=paths[t.id]
+				else:
+					path=[]
+				path=path+[u.releases[0].title]
+				print path
+				paths[u.id]=path
+					
 	return donetracks
 
 
