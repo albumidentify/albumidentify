@@ -9,6 +9,15 @@ import mp3names
 import lookups
 import urllib
 
+def print_usage():
+        print "usage: " + sys.argv[0] + " <srcpath> <destpath>"
+        print "  srcpath     A path containing MP3s to fingerprint and tag"
+        print "  destpath    A path to write the tagged files to"
+
+if len(sys.argv) < 3:
+	print_usage()
+	sys.exit(1)
+
 dest=sys.argv[2]
 dir = albumidentify.get_dir_info(sys.argv[1])
 

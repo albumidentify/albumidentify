@@ -635,7 +635,7 @@ if __name__=="__main__":
 			if errors!=[]:
 				print "Errors:"
 				for i in data["errors"]:
-					print "\t%s" % i
+					print "\t%s" % `i`
 			print
 
 	except:
