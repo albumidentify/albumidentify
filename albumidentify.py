@@ -5,6 +5,7 @@ import musicdns
 import os
 import lookups
 import parsemp3
+import musicbrainz2
 
 key = 'a7f6063296c0f1c9b75c7f511861b89b'
 
@@ -166,6 +167,10 @@ def guess_album(trackinfo):
 	for rid in [x for x in possible_releases if possible_releases[x]==len(trackinfo)]:
 		release = lookups.get_release_by_releaseid(rid)
 		albumartist=release.artist
+		if musicbrainz2.model.Release.TYPE_SOUNDTRACK in release.types:
+			directoryname = "Soundtrack"
+		else:
+			directoryname = albumartist.name
 		#print albumartist.name,":",release.title+" ("+rid+".html)"
 		releaseevents=release.getReleaseEvents()
 		#print "Release dates:"
@@ -179,15 +184,17 @@ def guess_album(trackinfo):
 			(fname,artist,trackname,dur,trackprints) = trackinfo[tracknum+1]
 			if trk.artist is None:
 				artist=albumartist.name
+				sortartist=albumartist.sortName
 				artistid=albumartist.id
 			else:
 				artist=trk.artist.name
+				sortartist=trk.artist.sortName
 				artistid=trk.artist.id
 			#print " ",tracknum+1,"-",artist,"-",trk.title,"%2d:%06.3f" % (int(dur/60000),(dur%6000)/1000),`fname`
-			trackdata.append((tracknum+1,artist,trk.title,dur,fname,artistid,trk.id))
+			trackdata.append((tracknum+1,artist,sortartist,trk.title,dur,fname,artistid,trk.id))
 		asin = lookups.get_asin_from_release(release)
 		albuminfo = (
-			albumartist.name,
+			directoryname,
 			release.title,
 			rid+".html",
 			[x.date for x in releaseevents],

@@ -16,23 +16,29 @@ def _id3v1(f,data):
 
 def _tag(name,data):
 	assert len(name)==4
-	assert len(data)<127
+	assert len(data)<127*127*127
 	ret =(name)				# Tag Name
-	ret+=("\x00\x00\x00"+chr(len(data)))	# Length
+	ret+=("\x00"+chr(len(data)/(127*127))+
+			chr(len(data)/127%127)+
+			chr(len(data)%127))	# Length
 	ret+=("\x00\x00")			# Flags
 	ret+=(data)
 	return ret
 
-def _texttag(name,data):
+def _encode(data):
 	try:
 		# Try and encode it as latin-1 if we can
-		data="\x00"+data.encode("iso8859-1")
+		data=data.encode("iso8859-1")
+		type = "\x00"
 	except:
 		# If we can't, give up and use utf16
-		data="\x01"+data.encode("utf-16")
-	# Now write the tag out
-	return _tag(name,data)
+		data=data.encode("utf-16")
+		type = "\x01"
+	return (type,data)
 
+def _texttag(name,data):
+	(type,data) = _encode(data)
+	return _tag(name,type+data)
 
 def _id3v2(f,data):
 	f.write("ID3")		# Magic
@@ -50,9 +56,23 @@ def _id3v2(f,data):
 	if "TXXX" in data:
 		for (k,v) in data["TXXX"]:
 			outp+=_texttag("TXXX",k+u"\x00"+v)
+	if "APIC" in data:
+		# encoding, mimetype, \x00, pic type (\x03 = front cover), desc, \x00, data
+		(mimetype, pictype, desc, stream) = data["APIC"]
+		(encoding,desc) = _encode(desc)
+		#mimetype = mimetype.encode("ascii").encode("utf8")
+                d=encoding
+                d+=mimetype.encode("utf8")+"\x00"
+                d+=pictype
+                d+=desc.encode("utf8")+"\x00"
+                d+=stream
+		outp+=_tag("APIC",d)
 	#outp+=_tag("TLEN",data["TLEN"])
 	#outp+=_tag("TLEN",str(data["TLEN"]))
-	f.write("\x00\x00"+chr(len(outp)>>7)+chr(len(outp)&0x7f))
+	f.write(chr(len(outp)>>21)+
+		chr((len(outp)>>14)&0x7f)+
+		chr((len(outp)>>7)&0x7f)+
+		chr(len(outp)&0x7f))
 	f.write(outp)
 
 def output(fname,data):
