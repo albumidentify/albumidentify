@@ -23,14 +23,16 @@ dir = albumidentify.get_dir_info(sys.argv[1])
 
 data = albumidentify.guess_album(dir)
 
-if len(data)<1:
+try:
+	(artist,album,rid,events,asin,trackdata,albumartistid,releaseid) \
+		= data.next()
+except StopIteration,si:
 	print "Couldn't identify album",sys.argv[1]
 	report_file=open(os.path.join(sys.argv[1],"report.txt"),"w")
 	print >>report_file,"Couldn't identify album"
 	report_file.close()
 	sys.exit(1)
 
-(artist,album,rid,events,asin,trackdata,albumartistid,releaseid) = data[0]
 
 if len(events) == 0:
 	print "Coultn'd find a release event",sys.argv[1]

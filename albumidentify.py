@@ -6,12 +6,74 @@ import os
 import lookups
 import parsemp3
 import musicbrainz2
+import itertools
+import pickle
+import md5
+import random
+
+def output_list(l):
+	l.sort()
+	ret=[]
+	start=l[0]
+	end=l[0]
+	for i in l[1:]:
+		if end+1==i:
+			end=i
+			continue
+		if start!=end:
+			ret.append("%d-%d" % (start,end))
+		else:
+			ret.append("%d" % start)
+		start=i
+		end=i
+	if start!=end:
+		ret.append("%d-%d" % (start,end))
+	else:
+		ret.append("%d" % start)
+	return "[%s]" % (",".join(ret))
+		
 
 key = 'a7f6063296c0f1c9b75c7f511861b89b'
 
 def decode(frommp3name, towavname):
 	os.system("mpg123 --quiet --wav \"%(towavname)s\" \"%(frommp3name)s\"" % locals())
 
+try:
+	fileinfocache=pickle.load(file(os.path.expanduser("~/.albumidentifycache")))
+except:
+	fileinfocache={}
+
+def get_file_info(fname):
+	fhash = md5.md5(open(fname,"r").read()).hexdigest()
+	if fhash in fileinfocache:
+		return fileinfocache[fhash]
+	# While testing this uses a fixed name in /tmp
+	# and checks if it exists, and doesn't decode if it does.
+	# This is for speed while debugging, should be changed with
+	# tmpname later
+	toname=os.path.join("/tmp/",fname[:-3]+"wav")
+	if not os.path.exists(toname):
+		sys.stdout.write("decoding"+os.path.basename(fname)+"\r\x1B[K")
+		sys.stdout.flush()
+		decode(fname,toname)
+	sys.stdout.write("Generating fingerprint\r")
+	sys.stdout.flush()
+	(fp, dur) = fingerprint.fingerprint(toname)
+	os.unlink(toname)
+
+	sys.stdout.write("Fetching fingerprint info\r")
+	sys.stdout.flush()
+	(trackname, artist, puid) = musicdns.lookup_fingerprint(fp, dur, key)
+	print "***",`artist`,`trackname`,puid
+	if puid is None:
+		raise "Can't identify Track"
+	sys.stdout.write("Looking up PUID\r")
+	sys.stdout.flush()
+	tracks = lookups.get_tracks_by_puid(puid)
+	print [ y.title for x in tracks for y in x.releases]
+	fileinfocache[fhash]=(fname,artist,trackname,dur,tracks)
+	pickle.dump(fileinfocache,open(os.path.expanduser("~/.albumidentifycache"),"w"))
+	return fileinfocache[fhash]
 
 def get_dir_info(dirname):
 	files=os.listdir(dirname)
@@ -24,51 +86,8 @@ def get_dir_info(dirname):
 			continue
 		tracknum=tracknum+1
 		fname=os.path.join(dirname,i)
-		# While testing this uses a fixed name in /tmp
-		# and checks if it exists, and doesn't decode if it does.
-		# This is for speed while debugging, should be changed with
-		# tmpname later
-		toname=os.path.join("/tmp/",i[:-3]+"wav")
-		#toname=os.path.join("/tmp/tmp.wav")
-		if not os.path.exists(toname):
-			print "decoding",fname
-			decode(fname,toname)
-		(fp, dur) = fingerprint.fingerprint(toname)
-		os.unlink(toname)
-
-		(trackname, artist, puid) = musicdns.lookup_fingerprint(fp, dur, key)
-		print "***",tracknum,`artist`,`trackname`,puid
-		if puid is None:
-			raise "Can't identify Track"
-		tracks = lookups.get_tracks_by_puid(puid)
-		print [ y.title for x in tracks for y in x.releases]
-		trackinfo[tracknum]=(fname,artist,trackname,dur,tracks)
+		trackinfo[tracknum]=get_file_info(fname)
 	return trackinfo
-
-
-def check_release(r, track, tracknum, trackinfo, possible_releases):
-	if tracknum>1 and (
-		r.id not in possible_releases 
-		or possible_releases[r.id] != tracknum-1):
-		# Skip this album -- we know it's not going to
-		# be a final candidate
-		#print "skipping already worthless",r.id
-		return None
-	# Get the information about this release
-	release = lookups.get_release_by_releaseid(r.id)
-	# Skip if this album has the wrong number of tracks.
-	if len(release.tracks) != len(trackinfo):
-		print release.title,"has wrong number of tracks (expected",len(trackinfo)," not ",len(release.tracks),")"
-		#for i in release.tracks:
-		#	print ">",i.title
-		return None
-	# Skip if the tracks in the wrong place on this album
-	found_tracknumber=lookups.track_number(release.tracks, track.title)
-	if found_tracknumber != tracknum:
-		print release.title,"doesn't have track in right position (expected",tracknum,"not",found_tracknumber,")"
-		return None
-	print release.title,"looks ok!"
-	return release
 
 def find_more_tracks(tracks):
 	# There is a n:n mapping of puid's to tracks.
@@ -85,6 +104,7 @@ def find_more_tracks(tracks):
 	while tracks!=[]:
 		t=tracks.pop()
 		donetracks.append(t)
+		yield t
 		newt = lookups.get_track_by_id(t.id)
 		for p in newt.puids:
 			if p in donepuids:
@@ -96,75 +116,136 @@ def find_more_tracks(tracks):
 					continue
 				tracks.append(u)
 				donetrackids.append(u.id)
-				print u.id,[y.title for y in u.releases]
+				#print u.id,[y.title for y in u.releases]
 				if t.id in paths:
 					path=paths[t.id]
 				else:
 					path=[]
 				path=path+[u.releases[0].title]
-				print path
+				#print path
 				paths[u.id]=path
 					
-	return donetracks
+def find_even_more_tracks(fname,tracknum,possible_releases):
+	gotone = False
+	mp3data = parsemp3.parsemp3(fname)
+	if "TIT2" not in mp3data["v2"]:
+		return
+	ftrackname = mp3data["v2"]["TIT2"]
+	for (rid,v) in possible_releases.items():
+		release = lookups.get_release_by_releaseid(rid)
+		rtrackname = release.tracks[tracknum-1].title
+		if rtrackname.lower() == ftrackname.lower():
+			yield release.tracks[tracknum-1]
 
-
-def guess_album(trackinfo):
-	# tracinfo is
+def guess_album2(trackinfo):
+	# trackinfo is
 	#  <tracknum> => (fname,artist,trackname,dur,[mbtrackids])
 	#
 	# returns a list of possible release id's
+	#
+	# This version works by trying a breadth first search of releases to try
+	# and avoid wasting a lot of time finding releases which are going to
+	# be ignored.
+	#
+	# This function returns a list of release id's
 	possible_releases={}
-	for (tracknum,(fname,artist,trackname,dur,tracks)) in trackinfo.items():
-		gotone = False
-		print "???",tracknum,`artist`,`trackname`
-		for track in tracks:
-			for r in track.releases:
-				release = check_release(r, track, tracknum, trackinfo, possible_releases)
-				if release is None:
-					continue
-				if release.id in possible_releases:
-					possible_releases[release.id] += 1
+	failed_releases={}
+	impossible_releases=[]
+	track_generator={}
+	completed_releases=[]
+	for (tracknum,(fname,artist,trackname,dur,trackids)) in trackinfo.iteritems():
+		track_generator[tracknum]=itertools.chain(
+					(track
+						for track in trackids),
+					find_more_tracks(trackids),
+					find_even_more_tracks(fname,
+							tracknum,
+							possible_releases)
+					)
+
+	track_counts={}
+	for i in range(len(trackinfo)):
+		track_counts[i+1]=0
+	while track_generator!={}:
+		total=0
+		for i in track_counts:
+			if i in track_generator:
+				total+=1.0/(1+track_counts.get(i,0))
+		r=random.random()*total
+		tot=0
+		for tracknum in track_counts:
+			if tracknum in track_generator:
+				tot+=1.0/(1+track_counts.get(tracknum,0))
+				if tot>=r:
+					break
+		try:
+			track = track_generator[tracknum].next()
+		except StopIteration, si:
+			# If there are no more tracks for this
+			# skip it and try more.
+			del track_generator[tracknum]
+			#print "All possibilities for track",tracknum,"exhausted"
+			#return
+			continue
+
+		for releaseid in (x.id for x in track.releases):
+			#releaseid = track.releases[0].id
+
+			if releaseid in impossible_releases:
+				continue
+
+			release = lookups.get_release_by_releaseid(releaseid)
+
+			if len(release.tracks) != len(trackinfo):
+				# Ignore release -- wrong number of tracks
+				sys.stdout.write(release.title.encode("ascii","ignore")[:40]+": wrong number of tracks (%d not %d)\x1B[K\r" % (len(release.tracks),len(trackinfo)))
+				sys.stdout.flush()
+				impossible_releases.append(releaseid)
+				continue
+
+			found_tracknumber=lookups.track_number(release.tracks, track)
+			if found_tracknumber != tracknum:
+				#impossible_releases.append(releaseid)
+				# Ignore release -- Wrong track position
+				if releaseid in failed_releases:
+					failed_releases[releaseid]= \
+						failed_releases[releaseid]+1
 				else:
-					possible_releases[release.id] = 1
-				gotone = True
-		if not gotone:
-			print "No release found for this track (%d), trying harder" % tracknum
-			newtracks = find_more_tracks(tracks)
-			gotone = False
-			for track in newtracks:
-				for r in track.releases:
-					release = check_release(r, track, tracknum, trackinfo, possible_releases)
-					if release is None:
-						continue
-					if release.id in possible_releases:
-						possible_releases[release.id] += 1
-					else:
-						possible_releases[release.id] = 1
-					gotone = True
-		if not gotone:
-			print "Still cant find a release for this track.  Trying text matching"
-			gotone = False
-			mp3data = parsemp3.parsemp3(fname)
-			if "TIT2" not in mp3data["v2"]:
-				print "No v2 title tag, giving up"
-				break
-			ftrackname = mp3data["v2"]["TIT2"]
-			for (rid,v) in possible_releases.iteritems():
-				release = lookups.get_release_by_releaseid(rid)
-				rtrackname = release.tracks[tracknum-1].title
-				#print "tag name",ftrackname,"release name",rtrackname
-				if rtrackname == trackname:
-					gotone = True
-					print " * track name matches release info."
-					possible_releases[rid] += 1
+					failed_releases[releaseid]=1
+				if releaseid in possible_releases:
+					#print "No longer considering",release.title,": doesn't have track at the right position (",tracknum,"expected at",found_tracknumber,")"
+					#for i in possible_releases[releaseid]:
+					#	track_counts[i]=track_counts[i]-1
+					#del possible_releases[releaseid]
+					pass
+				else:
+					sys.stdout.write(release.title.encode("ascii")[:40]+" (track at wrong position)\x1b[K\r")
+					sys.stdout.flush()
+				continue
 
-		if not gotone:
-			print "Sorry, still couldn't find a release for this track"
-			break # Give up
+			if releaseid in possible_releases:
+				if tracknum not in possible_releases[releaseid]:
+					possible_releases[releaseid].append(tracknum)
+					track_counts[tracknum]=track_counts[tracknum]+1
+					print "Found track",tracknum,"on",release.title,"(tracks found: %s)\x1b[K" % (output_list(possible_releases[releaseid]))
+			else:
+				possible_releases[releaseid]=[tracknum]
+				track_counts[tracknum]=track_counts[tracknum]+1
+				print "Considering",release.title,"\x1b[K"
+				if possible_releases!={}:
+					print "Currently Considering:"
+					for i in possible_releases:
+						print "",lookups.get_release_by_releaseid(i).title,"(tracks found: %s)" % (output_list(possible_releases[i])),failed_releases.get(i,0)
+					print
 
-	releasedata=[]
-
-	for rid in [x for x in possible_releases if possible_releases[x]==len(trackinfo)]:
+			if len(possible_releases[releaseid])==len(trackinfo) and releaseid not in completed_releases:
+				print release.title,"seems ok\x1b[K"
+				yield releaseid
+				completed_releases.append(releaseid)
+			
+def guess_album(trackinfo):
+	releasedata={}
+	for rid in guess_album2(trackinfo):
 		release = lookups.get_release_by_releaseid(rid)
 		albumartist=release.artist
 		if musicbrainz2.model.Release.TYPE_SOUNDTRACK in release.types:
@@ -203,8 +284,7 @@ def guess_album(trackinfo):
 			albumartist.id,
 			release.id,
 		)
-		releasedata.append(albuminfo)
-	return releasedata
+		yield albuminfo
 
 if __name__=="__main__":
 	trackinfo=get_dir_info(sys.argv[1])
@@ -214,7 +294,7 @@ if __name__=="__main__":
 		print "Release Dates:",
 		for i in releases:
 			print "",i
-		for (tracknum,artist,title,dur,fname,artistid,trkid) in trackdata:
+		for (tracknum,artist,sortartist,title,dur,fname,artistid,trkid) in trackdata:
 			print "",tracknum,"-",artist,"-",title,"%2d:%06.3f" % (int(dur/60000),(dur % 60000)/1000)
 			print " ",fname
 

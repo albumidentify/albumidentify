@@ -2,60 +2,116 @@ import musicbrainz2.webservice as ws
 import time
 import amazon4
 import re
+import pickle
+import os
+import atexit
 
 AMAZON_LICENSE_KEY='1WQQTEA14HEA9AERDMG2'
 
 lastwsquery = time.time()
+lastmemosave = time.time()
+memodirty=False
 
-def waitforws(cb):
-	global lastwsquery
-	if time.time()-lastwsquery<2:
-		wait=2-(time.time()-lastwsquery)
-		time.sleep(wait)
-	ret=cb()
-	lastwsquery=time.time()
-	return ret
+try:
+	memocache=pickle.load(
+		open(os.path.expanduser("~/.musicbrainzcache"),"r"))
+except:
+	try:
+		memocache=pickle.load(
+			open(os.path.expanduser("~/.musicbrainzcache.old"),"r"))
+	except:
+		memocache={}
 
 
+def memosave():
+	global memodirty
+	if not memodirty:
+		return
+	try:
+		os.rename(
+			os.path.expanduser("~/.musicbrainzcache"),
+			os.path.expanduser("~/.musicbrainzcache.old"))
+	except:
+		pass
+
+	pickle.dump(memocache,
+		open(os.path.expanduser("~/.musicbrainzcache")
+			,"w"))
+	memodirty=False
+# Make sure we write it out every so often
+atexit.register(memosave)
+
+def memoify(func):
+	def memoify(x):
+		global memodirty
+		if func.__name__ not in memocache:
+			memocache[func.__name__]={}
+		if x not in memocache[func.__name__]:
+			memocache[func.__name__][x]=func(x)
+			memodirty=True
+
+		if memodirty and time.time()-lastmemosave>3600:
+			memosave()
+
+		return memocache[func.__name__][x]
+	return memoify
+
+def delayed(func):
+	"Decorator to make sure a function isn't called more often than once every 2 seconds. used to space webservice calls"
+	def delay(*args,**kwargs):
+		global lastwsquery
+		if time.time()-lastwsquery<2:
+			wait=2-(time.time()-lastwsquery)
+			time.sleep(wait)
+		ret=func(*args,**kwargs)
+		lastwsquery=time.time()
+		return ret
+	return delay
+		
+	
+
+@memoify
+@delayed
 def get_tracks_by_puid(puid):
 	""" Lookup a list of musicbrainz tracks by PUID. Returns a list of Track
 	objects. """ 
 	q = ws.Query()
 	filter = ws.TrackFilter(puid=puid)
 	results = []
-	rs = waitforws(lambda :q.getTracks(filter=filter))
+	rs = q.getTracks(filter=filter)
 	for r in rs:
 		results.append(r.getTrack())
 	return results
 
+@memoify
+@delayed
 def get_track_by_id(id):
 	q = ws.Query()
 	results = []
-	includes = waitforws(lambda :ws.TrackIncludes(artist=True, releases=True, puids=True))
+	includes = ws.TrackIncludes(artist=True, releases=True, puids=True)
 	t = q.getTrackById(id_ = id, include = includes)
 	return t
 
-release_by_releaseid_cache={}
+@memoify
+@delayed
 def get_release_by_releaseid(releaseid):
 	""" Given a musicbrainz release-id, fetch the release from musicbrainz. """
-	global release_by_releaseid_cache
-	if releaseid not in release_by_releaseid_cache:
-		q = ws.Query()
-		includes = waitforws(lambda :ws.ReleaseIncludes(artist=True, counts=True, tracks=True, releaseEvents=True,
-										urlRelations=True))
-		release_by_releaseid_cache[releaseid]=q.getReleaseById(id_ = releaseid, include=includes)
-	return release_by_releaseid_cache[releaseid]
+	q = ws.Query()
+	includes = ws.ReleaseIncludes(artist=True, counts=True, tracks=True, releaseEvents=True, urlRelations=True)
+	return q.getReleaseById(id_ = releaseid, include=includes)
 
-def track_number(tracks, trackname):
+def track_number(tracks, track):
 	""" Lookup trackname in a list of tracks and return the track number
 	(indexed starting at 1) """
 	tracknum = 1
 	for t in tracks:
-		if t.title == trackname:
+		if t.id == track.id:
 			return tracknum
 		tracknum += 1
 	return -1
 
+@memoify
+@delayed
 def get_track_artist_for_track(track):
 	""" Returns the musicbrainz Artist object for the given track. This may
 		require a webservice lookup
@@ -65,13 +121,15 @@ def get_track_artist_for_track(track):
 
 	q = ws.Query()
 	includes = ws.TrackIncludes(artist = True)
-	t = waitforws(lambda :q.getTrackById(track.id, includes))
+	t = q.getTrackById(track.id, includes)
 
 	if t is not None:
 		return t.artist
 
 	return None
 
+@memoify
+@delayed
 def get_all_discs_in_album(disc, albumname = None): 
 	""" Given a disc, talk to musicbrainz to see how many discs are in the
 	release.  Return a list of releases which correspond to all of the discs in
@@ -88,7 +146,7 @@ def get_all_discs_in_album(disc, albumname = None):
 		(albumname, discnumber, disctitle) = parse_album_name(disc.album)
 	filter = ws.ReleaseFilter(title=albumname, artistName=disc.artist)
 	q = ws.Query()
-	rels = waitforws(lambda :q.getReleases(filter))
+	rels = q.getReleases(filter)
 
 	for rel in rels:
 		r = rel.getRelease()
@@ -96,7 +154,6 @@ def get_all_discs_in_album(disc, albumname = None):
 		# and check them all. Pain.
 		includes = ws.ReleaseIncludes(artist=True, urlRelations = True)
 		release = q.getReleaseById(r.id, includes)
-		time.sleep(1)
 		for relation in release.getRelations():
 			if relation.getType().find("AmazonAsin") != -1:
 				asin = relation.getTargetId().split("/")[-1].strip()
@@ -105,6 +162,7 @@ def get_all_discs_in_album(disc, albumname = None):
 	return releases
 
 
+@memoify
 def get_album_art_url_for_asin(asin):
 	if asin is None:
 		return None
@@ -114,6 +172,7 @@ def get_album_art_url_for_asin(asin):
 		return item.LargeImage.URL
 	return None
 
+@memoify
 def get_asin_from_release(release):
 	# The ASIN specified in release.asin isn't necessarily the only ASIN
 	# for the release. Sigh. So, we need to look at the release's relations
