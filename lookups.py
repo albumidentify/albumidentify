@@ -42,18 +42,19 @@ def memosave():
 atexit.register(memosave)
 
 def memoify(func):
-	def memoify(x):
+	def memoify(*args,**kwargs):
 		global memodirty
+		key=pickle.dumps((args,kwargs))
 		if func.__name__ not in memocache:
 			memocache[func.__name__]={}
-		if x not in memocache[func.__name__]:
-			memocache[func.__name__][x]=func(x)
+		if key not in memocache[func.__name__]:
+			memocache[func.__name__][key]=func(*args,**kwargs)
 			memodirty=True
 
 		if memodirty and time.time()-lastmemosave>3600:
 			memosave()
 
-		return memocache[func.__name__][x]
+		return memocache[func.__name__][key]
 	return memoify
 
 def delayed(func):
