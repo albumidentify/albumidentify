@@ -49,7 +49,7 @@ def print_usage():
 	print "                      provide a date where one is missing"
 	print "  -n                  Don't actually tag and rename files"
 
-
+@lookups.delayed
 def get_releases_by_metadata(disc):
 	""" Given a Disc object, use the performer, title and number of tracks to
 	lookup the release in musicbrainz. This method returns a list of possible
@@ -59,7 +59,7 @@ def get_releases_by_metadata(disc):
 
 	q = ws.Query()
 	filter = ws.ReleaseFilter(title=disc.title, artistName=disc.performer)
-	rels = lookups.waitforws(lambda :q.getReleases(filter))
+	rels = q.getReleases(filter)
 	
 	# Filter out of the list releases with a different number of tracks to the
 	# Disc.
@@ -93,10 +93,10 @@ def get_release_by_fingerprints(disc):
 
 		tracks = lookups.get_tracks_by_puid(puid)
 		for track in tracks:
-			print "  Could be " + track.id + " (%s)" % track.title
+			print "  Could be " + track.id + ".html (%s)" % track.title
 			releases = track.getReleases()
 			for r in releases:
-				print "     Which is on " + r.id + " (%s)" % r.title
+				print "     Which is on " + r.id + ".html (%s)" % r.title
 				release = lookups.get_release_by_releaseid(r.id)
 
 				# Filter releases with the wrong number of tracks
@@ -119,6 +119,7 @@ def get_release_by_fingerprints(disc):
 		print r + " (" + str(possible_releases[r]) + ")"
 	return possible_releases.keys()
 
+@lookups.delayed
 def get_musicbrainz_release(disc):
 	""" Given a Disc object, try a bunch of methods to look up the release in
 	musicbrainz.  If a releaseid is specified, use this, otherwise search by
@@ -135,7 +136,7 @@ def get_musicbrainz_release(disc):
 
 	# Otherwise, lookup the releaseid using the discid as a key
 	filter = ws.ReleaseFilter(discId=disc.discid)
-	results = lookups.waitforws(lambda :q.getReleases(filter=filter))
+	results = q.getReleases(filter=filter)
 	if len(results) > 1:
 		for result in results:
 			print result.release.id

@@ -51,6 +51,9 @@ def __get_asin(asin):
 	""" Given either a full URL or a straight ASIN, return the ASIN. """
 	if len(asin) == 10:
 		return asin
+	elif asin[len(asin)-1] == '/':
+		# sometimes the asin url may have a / at the end.
+		return asin.split('/')[-2]
 	else:
 		return asin.split('/')[-1]
 
@@ -93,6 +96,7 @@ def search_by_asin(asin, license_key, response_group="Images", http_proxies=None
 	usock.close()
 
 	data = unmarshal(xmldoc)
+	print "ASIN:",asin,"url:",url
 
 	if data.ItemLookupResponse.Items.Request.IsValid == 'False':
 		raise Exception("Item lookup failed")
