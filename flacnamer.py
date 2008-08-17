@@ -106,7 +106,7 @@ def get_release_by_fingerprints(disc):
 				
 				# Filter releases where this track is not in the correct
 				# position.
-				if lookups.track_number(release.getTracks(), track.title) != tracknum:
+				if lookups.track_number(release.getTracks(), track) != tracknum:
 					print "      Incorrect track number"
 					continue
 
