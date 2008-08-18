@@ -191,6 +191,7 @@ def main():
 	asin = None
 	year = None
 	noact = False
+	totaldiscs = None
 
 	for option in sys.argv[2:]:
 		if option.startswith("--release-id="):
@@ -203,6 +204,8 @@ def main():
 			year = option.split("=")[1].strip()
 		elif option.startswith("-n"):
 			noact = True
+		elif option.startswith("--total-discs"):
+			totaldiscs = option.split("=",1)[1].strip()
 
 	srcpath = os.path.abspath(sys.argv[1])
 
@@ -258,6 +261,7 @@ def main():
 	disc.album = release.title
 	if year is not None:
 		disc.year = year
+		disc.releasedate = year
 	elif disc.releasedate is not None:
 		disc.year = disc.releasedate[0:4]
 	else:
@@ -312,9 +316,12 @@ def main():
 	if discnumber is None:
 		disc.number = 1
 		disc.totalnumber = 1
+	elif totaldiscs is not None:
+		disc.totalnumber = totaldiscs
+		disc.number = int(discnumber)
 	else:
 		if disc.asin is None:
-			raise Exception("This disc is part of a multi-disc set, but we have no ASIN!")
+			raise Exception("This disc is part of a multi-disc set, but we have no ASIN! Use --total-discs or add an ASIN at musicbrainz")
 
 		disc.number = int(discnumber)
 		discs = lookups.get_all_discs_in_album(disc, albumname)
@@ -370,19 +377,19 @@ MUSICBRAINZ_DISCID=%s
 DATE=%s
 YEAR=%s
 COMPILATION=%s
-DISC=%s
-DISCC=%s
-DISCNUMBER=%s
-DISCTOTAL=%s
 ''' % (mbtrack.title, track_artist_name, disc.artist, str(tracknum), str(len(disc.tracks)), str(len(disc.tracks)), 
 			disc.album, os.path.basename(release.id), os.path.basename(release.artist.id),
 			os.path.basename(track_artist.id), os.path.basename(mbtrack.id), disc.discid, disc.releasedate, disc.year,
-			str(disc.compilation), str(disc.number), str(disc.totalnumber), str(disc.number), str(disc.totalnumber))
+			str(disc.compilation))
 		
 		if track.isrc is not None:
 			flactags += "ISRC=%s\n" % track.isrc
 		if disc.mcn is not None:
 			flactags += "MCN=%s\n" % disc.mcn
+		if disc.totalnumber > 1:
+			# only add total number of discs if it's a collection
+			flactags += "DISC=%s\nDISCC=%s\nDISCNUMBER=%s\nDISCTOTAL=%s" % \
+					(str(disc.number), str(disc.totalnumber), str(disc.number), str(disc.totalnumber))
 
 		for rtype in disc.releasetypes:
 			flactags += "MUSICBRAINZ_RELEASE_ATTRIBUTE=%s\n" % musicbrainz2.utils.getReleaseTypeName(rtype)
