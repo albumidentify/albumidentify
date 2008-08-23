@@ -47,83 +47,80 @@ if "-" in date:
 else:
 	year=date
 
-destdir=os.path.join(dest,mp3names.FixFilename("%(artist)s - %(date)s - %(name)s" % {
+destdir=os.path.join(dest,mp3names.FixFilename("%(artist)s/%(artist)s - %(date)s - %(name)s" % {
 	"artist" : mp3names.FixArtist(artist.strip()),
 	"date" : year,
 	"name" : album.strip(),
 	}))
 print "Renaming to",destdir
 
-if os.path.exists(destdir):
-	print "Skipping copying files: %s already exists" % destdir
-	fname=os.path.join(sys.argv[1],"report.txt")
-	if not os.path.exists(fname):
-		report_file=open(fname,"w")
-		print >>report_file,"Destination (%s) already exists" % destdir
-		report_file.close()
+def mkdirs(dest):
+	if os.path.exists(dest):
+		return
+	# Make parent directories
+	mkdirs(os.path.dirname(dest))
+	os.mkdir(dest)
 
-else:
-	if not os.path.exists(destdir):
-		os.mkdir(destdir)
+mkdirs(destdir)
 
-	imagemime = ""
-	imagedata = ""
+imagemime = ""
+imagedata = ""
+if asin is not None:
+	imageurl = lookups.get_album_art_url_for_asin(asin)
+	if imageurl is not None:
+		print imageurl
+		imagedest = os.path.join(destdir, "folder.jpg")
+		urllib.urlretrieve(imageurl, imagedest)
+		if imageurl[-3:] == "jpg":
+			imagemime = "image/jpeg"
+		else:
+			imagemime = "image/"+imageurl[-3:]
+		print "Image enciging is ",imagemime
+
+		imagefp = open(imagedest,"rb")
+		imagedata = imagefp.read()
+
+parsed_data={}
+for (tracknum,artist,sortartist,title,dur,origname,artistid,trkid) in trackdata:
+	destname=mp3names.FixFilename("%(tracknum)02d - %(artist)s - %(title)s.mp3" % {
+		"tracknum" : tracknum,
+		"artist" : mp3names.FixArtist(artist.strip()),
+		"title" : title.strip(),
+		})
+	parsed_data[tracknum]=parsemp3.parsemp3(origname)
+	destfile=os.path.join(destdir,destname)
+	print origname,"->",destfile
+	tags={
+		"TIT2" : title,
+		"TPE1" : artist,
+		"TALB" : album,
+		"TYER" : year,
+		"TDAT" : date,
+		"TRCK" : "%d/%d" % (tracknum,len(trackdata)),
+		"UFID" : ("http://musicbrainz.org",trkid),
+		"TXXX" : [("MusicBrainz Artist Id",artistid[30:]),("MusicBrainz Album Id",releaseid[31:])],
+	# TCOM -- Composer
+	# TDLY -- Playlist delay (preample)
+	# TSOA -- Album sort order
+	# TSOP -- Performer sort
+	# TSOT -- Title Sort
+	# TIPL -- Involved People
+	# TPOS -- Part of set
+	# TSST -- Set subtitle
+		"COMM" : ""
+	}
 	if asin is not None:
-		imageurl = lookups.get_album_art_url_for_asin(asin)
-		if imageurl is not None:
-			print imageurl
-			imagedest = os.path.join(destdir, "folder.jpg")
-			urllib.urlretrieve(imageurl, imagedest)
-			if imageurl[-3:] == "jpg":
-				imagemime = "image/jpeg"
-			else:
-				imagemime = "image/"+imageurl[-3:]
-			print "Image enciging is ",imagemime
+		tags["APIC"] = (imagemime,"\x03","",imagedata)
 
-			imagefp = open(imagedest,"rb")
-			imagedata = imagefp.read()
-
-	parsed_data={}
-	for (tracknum,artist,sortartist,title,dur,origname,artistid,trkid) in trackdata:
-		destname=mp3names.FixFilename("%(tracknum)02d - %(artist)s - %(title)s.mp3" % {
-			"tracknum" : tracknum,
-			"artist" : mp3names.FixArtist(artist.strip()),
-			"title" : title.strip(),
-			})
-		parsed_data[tracknum]=parsemp3.parsemp3(origname)
-		destfile=os.path.join(destdir,destname)
-		print origname,"->",destfile
-		tags={
-			"TIT2" : title,
-			"TPE1" : artist,
-			"TALB" : album,
-			"TYER" : year,
-			"TDAT" : date,
-			"TRCK" : "%d/%d" % (tracknum,len(trackdata)),
-			"UFID" : ("http://musicbrainz.org",trkid),
-			"TXXX" : [("MusicBrainz Artist Id",artistid[30:]),("MusicBrainz Album Id",releaseid[31:])],
-		# TCOM -- Composer
-		# TDLY -- Playlist delay (preample)
-		# TSOA -- Album sort order
-		# TSOP -- Performer sort
-		# TSOT -- Title Sort
-		# TIPL -- Involved People
-		# TPOS -- Part of set
-		# TSST -- Set subtitle
-			"COMM" : ""
-		}
-		if asin is not None:
-			tags["APIC"] = (imagemime,"\x03","",imagedata)
-
-		tags["bitstream"] =  parsed_data[tracknum]["bitstream"]
-		serialisemp3.output(destfile,tags)
+	tags["bitstream"] =  parsed_data[tracknum]["bitstream"]
+	serialisemp3.output(destfile,tags)
 
 
-	report_file=open(os.path.join(sys.argv[1],"report.txt"),"w")
-	print >>report_file,"moved to %s" % destdir
-	for k,v in parsed_data.items():
-		print >>report_file, "%s:" % v["filename"]
-		for i in v["errors"]:
-			print >>report_file," %s: %s" % i
-		print >>report_file
-	report_file.close()
+report_file=open(os.path.join(sys.argv[1],"report.txt"),"w")
+print >>report_file,"moved to %s" % destdir
+for k,v in parsed_data.items():
+	print >>report_file, "%s:" % v["filename"]
+	for i in v["errors"]:
+		print >>report_file," %s: %s" % i
+	print >>report_file
+report_file.close()
