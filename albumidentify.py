@@ -10,6 +10,7 @@ import itertools
 import pickle
 import md5
 import random
+import shelve
 
 def output_list(l):
 	l.sort()
@@ -38,10 +39,11 @@ key = 'a7f6063296c0f1c9b75c7f511861b89b'
 def decode(frommp3name, towavname):
 	os.system("mpg123 --quiet --wav \"%(towavname)s\" \"%(frommp3name)s\"" % locals())
 
-try:
-	fileinfocache=pickle.load(file(os.path.expanduser("~/.albumidentifycache")))
-except:
-	fileinfocache={}
+#try:
+#	fileinfocache=pickle.load(file(os.path.expanduser("~/.albumidentifycache")))
+#except:
+#	fileinfocache={}
+fileinfocache=shelve.open(os.path.expanduser("~/.albumidentifycache"),"r")
 
 def get_file_info(fname):
 	fhash = md5.md5(open(fname,"r").read()).hexdigest()
@@ -72,7 +74,7 @@ def get_file_info(fname):
 	tracks = lookups.get_tracks_by_puid(puid)
 	print [ y.title for x in tracks for y in x.releases]
 	fileinfocache[fhash]=(fname,artist,trackname,dur,tracks)
-	pickle.dump(fileinfocache,open(os.path.expanduser("~/.albumidentifycache"),"w"))
+	#pickle.dump(fileinfocache,open(os.path.expanduser("~/.albumidentifycache"),"w"))
 	return fileinfocache[fhash]
 
 def get_dir_info(dirname):
@@ -164,18 +166,36 @@ def guess_album2(trackinfo):
 					)
 
 	track_counts={}
+	track_prob={}
 	for i in range(len(trackinfo)):
 		track_counts[i+1]=0
+		track_prob[i+1]=0
+	old_possible_releases=None
+	total=0
 	while track_generator!={}:
-		total=0
-		for i in track_counts:
-			if i in track_generator:
-				total+=1.0/(1+track_counts.get(i,0))
+		if 1 or old_possible_releases!=possible_releases:
+			total=0
+			track_prob={}
+			for i in range(len(trackinfo)):
+				if (i+1) not in track_generator:
+					continue
+				track_prob[i+1]=1
+				total=total+1
+				for j in possible_releases:
+					if (i+1) not in possible_releases[j]:
+						track_prob[i+1]+=len(possible_releases[j])
+						total+=len(possible_releases[j])
+			old_possible_releases=possible_releases.copy()
+			#for i in track_prob:
+			#	print "%d: %.2f%%" % (i,track_prob[i]*100.0/total),
+			#print
 		r=random.random()*total
 		tot=0
-		for tracknum in track_counts:
-			if tracknum in track_generator:
-				tot+=1.0/(1+track_counts.get(tracknum,0))
+		for tracknum in track_prob:
+			if tracknum not in track_generator:
+				continue
+			tot+=track_prob[tracknum]
+			if tot>=r:
 				if tot>=r:
 					break
 		try:
@@ -184,7 +204,15 @@ def guess_album2(trackinfo):
 			# If there are no more tracks for this
 			# skip it and try more.
 			del track_generator[tracknum]
-			#print "All possibilities for track",tracknum,"exhausted"
+			print "All possibilities for track",tracknum,"exhausted"
+			for i in possible_releases.keys():
+				# Ignore any release that doesn't have this
+				# track, since we can no longer find it.
+				if tracknum not in possible_releases:
+					del possible_releases[i]
+			if possible_releases=={}:
+				print "No possible releases left"
+				return
 			#return
 			continue
 
