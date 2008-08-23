@@ -96,7 +96,6 @@ def search_by_asin(asin, license_key, response_group="Images", http_proxies=None
 	usock.close()
 
 	data = unmarshal(xmldoc)
-	print "ASIN:",asin,"url:",url
 
 	if data.ItemLookupResponse.Items.Request.IsValid == 'False':
 		raise Exception("Item lookup failed")
