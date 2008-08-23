@@ -47,7 +47,7 @@ if "-" in date:
 else:
 	year=date
 
-destdir=os.path.join(dest,mp3names.FixFilename("%(artist)s/%(artist)s - %(date)s - %(name)s" % {
+destdir=os.path.join(dest,mp3names.FixArtist(artist.strip()),mp3names.FixFilename("%(artist)s - %(date)s - %(name)s" % {
 	"artist" : mp3names.FixArtist(artist.strip()),
 	"date" : year,
 	"name" : album.strip(),
