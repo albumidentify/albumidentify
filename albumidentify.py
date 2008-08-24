@@ -43,9 +43,11 @@ def decode(frommp3name, towavname):
 #	fileinfocache=pickle.load(file(os.path.expanduser("~/.albumidentifycache")))
 #except:
 #	fileinfocache={}
-fileinfocache=shelve.open(os.path.expanduser("~/.albumidentifycache"),"r")
+fileinfocache=shelve.open(os.path.expanduser("~/.albumidentifycachedb"),"c")
 
 def get_file_info(fname):
+	sys.stdout.write("identifying "+os.path.basename(fname)+"\r\x1B[K")
+	sys.stdout.flush()
 	fhash = md5.md5(open(fname,"r").read()).hexdigest()
 	if fhash in fileinfocache:
 		return fileinfocache[fhash]
@@ -53,7 +55,7 @@ def get_file_info(fname):
 	# and checks if it exists, and doesn't decode if it does.
 	# This is for speed while debugging, should be changed with
 	# tmpname later
-	toname=os.path.join("/tmp/",fname[:-3]+"wav")
+	toname=os.path.join("/tmp/fingerprint.wav")
 	if not os.path.exists(toname):
 		sys.stdout.write("decoding"+os.path.basename(fname)+"\r\x1B[K")
 		sys.stdout.flush()
