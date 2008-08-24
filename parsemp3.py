@@ -24,72 +24,72 @@ sampleratetbl = [
 	]
 
 v2_2_0_to_v2_4_0 = {
-#	"BUF":,  	# Recommended Buffer Size
-#	"CNT":,		# Play Count
+	"BUF":"RBUF",  	# Recommended Buffer Size
+	"CNT":"PCNT",	# Play Count
 	"COM":"COMM",	# Comments
-#	"CRA":,		# Audio Encryption
+	"CRA":"AENC",	# Audio Encryption
 #	"CRM":,		# Encrypted Meta Frame
 #	"ETC":,		# Equalisation timing codes
-#	"EQU":,		# Equalisation
-#	"GEO":,		# General Encapsulation Object
-#	"IPL":,		# Involved People List
-#	"LNK":,		# Linked Information
-#	"MCI":,		# Music CD Identifier
-#	"MUL":,		# MPEG Location Lookup Table
+	"EQU":"EQUA",	# Equalisation
+	"GEO":"GEOB",	# General Encapsulation Object
+	"IPL":"IPLS",	# Involved People List
+	"LNK":"LINK",	# Linked Information
+	"MCI":"MCDI",	# Music CD Identifier
+	"MUL":"MLLT",	# MPEG Location Lookup Table
 	"PIC":"APIC",	# Attached Picture
-#	"POP":,		# Popularimeter
-#	"REV":,		# Reverb
+	"POP":"POPM",	# Popularimeter
+	"REV":"RVRB",	# Reverb
 	"RVA":"RVAD",	# Relative Volume Adjustment
-#	"SLT":,		# Syncronised Text/Lyrics
-#	"STC":,		# Synconrised Tempo Codes
+	"SLT":"SYLT",	# Syncronised Text/Lyrics
+	"STC":"SYTC",	# Synconrised Tempo Codes
 	"TAL":"TALB",	# Album/Movie/Show Title
-	"TBP":"TBPM",		# BPM
+	"TBP":"TBPM",	# BPM
 	"TCM":"TCOM",	# Composer
-	"TCO":"TCON",		# Content Type
+	"TCO":"TCON",	# Content Type
 	"TCP":"TCP",	# Compilation. DEPRECATED IN 2.4
-#	"TCR":,		# Copyright Message
+	"TCR":"TCOP",	# Copyright Message
 #	"TDA":,		# Textual Data
-#	"TDA":,		# Date
-#	"TPL":,		# Playlist Delay
-	 "TEN":"TENC",	# Encoded by
-# "TFT":,		# File type
-# "TIM":,		# Time
-# "TKE":,		# Initial key
-# "TLA":,		# Language(s)
-# "TLE":,		# Length
-# "TMT":,		# Media type
-# "TOA":,		# Original artist(s)/performer(s)
-# "TOF":,		# Original filename
-# "TOL":,		# Original Lyricist(s)/text writer(s)
-# "TOR":,		# Original release year
-# "TOT":,		# Original album/Movie/Show title
+	"TDA":"TDAT",	# Date
+	"TPL":"TDLY",	# Playlist Delay
+	"TEN":"TENC",	# Encoded by
+	"TFT":"TFLT",	# File type
+	"TIM":"TIME",	# Time
+	"TKE":"TKEY",	# Initial key
+	"TLA":"TLAN",	# Language(s)
+	"TLE":"TLEN",	# Length
+	"TMT":"TMED",	# Media type
+	"TOA":"TOPE",	# Original artist(s)/performer(s)
+	"TOF":"TOFN",	# Original filename
+	"TOL":"TOLY",	# Original Lyricist(s)/text writer(s)
+	"TOR":"TORY",	# Original release year
+	"TOT":"TOAL",	# Original album/Movie/Show title
  	"TP1":"TPE1",	# Lead artist(s)/Lead performer(s)/Soloist(s)/Performing group
-# "TP2":,		# Band/Orchestra/Accompaniment
-# "TP3":,		# Conductor/Performer refinement
-# "TP4":,		# Interpreted, remixed, or otherwise modified by
- "TPA":"TPOS",		# Part of a set
-# "TPB":,		# Publisher
-# "TRC":,		# ISRC (International Standard Recording Code)
-# "TRD":,		# Recording dates
+	"TP2":"TPE2",	# Band/Orchestra/Accompaniment
+	"TP3":"TPE3",	# Conductor/Performer refinement
+	"TP4":"TPE4",	# Interpreted, remixed, or otherwise modified by
+	"TPA":"TPOS",	# Part of a set
+	"TPB":"TPUB",	# Publisher
+	"TRC":"TSRC",	# ISRC (International Standard Recording Code)
+	"TRD":"TRDA",	# Recording dates
 	"TRK":"TRCK",	# Track number/Position in set
-# "TSI":,		# Size
-# "TSS":,		# Software/hardware and settings used for encoding
-# "TT1":,		# Content group description
+	"TSI":"TSIZ",	# Size
+	"TSS":"TSSE",	# Software/hardware and settings used for encoding
+	"TT1":"TIT1",	# Content group description
  	"TT2":"TIT2",	# Title/Songname/Content description
-# "TT3":,		# Subtitle/Description refinement
-# "TXT":,		# Lyricist/text writer
-# "TXX":,		# User defined text information frame
+	"TT3":"TIT3",	# Subtitle/Description refinement
+	"TXT":"TEXT",	# Lyricist/text writer
+	"TXX":"TXXX",	# User defined text information frame
 	"TYE":"TYER",	# Year
-# "UFI":,		# Unique file identifier
-# "ULT":,		# Unsychronized lyric/text transcription
-# "WAF":,		# Official audio file webpage
-# "WAR":,		# Official artist/performer webpage
-# "WAS":,		# Official audio source webpage
-# "WCM":,		# Commercial information
-# "WCP":,		# Copyright/Legal information
-# "WPB":,		# Publishers official webpage
-# "WXX":,		# User defined URL link frame
- "CM1":"CM1",		# Apple proprietary rating/popularity
+	"UFI":"UFID",	# Unique file identifier
+	"ULT":"USLT",	# Unsychronized lyric/text transcription
+	"WAF":"WOAF",	# Official audio file webpage
+	"WAR":"WOAR",	# Official artist/performer webpage
+	"WAS":"WOAS",	# Official audio source webpage
+	"WCM":"WCOM",	# Commercial information
+	"WCP":"WCOP",	# Copyright/Legal information
+	"WPB":"WPUB",	# Publishers official webpage
+	"WXX":"WXXX",	# User defined URL link frame
+	"CM1":"CM1",	# Apple proprietary rating/popularity
 }
 
 genres = [ 
