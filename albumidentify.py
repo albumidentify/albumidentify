@@ -210,7 +210,7 @@ def guess_album2(trackinfo):
 			for i in possible_releases.keys():
 				# Ignore any release that doesn't have this
 				# track, since we can no longer find it.
-				if tracknum not in possible_releases:
+				if tracknum not in possible_releases[i]:
 					del possible_releases[i]
 			if possible_releases=={}:
 				print "No possible releases left"
