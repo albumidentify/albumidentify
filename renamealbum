@@ -8,23 +8,44 @@ import serialisemp3
 import mp3names
 import lookups
 import urllib
+import md5
+import shutil
 
 def print_usage():
         print "usage: " + sys.argv[0] + " <srcpath> <destpath>"
         print "  srcpath     A path containing MP3s to fingerprint and tag"
         print "  destpath    A path to write the tagged files to"
 
+def calc_average_bitrate(parsed_data):
+	return (reduce(lambda a,b:a+b,
+		[ (rate*count) for (rate,count) in parsed_data["bitrates"].items() ])/
+			parsed_data["frames"])
+
 if len(sys.argv) < 3:
 	print_usage()
 	sys.exit(1)
 
 dest=sys.argv[2]
-dir = albumidentify.get_dir_info(sys.argv[1])
+try:
+	dirinfo = albumidentify.get_dir_info(sys.argv[1])
+except albumidentify.FingerprintFailed, e:
+	print e
+	report_file=open(os.path.join(sys.argv[1],"report.txt"),"w")
+	print >>report_file,"Couldn't fingerprint file"
+	report_file.close()
+	sys.exit(1)
 
-data = albumidentify.guess_album(dir)
+if len(dirinfo)<3:
+	print "Too few tracks to be reliable, giving up"
+	report_file=open(os.path.join(sys.argv[1],"report.txt"),"w")
+	print >>report_file,"Too few tracks to be reliable"
+	report_file.close()
+	sys.exit(1)
+
+data = albumidentify.guess_album(dirinfo)
 
 try:
-	(artist,album,rid,events,asin,trackdata,albumartistid,releaseid) \
+	(artist,album,rid,events,asin,trackdata,albumartist,releaseid) \
 		= data.next()
 except StopIteration,si:
 	print "Couldn't identify album",sys.argv[1]
@@ -47,8 +68,8 @@ if "-" in date:
 else:
 	year=date
 
-destdir=os.path.join(dest,mp3names.FixFilename(mp3names.FixArtist(artist.strip())),mp3names.FixFilename("%(artist)s - %(date)s - %(name)s" % {
-	"artist" : mp3names.FixArtist(artist.strip()),
+destdir=os.path.join(dest,mp3names.FixFilename(mp3names.FixArtist(albumartist.sortName.strip())),mp3names.FixFilename("%(sortartist)s - %(date)s - %(name)s" % {
+	"sortartist" : mp3names.FixArtist(albumartist.sortName.strip()),
 	"date" : year,
 	"name" : album.strip(),
 	}))
@@ -61,33 +82,24 @@ def mkdirs(dest):
 	mkdirs(os.path.dirname(dest))
 	os.mkdir(dest)
 
-mkdirs(destdir)
-
-imagemime = ""
-imagedata = ""
-if asin is not None:
-	imageurl = lookups.get_album_art_url_for_asin(asin)
-	if imageurl is not None:
-		print imageurl
-		imagedest = os.path.join(destdir, "folder.jpg")
-		urllib.urlretrieve(imageurl, imagedest)
-		if imageurl[-3:] == "jpg":
-			imagemime = "image/jpeg"
-		else:
-			imagemime = "image/"+imageurl[-3:]
-		print "Image enciging is ",imagemime
-
-		imagefp = open(imagedest,"rb")
-		imagedata = imagefp.read()
-
 parsed_data={}
+total_new_bitrate=0
+total_old_bitrate=0
+bitidentical=True
 for (tracknum,artist,sortartist,title,dur,origname,artistid,trkid) in trackdata:
 	destname=mp3names.FixFilename("%(tracknum)02d - %(artist)s - %(title)s.mp3" % {
 		"tracknum" : tracknum,
 		"artist" : mp3names.FixArtist(artist.strip()),
 		"title" : title.strip(),
 		})
-	parsed_data[tracknum]=parsemp3.parsemp3(origname)
+	try:
+		shutil.copy(origname,"/tmp/tmp.mp3")
+		# Undo any normalisation thats been done.
+		os.spawnlp(os.P_WAIT,"mp3gain","-u","/tmp/tmp.mp3")
+		parsed_data[tracknum]=parsemp3.parsemp3("/tmp/tmp.mp3")
+	except:
+		print "Failed to parse",`origname`
+		raise
 	destfile=os.path.join(destdir,destname)
 	print origname,"->",destfile
 	tags={
@@ -109,15 +121,77 @@ for (tracknum,artist,sortartist,title,dur,origname,artistid,trkid) in trackdata:
 	# TSST -- Set subtitle
 		"COMM" : ""
 	}
-	if asin is not None:
-		tags["APIC"] = (imagemime,"\x03","",imagedata)
+	#if asin is not None:
+	#	tags["APIC"] = (imagemime,"\x03","",imagedata)
 
 	tags["bitstream"] =  parsed_data[tracknum]["bitstream"]
-	serialisemp3.output(destfile,tags)
+	parsed_data[tracknum]["destfile"]=destfile
+	parsed_data[tracknum]["outtags"]=tags
+	if os.path.exists(parsed_data[tracknum]["destfile"]):
+		parsed_data[tracknum]["destparse"]=parsemp3.parsemp3(
+				parsed_data[tracknum]["destfile"])
+		total_old_bitrate+=calc_average_bitrate(
+				parsed_data[tracknum]["destparse"])
+		bitidentical=bitidentical and (
+			md5.md5(parsed_data[tracknum]["bitstream"]).digest()
+			==md5.md5(parsed_data[tracknum]["destparse"]["bitstream"]).digest())
+	else:
+		bitidentical=False
+	total_new_bitrate+=calc_average_bitrate(parsed_data[tracknum])
+
+if bitidentical:
+	overwrite=True
+	overwrite_reason="Bitstreams are identical"
+elif total_old_bitrate < total_new_bitrate:
+	overwrite=True
+	overwrite_reason="New version is higher bitrate (%f < %f)" % (
+		total_old_bitrate,total_new_bitrate)
+else:
+	overwrite=False
+	overwrite_reason="Old version has higher bitrate (%f > %f)" % (
+		total_old_bitrate,total_new_bitrate)
 
 
+# Grab album art
+mkdirs(destdir)
+
+imagemime = ""
+imagedata = ""
+if asin is not None:
+	imageurl = lookups.get_album_art_url_for_asin(asin)
+	if imageurl is not None:
+		print imageurl
+		imagedest = os.path.join(destdir, "folder.jpg")
+		urllib.urlretrieve(imageurl, imagedest)
+		if imageurl[-3:] == "jpg":
+			imagemime = "image/jpeg"
+		else:
+			imagemime = "image/"+imageurl[-3:]
+		print "Image encoding is ",imagemime
+
+		imagefp = open(imagedest,"rb")
+		imagedata = imagefp.read()
+
+
+if overwrite:
+	for i in parsed_data:
+		if asin is not None:
+			parsed_data[i]["outtags"]["APIC"]  \
+					= (imagemime,"\x03","",imagedata)
+		serialisemp3.output(parsed_data[i]["destfile"],
+			parsed_data[i]["outtags"])
+	os.spawnlp(os.P_WAIT,"mp3gain",
+		"-a", # album gain
+		*[x["destfile"] for x in parsed_data.values()])
+	
 report_file=open(os.path.join(sys.argv[1],"report.txt"),"w")
-print >>report_file,"moved to %s" % destdir
+if overwrite:
+	print "moved to %s (%s)" % (destdir,overwrite_reason)
+	print >>report_file,"moved to %s (%s)" % (destdir,overwrite_reason)
+else:
+	print "Not replacing %s (%s)" % (destdir,overwrite_reason)
+	print >>report_file,"Not replacing %s (%s)" % (destdir,overwrite_reason)
+
 for k,v in parsed_data.items():
 	print >>report_file, "%s:" % v["filename"]
 	for i in v["errors"]:

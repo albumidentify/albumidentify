@@ -5,54 +5,24 @@ import re
 import pickle
 import os
 import atexit
+import shelve
 
 AMAZON_LICENSE_KEY='1WQQTEA14HEA9AERDMG2'
 
 lastwsquery = time.time()
-lastmemosave = time.time()
-memodirty=False
 
-try:
-	memocache=pickle.load(
-		open(os.path.expanduser("~/.musicbrainzcache"),"r"))
-except:
-	try:
-		memocache=pickle.load(
-			open(os.path.expanduser("~/.musicbrainzcache.old"),"r"))
-	except:
-		memocache={}
+memocache={}
 
-
-def memosave():
-	global memodirty
-	if not memodirty:
-		return
-	try:
-		os.rename(
-			os.path.expanduser("~/.musicbrainzcache"),
-			os.path.expanduser("~/.musicbrainzcache.old"))
-	except:
-		pass
-
-	pickle.dump(memocache,
-		open(os.path.expanduser("~/.musicbrainzcache")
-			,"w"))
-	memodirty=False
 # Make sure we write it out every so often
-atexit.register(memosave)
 
 def memoify(func):
 	def memoify(*args,**kwargs):
-		global memodirty
-		key=pickle.dumps((args,kwargs))
 		if func.__name__ not in memocache:
-			memocache[func.__name__]={}
+			memocache[func.__name__]=shelve.open(os.path.expanduser("~/.mbcache/"+func.__name__),"c")
+		key=pickle.dumps((args,kwargs))
 		if key not in memocache[func.__name__]:
 			memocache[func.__name__][key]=func(*args,**kwargs)
-			memodirty=True
-
-		if memodirty and time.time()-lastmemosave>3600:
-			memosave()
+			memocache[func.__name__].sync()
 
 		return memocache[func.__name__][key]
 	return memoify
@@ -168,7 +138,11 @@ def get_album_art_url_for_asin(asin):
 	if asin is None:
 		return None
 	print "Doing an Amazon Web Services lookup for ASIN " + asin
-	item = amazon4.search_by_asin(asin, license_key=AMAZON_LICENSE_KEY, response_group="Images")
+	try:
+		item = amazon4.search_by_asin(asin, license_key=AMAZON_LICENSE_KEY, response_group="Images")
+	except Exception,e:
+		print e
+		return None
 	if hasattr(item,"LargeImage"):
 		return item.LargeImage.URL
 	return None

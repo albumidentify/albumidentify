@@ -255,7 +255,9 @@ def v2_3_0(tag):
 			while tag.startswith("\x00"):
 				tag=tag[1:]
 			if tag!="":
-				raise "Err, padding had data in it?",`tag`
+				# mp3ext puts data in here.  Ignore it.
+				#raise "Err, padding had data in it?",`tag`
+				pass
 			break
 		tagid=tag[:4]
 		#taglen=ord(tag[4])*128*128*128+ord(tag[5])*128*128+ord(tag[6])*128+ord(tag[7])
@@ -266,16 +268,16 @@ def v2_3_0(tag):
 		if tagid.startswith("T"):
 			if tagdata[0]=="\x00": # latin-1
 				tagdata=tagdata[1:]
-				if "\x00" in tagdata:
-					tagdata=tagdata[:tagdata.index("\x00")]
+				#if "\x00" in tagdata:
+				#	tagdata=tagdata[:tagdata.index("\x00")]
 				tagdata=tagdata.decode("ISO-8859-1")
 			elif tagdata[0]=="\x01": # utf16
-				if "\x00" in tagdata:
-					tagdata=tagdata[:tagdata.index("\x00")]
+				#if "\x00\x00" in tagdata:
+				#	tagdata=tagdata[:tagdata.index("\x00\x00")]
 				tagdata=parse_unicode(tagdata[1:])
 			elif tagdata[0]=="\x03": # utf8
-				if "\x00" in tagdata:
-					tagdata=tagdata[:tagdata.index("\x00")]
+				#if "\x00" in tagdata:
+				#	tagdata=tagdata[:tagdata.index("\x00")]
 				tagdata=tagdata.decode("utf8")
 			else:
 				raise "Unknown Encoding",`tagdata[0]`

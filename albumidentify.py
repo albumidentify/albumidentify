@@ -37,7 +37,11 @@ def output_list(l):
 key = 'a7f6063296c0f1c9b75c7f511861b89b'
 
 def decode(frommp3name, towavname):
-	os.system("mpg123 --quiet --wav \"%(towavname)s\" \"%(frommp3name)s\"" % locals())
+	os.spawnlp(os.P_WAIT,"mpg123","--quiet","--wav",
+			towavname,frommp3name)
+
+		
+
 
 #try:
 #	fileinfocache=pickle.load(file(os.path.expanduser("~/.albumidentifycache")))
@@ -45,9 +49,14 @@ def decode(frommp3name, towavname):
 #	fileinfocache={}
 fileinfocache=shelve.open(os.path.expanduser("~/.albumidentifycachedb"),"c")
 
+class FingerprintFailed(Exception):
+	def __str__(self):
+		return "Failed to fingerprint track"
+
 def get_file_info(fname):
-	sys.stdout.write("identifying "+os.path.basename(fname)+"\r\x1B[K")
-	sys.stdout.flush()
+	print "identifying",fname
+	#sys.stdout.write("identifying "+os.path.basename(fname)+"\r\x1B[K")
+	#sys.stdout.flush()
 	fhash = md5.md5(open(fname,"r").read()).hexdigest()
 	if fhash in fileinfocache:
 		return fileinfocache[fhash]
@@ -70,7 +79,7 @@ def get_file_info(fname):
 	(trackname, artist, puid) = musicdns.lookup_fingerprint(fp, dur, key)
 	print "***",`artist`,`trackname`,puid
 	if puid is None:
-		raise "Can't identify Track"
+		raise FingerprintFailed()
 	sys.stdout.write("Looking up PUID\r")
 	sys.stdout.flush()
 	tracks = lookups.get_tracks_by_puid(puid)
@@ -174,6 +183,9 @@ def guess_album2(trackinfo):
 		track_prob[i+1]=0
 	old_possible_releases=None
 	total=0
+	if track_generator=={}:
+		print "No tracks to identify?"
+		return
 	while track_generator!={}:
 		if 1 or old_possible_releases!=possible_releases:
 			total=0
@@ -249,7 +261,7 @@ def guess_album2(trackinfo):
 					#del possible_releases[releaseid]
 					pass
 				else:
-					sys.stdout.write(release.title.encode("ascii")[:40]+" (track at wrong position)\x1b[K\r")
+					sys.stdout.write(release.title.encode("ascii","ignore")[:40]+" (track at wrong position)\x1b[K\r")
 					sys.stdout.flush()
 				continue
 
@@ -311,7 +323,7 @@ def guess_album(trackinfo):
 			[x.date for x in releaseevents],
 			asin,
 			trackdata,
-			albumartist.id,
+			albumartist,
 			release.id,
 		)
 		yield albuminfo

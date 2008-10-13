@@ -91,7 +91,10 @@ def search_by_asin(asin, license_key, response_group="Images", http_proxies=None
 	url = build_url(license_key = license_key, operation="ItemLookup", 
 					asin = asin, response_group=response_group)
 	u = urllib.FancyURLopener(http_proxies)
-	usock = u.open(url)
+	try:
+		usock = u.open(url)
+	except:
+		raise Exception("Webservice lookup failed")
 	xmldoc = minidom.parse(usock)
 	usock.close()
 
