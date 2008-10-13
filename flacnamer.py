@@ -28,9 +28,16 @@ import subprocess
 import re
 import time
 import submit #musicbrainz_submission_url()
-import fingerprint
 import musicdns
 import lookups
+
+HAS_LIBOFA=True
+try:
+	import fingerprint
+except Exception:
+	print "libofa not installed, audiofingerprinting disabled"
+	HAS_LIBOFA=False
+	
 
 MUSICDNS_KEY='a7f6063296c0f1c9b75c7f511861b89b'
 
@@ -167,6 +174,9 @@ def get_musicbrainz_release(disc):
 			print "No results from CD-TEXT lookup."
 
 	# Last resort, use audio finger-printing to guess the release
+	if HAS_LIBOFA == False:
+		return None
+
 	releases = get_release_by_fingerprints(disc)
 	if len(releases) == 1:
 		release = lookups.get_release_by_releaseid(releases[0])
