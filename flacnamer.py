@@ -6,12 +6,6 @@
 #
 # (C) 2008 Scott Raynel <scottraynel@gmail.com>
 #
-# TODO:
-#  - Abstract out the musicbrainz access to make it easier to switch between
-#    using the webservice and a local copy of the database
-#  - In main(), switch from iterating over the files to iterating over the
-#    tracks
-#  - Deal with multi-mode discs
 
 import sys
 import os
@@ -28,7 +22,6 @@ import subprocess
 import re
 import time
 import submit #musicbrainz_submission_url()
-import fingerprint
 import musicdns
 import lookups
 import albumidentify
