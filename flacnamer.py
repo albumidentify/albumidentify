@@ -31,6 +31,7 @@ import submit #musicbrainz_submission_url()
 import fingerprint
 import musicdns
 import lookups
+import albumidentify
 
 MUSICDNS_KEY='a7f6063296c0f1c9b75c7f511861b89b'
 
@@ -69,55 +70,6 @@ def get_releases_by_metadata(disc):
 			releases.append(rel)
 
 	return releases
-
-def get_release_by_fingerprints(disc):
-	""" Try to determine the release of a disc based on audio fingerprinting each track. 
-	"""
-	possible_releases = {}
-	tracknum = 0
-	for t in disc.tracks:
-		tracknum += 1
-
-		tmp = os.tmpnam() + ".wav"
-		if os.system("flac -d --totally-silent -o " +  tmp +  " " + t.filename)!=0:
-			raise Exception("flac %s failed!" % t.filename )
-
-		(fp, duration) = fingerprint.fingerprint(tmp)
-		(artist, trackname, puid) = musicdns.lookup_fingerprint(fp, duration, MUSICDNS_KEY)
-		os.unlink(tmp)
-		if puid is None:
-			print "Fingerprinting for " + t.filename + " failed."
-			continue
-		print "Fingerprinting for " + t.filename + " succeeded."
-		print " PUID: " + puid
-
-		tracks = lookups.get_tracks_by_puid(puid)
-		for track in tracks:
-			print "  Could be " + track.id + ".html (%s)" % track.title
-			releases = track.getReleases()
-			for r in releases:
-				print "     Which is on " + r.id + ".html (%s)" % r.title
-				release = lookups.get_release_by_releaseid(r.id)
-
-				# Filter releases with the wrong number of tracks
-				if len(release.getTracks()) != len(disc.tracks):
-					print "      Which has " + str(len(release.getTracks())) + " tracks instead of " + str(len(disc.tracks))
-					continue
-				
-				# Filter releases where this track is not in the correct
-				# position.
-				if lookups.track_number(release.getTracks(), track) != tracknum:
-					print "      Incorrect track number"
-					continue
-
-				if possible_releases.has_key(release.id):
-					possible_releases[release.id] += 1
-				else:
-					possible_releases[release.id] = 1
-	print "Found " + str(len(possible_releases.keys())) + " possible releases"
-	for r in possible_releases.keys():
-		print r + " (" + str(possible_releases[r]) + ")"
-	return possible_releases.keys()
 
 @lookups.delayed
 def get_musicbrainz_release(disc):
@@ -166,20 +118,21 @@ def get_musicbrainz_release(disc):
 		else:
 			print "No results from CD-TEXT lookup."
 
-	# Last resort, use audio finger-printing to guess the release
-	releases = get_release_by_fingerprints(disc)
-	if len(releases) == 1:
-		release = lookups.get_release_by_releaseid(releases[0])
-		print "Got result via audio fingerprinting!"
-		print "Suggest submitting TOC and discID to musicbrainz:"
-		print "Release URL: " + release.id + ".html"
-		print "Submit URL : " + submit.musicbrainz_submission_url(disc)
-		return release
-	elif len(releases) > 1:
-		raise Exception("Ambiguous PUID matches. Select a release with --release-id")
-	else:
-		print "No results from fingerprinting."
-	return None
+        # Last resort: fall back to fingerprint-based search. As far as I can
+        # tell, this is how renamealbum uses albumidentify.guess_album(). Maybe
+        # I'm missing something, but why are we only calling the next()
+        # function once?
+        (disc,dirinfo) = albumidentify.get_dir_info(disc.dirname)
+        data = albumidentify.guess_album(dirinfo)
+        try:
+                (directoryname, albumname, rid, events, asin, trackdata, albumartist, releaseid) = \
+                        data.next()
+        except StopIteration,si:
+                raise Exception("Can't find release via fingerprint search. Giving up")
+
+        return lookups.get_release_by_releaseid(releaseid)
+
+
 
 def main():
 	if len(sys.argv) < 2:
