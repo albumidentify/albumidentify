@@ -5,6 +5,7 @@
 #
 # (C) 2008 Scott Raynel <scottraynel@gmail.com>
 #
+import os.path
 
 class Disc:
 	def __init__(self, cdrdaotocfile = None, cdrecordtocfile = None):
@@ -14,6 +15,7 @@ class Disc:
 		self.performer = None
 		self.discid = None
 		self.releaseid = None
+                self.dirname = None
 
 		if cdrdaotocfile is not None:
 			self.parse_cdrdao_toc(cdrdaotocfile)
@@ -49,6 +51,7 @@ class Disc:
 
 		self.mcn = None
 		self.tracks = []
+                self.dirname = os.path.dirname(filename)
 
 		f = open(filename, 'r')
 
