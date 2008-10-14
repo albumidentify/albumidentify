@@ -11,6 +11,8 @@ import pickle
 import md5
 import random
 import shelve
+import discid
+import toc
 
 def output_list(l):
 	l.sort()
@@ -91,10 +93,35 @@ def get_file_info(fname):
 	return fileinfocache[fhash]
 
 def get_dir_info(dirname):
+        """ Returns a tuple of the form 
+                (disc, tracks)
+            where disc is a Disc object and tracks is a dictionary of tracks
+            mapping tracknumber to (fname,artist,tracname,dur,tracks).
+
+            The disc object may be None if the directory does not contain a 
+            valid TOC file.
+        """
 	files=os.listdir(dirname)
 	files.sort()
 	tracknum=0
 	trackinfo={}
+
+        tocfilename = ""
+        disc = None
+
+        if os.path.exists(os.path.join(dirname, "data.toc")):
+                tocfilename = "data.toc"
+        elif os.path.exists(os.path.join(dirname, "TOC")):
+                tocfilename = "TOC"
+
+        if tocfilename:
+                disc = toc.Disc(cdrdaotocfile=os.path.join(dirname, tocfilename))
+                disc.tocfilename = tocfilename
+                disc.discid = discid.generate_musicbrainz_discid(
+                                disc.get_first_track_num(),
+                                disc.get_last_track_num(),
+                                disc.get_track_offsets())
+ 
 	for i in files:
 		if not (i.lower().endswith(".mp3") or i.lower().endswith(".flac")):
 			print "Skipping non mp3/flac file",`i`
@@ -102,7 +129,7 @@ def get_dir_info(dirname):
 		tracknum=tracknum+1
 		fname=os.path.join(dirname,i)
 		trackinfo[tracknum]=get_file_info(fname)
-	return trackinfo
+	return (disc, trackinfo)
 
 def find_more_tracks(tracks):
 	# There is a n:n mapping of puid's to tracks.
@@ -333,7 +360,7 @@ def guess_album(trackinfo):
 		yield albuminfo
 
 if __name__=="__main__":
-	trackinfo=get_dir_info(sys.argv[1])
+	(disc, trackinfo)=get_dir_info(sys.argv[1])
 	for (albumartist,release,rid,releases,asin,trackdata,albumartistid,releaseid) in guess_album(trackinfo):
 		print albumartist,"-",release
 		print "ASIN:",asin
