@@ -37,7 +37,7 @@ def output_list(l):
 key = 'a7f6063296c0f1c9b75c7f511861b89b'
 
 def decode(frommp3name, towavname):
-	os.spawnlp(os.P_WAIT,"mpg123","--quiet","--wav",
+	os.spawnlp(os.P_WAIT,"mpg123","mpg123","--quiet","--wav",
 			towavname,frommp3name)
 
 		
