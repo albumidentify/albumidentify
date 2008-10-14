@@ -73,6 +73,14 @@ def get_release_by_releaseid(releaseid):
 	includes = ws.ReleaseIncludes(artist=True, counts=True, tracks=True, releaseEvents=True, urlRelations=True)
 	return q.getReleaseById(id_ = releaseid, include=includes)
 
+@memoify
+@delayed
+def get_releases_by_discid(discid):
+        """ Given a musicbrainz disc-id, fetch a list of possible releases. """
+        q = ws.Query()
+        filter = ws.ReleaseFilter(discId=discid)
+        return q.getReleases(filter=filter)
+
 def track_number(tracks, track):
 	""" Lookup trackname in a list of tracks and return the track number
 	(indexed starting at 1) """
