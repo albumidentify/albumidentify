@@ -94,8 +94,7 @@ def get_musicbrainz_release(disc):
 		return lookups.get_release_by_releaseid(disc.releaseid)
 
 	# Otherwise, lookup the releaseid using the discid as a key
-	filter = ws.ReleaseFilter(discId=disc.discid)
-	results = q.getReleases(filter=filter)
+	results = lookups.get_releases_by_discid(disc.discid)
 	if len(results) > 1:
 		for result in results:
 			print result.release.id
