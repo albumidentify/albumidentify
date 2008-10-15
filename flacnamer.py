@@ -113,29 +113,9 @@ def get_musicbrainz_release(disc):
 		else:
 			print "No results from CD-TEXT lookup."
 
-<<<<<<< HEAD:flacnamer.py
-	# Last resort, use audio finger-printing to guess the release
-	if HAS_LIBOFA == False:
-		return None
-
-	releases = get_release_by_fingerprints(disc)
-	if len(releases) == 1:
-		release = lookups.get_release_by_releaseid(releases[0])
-		print "Got result via audio fingerprinting!"
-		print "Suggest submitting TOC and discID to musicbrainz:"
-		print "Release URL: " + release.id + ".html"
-		print "Submit URL : " + submit.musicbrainz_submission_url(disc)
-		return release
-	elif len(releases) > 1:
-		raise Exception("Ambiguous PUID matches. Select a release with --release-id")
-	else:
-		print "No results from fingerprinting."
-	return None
-=======
         # Last resort, fingerprinting
         print "Trying fingerprint search"
         return get_release_by_fingerprints(disc)
->>>>>>> local/renamealbum-flac:flacnamer.py
 
 def main():
 	if len(sys.argv) < 2:
