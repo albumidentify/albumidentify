@@ -37,11 +37,12 @@ def output_list(l):
 key = 'a7f6063296c0f1c9b75c7f511861b89b'
 
 def decode(frommp3name, towavname):
-	os.spawnlp(os.P_WAIT,"mpg123","mpg123","--quiet","--wav",
-			towavname,frommp3name)
-
-		
-
+        if frommp3name.lower().endswith(".mp3"):
+                os.spawnlp(os.P_WAIT,"mpg123","--quiet","--wav",
+                        towavname,frommp3name)
+        elif frommp3name.lower().endswith(".flac"):
+                os.spawnlp(os.P_WAIT,"flac","flac","-d", "--totally-silent", "-o", towavname,
+                        frommp3name)
 
 #try:
 #	fileinfocache=pickle.load(file(os.path.expanduser("~/.albumidentifycache")))
@@ -94,8 +95,8 @@ def get_dir_info(dirname):
 	tracknum=0
 	trackinfo={}
 	for i in files:
-		if not i.lower().endswith(".mp3"):
-			print "Skipping non mp3 file",`i`
+		if not (i.lower().endswith(".mp3") or i.lower().endswith(".flac")):
+			print "Skipping non mp3/flac file",`i`
 			continue
 		tracknum=tracknum+1
 		fname=os.path.join(dirname,i)
@@ -140,6 +141,8 @@ def find_more_tracks(tracks):
 					
 def find_even_more_tracks(fname,tracknum,possible_releases):
 	gotone = False
+        if fname.lower().endswith(".flac"):
+                return
 	mp3data = parsemp3.parsemp3(fname)
 	if "TIT2" not in mp3data["v2"]:
 		return

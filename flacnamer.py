@@ -6,18 +6,10 @@
 #
 # (C) 2008 Scott Raynel <scottraynel@gmail.com>
 #
-# TODO:
-#  - Abstract out the musicbrainz access to make it easier to switch between
-#    using the webservice and a local copy of the database
-#  - In main(), switch from iterating over the files to iterating over the
-#    tracks
-#  - Deal with multi-mode discs
 
 import sys
 import os
 from datetime import timedelta
-import musicbrainz2.webservice as ws
-import musicbrainz2.utils as u
 import musicbrainz2.model
 import toc
 import discid
@@ -30,6 +22,7 @@ import time
 import submit #musicbrainz_submission_url()
 import musicdns
 import lookups
+import albumidentify
 
 HAS_LIBOFA=True
 try:
@@ -56,77 +49,25 @@ def print_usage():
 	print "                      provide a date where one is missing"
 	print "  -n                  Don't actually tag and rename files"
 
-@lookups.delayed
-def get_releases_by_metadata(disc):
-	""" Given a Disc object, use the performer, title and number of tracks to
-	lookup the release in musicbrainz. This method returns a list of possible
-	results, or the empty list if there were no matches. """
-
-	releases = []
-
-	q = ws.Query()
-	filter = ws.ReleaseFilter(title=disc.title, artistName=disc.performer)
-	rels = q.getReleases(filter)
-	
-	# Filter out of the list releases with a different number of tracks to the
-	# Disc.
-	for rel in rels:
-		release =rel.release  #get_release_by_releaseid(rel.id)
-		if len(release.getTracks()) == len(disc.tracks):
-			releases.append(rel)
-
-	return releases
-
 def get_release_by_fingerprints(disc):
-	""" Try to determine the release of a disc based on audio fingerprinting each track. 
-	"""
-	possible_releases = {}
-	tracknum = 0
-	for t in disc.tracks:
-		tracknum += 1
+        """ Do a fingerprint based search for a matching release.
 
-		tmp = os.tmpnam() + ".wav"
-		if os.system("flac -d --totally-silent -o " +  tmp +  " " + t.filename)!=0:
-			raise Exception("flac %s failed!" % t.filename )
+        """
+        dirinfo = albumidentify.get_dir_info(disc.dirname)
+        data = albumidentify.guess_album(dirinfo)
+        try:
+                (directoryname, albumname, rid, events, asin, trackdata, albumartist, releaseid) = \
+                        data.next()
+        except StopIteration,si:
+                raise Exception("Can't find release via fingerprint search. Giving up")
 
-		(fp, duration) = fingerprint.fingerprint(tmp)
-		(artist, trackname, puid) = musicdns.lookup_fingerprint(fp, duration, MUSICDNS_KEY)
-		os.unlink(tmp)
-		if puid is None:
-			print "Fingerprinting for " + t.filename + " failed."
-			continue
-		print "Fingerprinting for " + t.filename + " succeeded."
-		print " PUID: " + puid
+        release = lookups.get_release_by_releaseid(releaseid)
+        print "Got result via audio fingerprinting!"
+        print "Suggest submitting TOC and discID to musicbrainz:"
+        print "Release URL: " + release.id + ".html"
+        print "Submit URL : " + submit.musicbrainz_submission_url(disc)
+        return release
 
-		tracks = lookups.get_tracks_by_puid(puid)
-		for track in tracks:
-			print "  Could be " + track.id + ".html (%s)" % track.title
-			releases = track.getReleases()
-			for r in releases:
-				print "     Which is on " + r.id + ".html (%s)" % r.title
-				release = lookups.get_release_by_releaseid(r.id)
-
-				# Filter releases with the wrong number of tracks
-				if len(release.getTracks()) != len(disc.tracks):
-					print "      Which has " + str(len(release.getTracks())) + " tracks instead of " + str(len(disc.tracks))
-					continue
-				
-				# Filter releases where this track is not in the correct
-				# position.
-				if lookups.track_number(release.getTracks(), track) != tracknum:
-					print "      Incorrect track number"
-					continue
-
-				if possible_releases.has_key(release.id):
-					possible_releases[release.id] += 1
-				else:
-					possible_releases[release.id] = 1
-	print "Found " + str(len(possible_releases.keys())) + " possible releases"
-	for r in possible_releases.keys():
-		print r + " (" + str(possible_releases[r]) + ")"
-	return possible_releases.keys()
-
-@lookups.delayed
 def get_musicbrainz_release(disc):
 	""" Given a Disc object, try a bunch of methods to look up the release in
 	musicbrainz.  If a releaseid is specified, use this, otherwise search by
@@ -135,19 +76,17 @@ def get_musicbrainz_release(disc):
 	if disc.discid is None and disc.releaseid is None:
 		raise Exception("Specify at least one of discid or releaseid")
 
-	q = ws.Query()
-
 	# If a release id has been specified, that takes precedence
 	if disc.releaseid is not None:
 		return lookups.get_release_by_releaseid(disc.releaseid)
 
 	# Otherwise, lookup the releaseid using the discid as a key
-	filter = ws.ReleaseFilter(discId=disc.discid)
-	results = q.getReleases(filter=filter)
+	results = lookups.get_releases_by_discid(disc.discid)
 	if len(results) > 1:
 		for result in results:
 			print result.release.id + ".html"
-		raise Exception("Ambiguous DiscID. More than one release matches")
+                print "Ambiguous DiscID, trying fingerprint matching"
+                return get_release_by_fingerprints(disc)
 
 	# We have an exact match, use this.
 	if len(results) == 1:
@@ -159,20 +98,22 @@ def get_musicbrainz_release(disc):
 		print "Trying to look up release via CD-TEXT"
 		print "Performer: " + disc.performer
 		print "Title    : " + disc.title
-		results = get_releases_by_metadata(disc)
+		results = lookups.get_releases_by_cdtext(performer=disc.performer, 
+                                        title=disc.title, num_tracks=len(disc.tracks))
 		if len(results) == 1:
 			print "Got result via CD-TEXT lookup!"
 			print "Suggest submitting TOC and discID to musicbrainz:"
-			print "Release URL: " + results[0].id + ".html"
+			print "Release URL: " + results[0].release.id + ".html"
 			print "Submit URL : " + submit.musicbrainz_submission_url(disc)
-			return results[0]
+			return lookups.get_release_by_releaseid(results[0].release.id)
 		elif len(results) > 1:
-			for release in results:
-				print release.id
-			raise Exception("Ambiguous CD-TEXT. Select a release with --release-id")
+			for result in results:
+				print result.release.id + ".html"
+			print "Ambiguous CD-TEXT"
 		else:
 			print "No results from CD-TEXT lookup."
 
+<<<<<<< HEAD:flacnamer.py
 	# Last resort, use audio finger-printing to guess the release
 	if HAS_LIBOFA == False:
 		return None
@@ -190,6 +131,11 @@ def get_musicbrainz_release(disc):
 	else:
 		print "No results from fingerprinting."
 	return None
+=======
+        # Last resort, fingerprinting
+        print "Trying fingerprint search"
+        return get_release_by_fingerprints(disc)
+>>>>>>> local/renamealbum-flac:flacnamer.py
 
 def main():
 	if len(sys.argv) < 2:
