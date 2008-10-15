@@ -64,6 +64,20 @@ def get_releases_by_metadata(disc):
 
 	return releases
 
+def get_release_by_fingerprints(disc):
+        """ Do a fingerprint based search for a matching release.
+
+        """
+        dirinfo = albumidentify.get_dir_info(disc.dirname)
+        data = albumidentify.guess_album(dirinfo)
+        try:
+                (directoryname, albumname, rid, events, asin, trackdata, albumartist, releaseid) = \
+                        data.next()
+        except StopIteration,si:
+                raise Exception("Can't find release via fingerprint search. Giving up")
+
+        return lookups.get_release_by_releaseid(releaseid)
+
 @lookups.delayed
 def get_musicbrainz_release(disc):
 	""" Given a Disc object, try a bunch of methods to look up the release in
@@ -85,7 +99,8 @@ def get_musicbrainz_release(disc):
 	if len(results) > 1:
 		for result in results:
 			print result.release.id
-		raise Exception("Ambiguous DiscID. More than one release matches")
+                print "Ambiguous DiscID, trying fingerprint matching"
+                return get_release_by_fingerprints(disc)
 
 	# We have an exact match, use this.
 	if len(results) == 1:
@@ -107,20 +122,13 @@ def get_musicbrainz_release(disc):
 		elif len(results) > 1:
 			for release in results:
 				print release.id
-			raise Exception("Ambiguous CD-TEXT. Select a release with --release-id")
+			print "Ambiguous CD-TEXT"
 		else:
 			print "No results from CD-TEXT lookup."
 
-        # Last resort: fall back to fingerprint-based search. 
-        dirinfo = albumidentify.get_dir_info(disc.dirname)
-        data = albumidentify.guess_album(dirinfo)
-        try:
-                (directoryname, albumname, rid, events, asin, trackdata, albumartist, releaseid) = \
-                        data.next()
-        except StopIteration,si:
-                raise Exception("Can't find release via fingerprint search. Giving up")
-
-        return lookups.get_release_by_releaseid(releaseid)
+        # Last resort, fingerprinting
+        print "Trying fingerprint search"
+        return get_release_by_fingerprints(disc)
 
 def main():
 	if len(sys.argv) < 2:
