@@ -27,7 +27,7 @@ if len(sys.argv) < 3:
 
 dest=sys.argv[2]
 try:
-	(disc, dirinfo) = albumidentify.get_dir_info(sys.argv[1])
+	dirinfo = albumidentify.get_dir_info(sys.argv[1])
 except albumidentify.FingerprintFailed, e:
 	print e
 	report_file=open(os.path.join(sys.argv[1],"report.txt"),"w")
