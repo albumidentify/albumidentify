@@ -43,27 +43,6 @@ def print_usage():
 	print "                      provide a date where one is missing"
 	print "  -n                  Don't actually tag and rename files"
 
-@lookups.delayed
-def get_releases_by_metadata(disc):
-	""" Given a Disc object, use the performer, title and number of tracks to
-	lookup the release in musicbrainz. This method returns a list of possible
-	results, or the empty list if there were no matches. """
-
-	releases = []
-
-	q = ws.Query()
-	filter = ws.ReleaseFilter(title=disc.title, artistName=disc.performer)
-	rels = q.getReleases(filter)
-	
-	# Filter out of the list releases with a different number of tracks to the
-	# Disc.
-	for rel in rels:
-		release =rel.release  #get_release_by_releaseid(rel.id)
-		if len(release.getTracks()) == len(disc.tracks):
-			releases.append(rel)
-
-	return releases
-
 def get_release_by_fingerprints(disc):
         """ Do a fingerprint based search for a matching release.
 
@@ -78,7 +57,6 @@ def get_release_by_fingerprints(disc):
 
         return lookups.get_release_by_releaseid(releaseid)
 
-@lookups.delayed
 def get_musicbrainz_release(disc):
 	""" Given a Disc object, try a bunch of methods to look up the release in
 	musicbrainz.  If a releaseid is specified, use this, otherwise search by
@@ -86,8 +64,6 @@ def get_musicbrainz_release(disc):
 	"""
 	if disc.discid is None and disc.releaseid is None:
 		raise Exception("Specify at least one of discid or releaseid")
-
-	q = ws.Query()
 
 	# If a release id has been specified, that takes precedence
 	if disc.releaseid is not None:
@@ -111,16 +87,17 @@ def get_musicbrainz_release(disc):
 		print "Trying to look up release via CD-TEXT"
 		print "Performer: " + disc.performer
 		print "Title    : " + disc.title
-		results = get_releases_by_metadata(disc)
+		results = lookups.get_releases_by_cdtext(performer=disc.performer, 
+                                        title=disc.title, num_tracks=len(disc.tracks))
 		if len(results) == 1:
 			print "Got result via CD-TEXT lookup!"
 			print "Suggest submitting TOC and discID to musicbrainz:"
-			print "Release URL: " + results[0].id + ".html"
+			print "Release URL: " + results[0].release.id + ".html"
 			print "Submit URL : " + submit.musicbrainz_submission_url(disc)
-			return results[0]
+			return lookups.get_release_by_releaseid(results[0].release.id)
 		elif len(results) > 1:
-			for release in results:
-				print release.id
+			for result in results:
+				print result.release.id + ".html"
 			print "Ambiguous CD-TEXT"
 		else:
 			print "No results from CD-TEXT lookup."
