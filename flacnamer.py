@@ -53,7 +53,12 @@ def get_release_by_fingerprints(disc):
         except StopIteration,si:
                 raise Exception("Can't find release via fingerprint search. Giving up")
 
-        return lookups.get_release_by_releaseid(releaseid)
+        release = lookups.get_release_by_releaseid(releaseid)
+        print "Got result via audio fingerprinting!"
+        print "Suggest submitting TOC and discID to musicbrainz:"
+        print "Release URL: " + release.id + ".html"
+        print "Submit URL : " + submit.musicbrainz_submission_url(disc)
+        return release
 
 def get_musicbrainz_release(disc):
 	""" Given a Disc object, try a bunch of methods to look up the release in
