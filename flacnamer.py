@@ -146,7 +146,7 @@ def get_musicbrainz_release(disc):
 	results = q.getReleases(filter=filter)
 	if len(results) > 1:
 		for result in results:
-			print result.release.id
+			print result.release.id + ".html"
 		raise Exception("Ambiguous DiscID. More than one release matches")
 
 	# We have an exact match, use this.
