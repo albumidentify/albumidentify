@@ -10,8 +10,6 @@
 import sys
 import os
 from datetime import timedelta
-import musicbrainz2.webservice as ws
-import musicbrainz2.utils as u
 import musicbrainz2.model
 import toc
 import discid
