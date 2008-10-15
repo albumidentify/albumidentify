@@ -111,11 +111,8 @@ def get_musicbrainz_release(disc):
 		else:
 			print "No results from CD-TEXT lookup."
 
-        # Last resort: fall back to fingerprint-based search. As far as I can
-        # tell, this is how renamealbum uses albumidentify.guess_album(). Maybe
-        # I'm missing something, but why are we only calling the next()
-        # function once?
-        (disc,dirinfo) = albumidentify.get_dir_info(disc.dirname)
+        # Last resort: fall back to fingerprint-based search. 
+        dirinfo = albumidentify.get_dir_info(disc.dirname)
         data = albumidentify.guess_album(dirinfo)
         try:
                 (directoryname, albumname, rid, events, asin, trackdata, albumartist, releaseid) = \
@@ -124,8 +121,6 @@ def get_musicbrainz_release(disc):
                 raise Exception("Can't find release via fingerprint search. Giving up")
 
         return lookups.get_release_by_releaseid(releaseid)
-
-
 
 def main():
 	if len(sys.argv) < 2:
