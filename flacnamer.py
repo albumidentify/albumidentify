@@ -24,14 +24,6 @@ import musicdns
 import lookups
 import albumidentify
 
-HAS_LIBOFA=True
-try:
-	import fingerprint
-except Exception:
-	print "libofa not installed, audiofingerprinting disabled"
-	HAS_LIBOFA=False
-	
-
 MUSICDNS_KEY='a7f6063296c0f1c9b75c7f511861b89b'
 
 def print_usage():
