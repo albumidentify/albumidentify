@@ -199,7 +199,7 @@ def main():
 	if asin is not None:
 		disc.asin = asin
 	else:
-		disc.asin = lookups.get_asin_from_release(release)
+		disc.asin = lookups.get_asin_from_release(release, prefer=".co.uk")
 			
 	# Set the compilation tag appropriately
 	if musicbrainz2.model.Release.TYPE_COMPILATION in disc.releasetypes:

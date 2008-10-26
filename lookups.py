@@ -173,7 +173,7 @@ def get_album_art_url_for_asin(asin):
 	return None
 
 @memoify
-def get_asin_from_release(release):
+def get_asin_from_release(release, prefer=None):
 	# The ASIN specified in release.asin isn't necessarily the only ASIN
 	# for the release. Sigh. So, we need to look at the release's relations
 	# to see if there are multiple ASINs, report this to the user, and
@@ -190,9 +190,15 @@ def get_asin_from_release(release):
 	elif len(asins) == 0:
 		print "WARNING: No ASIN for this release"
 		return None
-	else:
-		print "WARNING: Ambiguous ASIN. Select an ASIN and specify it using --release-asin"
-		return None
+
+        if prefer is not None:
+                for asin in asins:
+                        if asin.find(prefer) != -1:
+                                print "WARNING: Mulitple ASINs exist, but we are forcing " + prefer
+                                return asin
+	
+        print "WARNING: Ambiguous ASIN. Select an ASIN and specify it using --release-asin"
+        return None
 
 def parse_album_name(albumname):
 	""" Pull apart an album name of the form 
