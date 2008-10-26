@@ -185,6 +185,7 @@ if overwrite:
 			parsed_data[i]["outtags"])
 	os.spawnlp(os.P_WAIT,"mp3gain","mp3gain",
 		"-a", # album gain
+		"-c", # ignore clipping warning.
 		*[x["destfile"] for x in parsed_data.values()])
 	
 report_file=open(os.path.join(sys.argv[1],"report.txt"),"w")
