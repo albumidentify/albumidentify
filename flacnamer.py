@@ -24,8 +24,6 @@ import musicdns
 import lookups
 import albumidentify
 
-MUSICDNS_KEY='a7f6063296c0f1c9b75c7f511861b89b'
-
 def print_usage():
 	print "usage: " + sys.argv[0] + " <srcpath> [OPTIONS]"
 	print "  srcpath     A path containing flacs and a TOC to tag"
