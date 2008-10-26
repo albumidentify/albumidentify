@@ -246,11 +246,8 @@ def main():
 		disc.totalnumber = totaldiscs
 		disc.number = int(discnumber)
 	else:
-		if disc.asin is None:
-			raise Exception("This disc is part of a multi-disc set, but we have no ASIN! Use --total-discs or add an ASIN at musicbrainz")
-
 		disc.number = int(discnumber)
-		discs = lookups.get_all_discs_in_album(disc, albumname)
+		discs = lookups.get_all_releases_in_set(release.id)
 		disc.totalnumber = len(discs)
 
 	print "disc " + str(disc.number) + " of " + str(disc.totalnumber)

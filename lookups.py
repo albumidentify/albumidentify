@@ -1,4 +1,5 @@
 import musicbrainz2.webservice as ws
+import musicbrainz2.model as model
 import time
 import amazon4
 import re
@@ -70,7 +71,7 @@ def get_track_by_id(id):
 def get_release_by_releaseid(releaseid):
 	""" Given a musicbrainz release-id, fetch the release from musicbrainz. """
 	q = ws.Query()
-	includes = ws.ReleaseIncludes(artist=True, counts=True, tracks=True, releaseEvents=True, urlRelations=True)
+	includes = ws.ReleaseIncludes(artist=True, counts=True, tracks=True, releaseEvents=True, urlRelations=True, releaseRelations=True)
 	return q.getReleaseById(id_ = releaseid, include=includes)
 
 @memoify
@@ -124,39 +125,40 @@ def get_track_artist_for_track(track):
 
 	return None
 
-@memoify
-@delayed
-def get_all_discs_in_album(disc, albumname = None): 
-	""" Given a disc, talk to musicbrainz to see how many discs are in the
-	release.  Return a list of releases which correspond to all of the discs in
-	this release. Note that there is an easier way to accomplish this using a
-	newer version of python-musicbrainz2 which allows for Lucene searching in
-	the Filter objects, so we can search directly by ASIN, which would be
-	perfect.  For now though we need to do fuzzy matching on release title and
-	album artist and then count how many resulting releases share the asin with
-	the disc we have been given.  """
+def __get_prev_and_next_releases(release):
+        prev = None
+        next = None
+        relations = release.getRelations()
+        for r in relations:
+                if r.getType().find("#PartOfSet") != -1:
+                        if r.getDirection() == model.Relation.DIR_BACKWARD:
+                                prev = str(r.getTargetId()[-36:])
+                        else:
+                                next = str(r.getTargetId()[-36:])
+                        continue
+        return (prev,next)
 
-	releases = []
+def get_all_releases_in_set(releaseid):
+        """ Return all of the release ids that belong to the same multi-disc set
+            as the provided id.
 
-	if albumname is None:
-		(albumname, discnumber, disctitle) = parse_album_name(disc.album)
-	filter = ws.ReleaseFilter(title=albumname, artistName=disc.artist)
-	q = ws.Query()
-	rels = q.getReleases(filter)
+            The original id will be passed back in the set, so the length of the 
+            returned list indicates the number of discs in the set. The list should be
+            ordered.
+        """
+        releases = [releaseid]
+        r = get_release_by_releaseid(releaseid)
+        (prev, next) = __get_prev_and_next_releases(r)
+        # Search back to the beginning of the set...
+        while prev is not None:
+                releases = [prev] + releases
+                (prev, n) = __get_prev_and_next_releases(get_release_by_releaseid(prev))
+        # Search forward to the end of the set...
+        while next is not None:
+                releases = releases + [next]
+                (p, next) = __get_prev_and_next_releases(get_release_by_releaseid(next))
 
-	for rel in rels:
-		r = rel.getRelease()
-		# Releases can have multiple ASINs, so we need to get the entire list
-		# and check them all. Pain.
-		includes = ws.ReleaseIncludes(artist=True, urlRelations = True)
-		release = q.getReleaseById(r.id, includes)
-		for relation in release.getRelations():
-			if relation.getType().find("AmazonAsin") != -1:
-				asin = relation.getTargetId().split("/")[-1].strip()
-				if asin == disc.asin:
-					releases.append(release)
-	return releases
-
+        return releases
 
 @memoify
 def get_album_art_url_for_asin(asin):
