@@ -280,9 +280,11 @@ def flacname(disc, release, srcpath, newpath, embedcovers=False, noact=False, mo
 
 		track_artist_name = mp3names.FixArtist(track_artist.name)
 
-		newfilename = "%s - %s - %s.flac" % (tracknum, track_artist_name,
-													mbtrack.title)
+		newfilename = "%s - %s - %s.flac" % (tracknum, track_artist_name, mbtrack.title)
 		newfilename = mp3names.FixFilename(newfilename)
+
+                if newfilename.endswith("_silence_.flac"):
+                        continue
 
 		print os.path.join(srcpath, file) + " -> " + os.path.join(newpath, newfilename)
 		if not noact:
