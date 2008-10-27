@@ -24,16 +24,6 @@ import musicdns
 import lookups
 import albumidentify
 
-HAS_LIBOFA=True
-try:
-	import fingerprint
-except Exception:
-	print "libofa not installed, audiofingerprinting disabled"
-	HAS_LIBOFA=False
-	
-
-MUSICDNS_KEY='a7f6063296c0f1c9b75c7f511861b89b'
-
 def print_usage():
 	print "usage: " + sys.argv[0] + " <srcpath> [OPTIONS]"
 	print "  srcpath     A path containing flacs and a TOC to tag"
@@ -209,7 +199,7 @@ def main():
 	if asin is not None:
 		disc.asin = asin
 	else:
-		disc.asin = lookups.get_asin_from_release(release)
+		disc.asin = lookups.get_asin_from_release(release, prefer=".co.uk")
 			
 	# Set the compilation tag appropriately
 	if musicbrainz2.model.Release.TYPE_COMPILATION in disc.releasetypes:
@@ -241,9 +231,16 @@ def main():
 		if not noact:
 			shutil.copyfile(os.path.join(srcpath, "folder.jpg"), os.path.join(newpath, "folder.jpg"))
 	elif imageurl is not None:
-		print imageurl
 		if not noact:
-			urllib.urlretrieve(imageurl, os.path.join(newpath, "folder.jpg"))
+                        try:
+                                (f,h) = urllib.urlretrieve(imageurl, \
+                                        os.path.join(newpath, "folder.jpg"))
+                                if h.getmaintype() != "image":
+                                        print "WARNING: Failed to retrieve coverart (%s)" % imageurl
+                                        embedcovers = False
+                        except:
+                                print "WARNING: Failed to retrieve coverart (%s)" % imageurl
+                                embedcovers = False
 	else:
 		embedcovers = False
 
@@ -256,11 +253,8 @@ def main():
 		disc.totalnumber = totaldiscs
 		disc.number = int(discnumber)
 	else:
-		if disc.asin is None:
-			raise Exception("This disc is part of a multi-disc set, but we have no ASIN! Use --total-discs or add an ASIN at musicbrainz")
-
 		disc.number = int(discnumber)
-		discs = lookups.get_all_discs_in_album(disc, albumname)
+		discs = lookups.get_all_releases_in_set(release.id)
 		disc.totalnumber = len(discs)
 
 	print "disc " + str(disc.number) + " of " + str(disc.totalnumber)
@@ -290,9 +284,11 @@ def flacname(disc, release, srcpath, newpath, embedcovers=False, noact=False, mo
 
 		track_artist_name = mp3names.FixArtist(track_artist.name)
 
-		newfilename = "%s - %s - %s.flac" % (tracknum, track_artist_name,
-													mbtrack.title)
+		newfilename = "%s - %s - %s.flac" % (tracknum, track_artist_name, mbtrack.title)
 		newfilename = mp3names.FixFilename(newfilename)
+
+                if newfilename.endswith("_silence_.flac"):
+                        continue
 
 		print os.path.join(srcpath, file) + " -> " + os.path.join(newpath, newfilename)
 		if not noact:

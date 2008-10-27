@@ -19,6 +19,7 @@ for i in raw/cd-*; do
 		--exhaustive-model-search	\
 		--rice-partition-order=6	\
 		--qlp-coeff-precision-search	\
+		--padding=131027		\
 		$SRC/*.wav
 
 	mv ${SRC}/*.flac ${DST}
