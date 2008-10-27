@@ -231,9 +231,16 @@ def main():
 		if not noact:
 			shutil.copyfile(os.path.join(srcpath, "folder.jpg"), os.path.join(newpath, "folder.jpg"))
 	elif imageurl is not None:
-		print imageurl
 		if not noact:
-			urllib.urlretrieve(imageurl, os.path.join(newpath, "folder.jpg"))
+                        try:
+                                (f,h) = urllib.urlretrieve(imageurl, \
+                                        os.path.join(newpath, "folder.jpg"))
+                                if h.getmaintype() != "image":
+                                        print "WARNING: Failed to retrieve coverart (%s)" % imageurl
+                                        embedcovers = False
+                        except:
+                                print "WARNING: Failed to retrieve coverart (%s)" % imageurl
+                                embedcovers = False
 	else:
 		embedcovers = False
 
