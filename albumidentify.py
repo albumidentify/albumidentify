@@ -38,7 +38,7 @@ key = 'a7f6063296c0f1c9b75c7f511861b89b'
 
 def decode(frommp3name, towavname):
         if frommp3name.lower().endswith(".mp3"):
-                os.spawnlp(os.P_WAIT,"mpg123","--quiet","--wav",
+                os.spawnlp(os.P_WAIT,"mpg123","mpg123","--quiet","--wav",
                         towavname,frommp3name)
         elif frommp3name.lower().endswith(".flac"):
                 os.spawnlp(os.P_WAIT,"flac","flac","-d", "--totally-silent", "-o", towavname,
