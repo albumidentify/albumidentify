@@ -21,6 +21,7 @@ def memoify(func):
 		if func.__name__ not in memocache:
                         if not os.path.isdir(os.path.expanduser("~/.mbcache/")):
                                 os.mkdir(os.path.expanduser("~/.mbcache/"))
+			print "loading cache for",func.__name__
 			memocache[func.__name__]=shelve.open(os.path.expanduser("~/.mbcache/"+func.__name__),"c")
 		key=pickle.dumps((args,kwargs))
 		if key not in memocache[func.__name__]:
@@ -40,6 +41,7 @@ def delayed(func):
 		ret=func(*args,**kwargs)
 		lastwsquery=time.time()
 		return ret
+	delay.__name__="delayed_"+func.__name__
 	return delay
 		
 	
