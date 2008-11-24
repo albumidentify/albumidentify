@@ -40,6 +40,7 @@ def delayed(func):
 		ret=func(*args,**kwargs)
 		lastwsquery=time.time()
 		return ret
+	delay.__name__="delayed_"+func.__name__
 	return delay
 		
 	

@@ -95,7 +95,7 @@ for (tracknum,artist,sortartist,title,dur,origname,artistid,trkid) in trackdata:
 	try:
 		shutil.copy(origname,"/tmp/tmp.mp3")
 		# Undo any normalisation thats been done.
-		os.spawnlp(os.P_WAIT,"mp3gain","-u","/tmp/tmp.mp3")
+		os.spawnlp(os.P_WAIT,"mp3gain","mp3gain","-u","/tmp/tmp.mp3")
 		parsed_data[tracknum]=parsemp3.parsemp3("/tmp/tmp.mp3")
 	except:
 		print "Failed to parse",`origname`
@@ -146,10 +146,13 @@ elif total_old_bitrate < total_new_bitrate:
 	overwrite=True
 	overwrite_reason="New version is higher bitrate (%f < %f)" % (
 		total_old_bitrate,total_new_bitrate)
-else:
+elif total_old_bitrate > total_new_bitrate:
 	overwrite=False
 	overwrite_reason="Old version has higher bitrate (%f > %f)" % (
 		total_old_bitrate,total_new_bitrate)
+else:
+	overwrite=True
+	overwrite_reason="New version has the same bitrate, but different bitstream"
 
 
 # Grab album art
@@ -180,8 +183,9 @@ if overwrite:
 					= (imagemime,"\x03","",imagedata)
 		serialisemp3.output(parsed_data[i]["destfile"],
 			parsed_data[i]["outtags"])
-	os.spawnlp(os.P_WAIT,"mp3gain",
+	os.spawnlp(os.P_WAIT,"mp3gain","mp3gain",
 		"-a", # album gain
+		"-c", # ignore clipping warning.
 		*[x["destfile"] for x in parsed_data.values()])
 	
 report_file=open(os.path.join(sys.argv[1],"report.txt"),"w")
