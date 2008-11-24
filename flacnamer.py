@@ -183,7 +183,7 @@ def main():
 	disc.set_musicbrainz_tracks(release.getTracks())
 	disc.releasedate = release.getEarliestReleaseDate()
 
-	disc.artist = mp3names.FixArtist(release.artist.name)
+	disc.artist = release.artist.name
 	disc.album = release.title
 	if year is not None:
 		disc.year = year
@@ -209,7 +209,7 @@ def main():
 	if musicbrainz2.model.Release.TYPE_SOUNDTRACK in disc.releasetypes:
 		newpath = "Soundtrack - %s - %s" % (disc.year, disc.album)
 	else:
-		newpath = "%s - %s - %s" % (disc.artist, disc.year, disc.album)
+		newpath = "%s - %s - %s" % (mp3names.FixArtist(disc.artist), disc.year, disc.album)
 	newpath = mp3names.FixFilename(newpath)
 	newpath = os.path.join(srcpath, "../%s/" % newpath)
 	newpath = os.path.normpath(newpath)
@@ -282,9 +282,7 @@ def flacname(disc, release, srcpath, newpath, embedcovers=False, noact=False, mo
 		else:
 			track_artist = lookups.get_track_artist_for_track(mbtrack)
 
-		track_artist_name = mp3names.FixArtist(track_artist.name)
-
-		newfilename = "%s - %s - %s.flac" % (tracknum, track_artist_name, mbtrack.title)
+		newfilename = "%s - %s - %s.flac" % (tracknum, mp3names.FixArtist(track_artist.name), mbtrack.title)
 		newfilename = mp3names.FixFilename(newfilename)
 
                 if newfilename.endswith("_silence_.flac"):
@@ -309,7 +307,7 @@ MUSICBRAINZ_DISCID=%s
 DATE=%s
 YEAR=%s
 COMPILATION=%s
-''' % (mbtrack.title, track_artist_name, disc.artist, str(tracknum), str(len(disc.tracks)), str(len(disc.tracks)), 
+''' % (mbtrack.title, track_artist.name, disc.artist, str(tracknum), str(len(disc.tracks)), str(len(disc.tracks)), 
 			disc.album, os.path.basename(release.id), os.path.basename(release.artist.id),
 			os.path.basename(track_artist.id), os.path.basename(mbtrack.id), disc.discid, disc.releasedate, disc.year,
 			str(disc.compilation))
