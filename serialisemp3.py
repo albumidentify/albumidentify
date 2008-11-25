@@ -18,9 +18,9 @@ def _tag(name,data):
 	assert len(name)==4
 	assert len(data)<127*127*127
 	ret =(name)				# Tag Name
-	ret+=("\x00"+chr(len(data)/(127*127))+
-			chr(len(data)/127%127)+
-			chr(len(data)%127))	# Length
+	ret+=("\x00"+chr(len(data)/(128*128))+
+			chr(len(data)/128%128)+
+			chr(len(data)%128))	# Length
 	ret+=("\x00\x00")			# Flags
 	ret+=(data)
 	return ret
