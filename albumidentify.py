@@ -44,10 +44,6 @@ def decode(frommp3name, towavname):
                 os.spawnlp(os.P_WAIT,"flac","flac","-d", "--totally-silent", "-o", towavname,
                         frommp3name)
 
-#try:
-#	fileinfocache=pickle.load(file(os.path.expanduser("~/.albumidentifycache")))
-#except:
-#	fileinfocache={}
 fileinfocache=shelve.open(os.path.expanduser("~/.albumidentifycachedb"),"c")
 
 class FingerprintFailed(Exception):
@@ -84,10 +80,12 @@ def get_file_info(fname):
 	sys.stdout.write("Looking up PUID\r")
 	sys.stdout.flush()
 	tracks = lookups.get_tracks_by_puid(puid)
-	print [ y.title for x in tracks for y in x.releases]
-	fileinfocache[fhash]=(fname,artist,trackname,dur,tracks)
-	#pickle.dump(fileinfocache,open(os.path.expanduser("~/.albumidentifycache"),"w"))
-	return fileinfocache[fhash]
+	data=(fname,artist,trackname,dur,tracks,puid)
+	if tracks!=[]:
+		fileinfocache[fhash]=data
+	else:
+		print "Musicbrainz doesn't know about this track, not caching"
+	return data
 
 def get_dir_info(dirname):
 	files=os.listdir(dirname)
@@ -169,11 +167,12 @@ def guess_album2(trackinfo):
 	impossible_releases=[]
 	track_generator={}
 	completed_releases=[]
-	for (tracknum,(fname,artist,trackname,dur,trackids)) in trackinfo.iteritems():
+	for (tracknum,(fname,artist,trackname,dur,trackids,puid)) in trackinfo.iteritems():
 		track_generator[tracknum]=itertools.chain(
 					(track
 						for track in trackids),
-					find_more_tracks(trackids),
+					find_more_tracks([
+						track for track in trackids]),
 					find_even_more_tracks(fname,
 							tracknum,
 							possible_releases)
@@ -203,9 +202,6 @@ def guess_album2(trackinfo):
 						track_prob[i+1]+=len(possible_releases[j])
 						total+=len(possible_releases[j])
 			old_possible_releases=possible_releases.copy()
-			#for i in track_prob:
-			#	print "%d: %.2f%%" % (i,track_prob[i]*100.0/total),
-			#print
 		r=random.random()*total
 		tot=0
 		for tracknum in track_prob:
@@ -221,14 +217,25 @@ def guess_album2(trackinfo):
 			# If there are no more tracks for this
 			# skip it and try more.
 			del track_generator[tracknum]
+			print
 			print "All possibilities for track",tracknum,"exhausted"
+			print "puid:",trackinfo[tracknum][5]#[0].puids
+			removed_releases={}
 			for i in possible_releases.keys():
 				# Ignore any release that doesn't have this
 				# track, since we can no longer find it.
 				if tracknum not in possible_releases[i]:
+					removed_releases[i]=possible_releases[i]
 					del possible_releases[i]
 			if possible_releases=={}:
 				print "No possible releases left"
+				if removed_releases:
+					print "Possible releases:"
+					for releaseid in removed_releases:
+						release = lookups.get_release_by_releaseid(releaseid)
+						print release.artist.name,"-",release.title
+						print "",release.tracks[tracknum-1].id
+						print "",output_list(removed_releases[releaseid])
 				return
 			#return
 			continue
@@ -307,7 +314,7 @@ def guess_album(trackinfo):
 		trackdata=[]
 		for tracknum in range(len(tracks)):
 			trk=tracks[tracknum]
-			(fname,artist,trackname,dur,trackprints) = trackinfo[tracknum+1]
+			(fname,artist,trackname,dur,trackprints,puid) = trackinfo[tracknum+1]
 			if trk.artist is None:
 				artist=albumartist.name
 				sortartist=albumartist.sortName
