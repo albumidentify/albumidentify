@@ -13,8 +13,8 @@ url="http://musicbrainz.org/ws/1/track/"
 authinfo = urllib2.HTTPDigestAuthHandler()
 authinfo.add_password(realm="musicbrainz.org",
 		uri=url,
-		user="isomer",
-		passwd="sigma6")
+		user="user",
+		passwd="realsekrit")
 
 opener = urllib2.build_opener(authinfo)
 urllib2.install_opener(opener)
