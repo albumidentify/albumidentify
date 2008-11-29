@@ -117,7 +117,6 @@ def find_more_tracks(tracks):
 	donetracks=[]
 	donepuids=[]
 	donetrackids=[]
-	paths={}
 
 	while tracks!=[]:
 		t=tracks.pop()
@@ -134,14 +133,6 @@ def find_more_tracks(tracks):
 					continue
 				tracks.append(u)
 				donetrackids.append(u.id)
-				#print u.id,[y.title for y in u.releases]
-				if t.id in paths:
-					path=paths[t.id]
-				else:
-					path=[]
-				path=path+[u.releases[0].title]
-				#print path
-				paths[u.id]=path
 					
 def find_even_more_tracks(fname,tracknum,possible_releases):
 	gotone = False
