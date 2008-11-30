@@ -109,33 +109,47 @@ def get_dir_info(dirname):
 		trackinfo[tracknum]=get_file_info(fname)
 	return trackinfo
 
-def find_more_tracks(tracks):
-	# There is a n:n mapping of puid's to tracks.
-	# All puid's that match a track should be the same song.
-	# Thus if PUIDa maps to TrackA, which also has PUIDb
-	# and PUIDb maps to TrackB too, then PUIDa should map to
-	# TrackB too...
-	tracks=tracks[:]
-	donetracks=[]
-	donepuids=[]
-	donetrackids=[]
+def generate_track_puid_possibilities(tracks):
+	"""Return all track ids with matching the tracks.
 
-	while tracks!=[]:
-		t=tracks.pop()
-		donetracks.append(t)
-		yield t
-		newt = lookups.get_track_by_id(t.id)
-		for p in newt.puids:
-			if p in donepuids:
+	Args:
+		track: A list of tracks to match against.
+	
+	Yields:
+		All releated track_ids. There is a n:n mapping of puid's to tracks.
+		Therefore all puid's that match a track should be the same song.
+		Thus if PUIDa maps to TrackA, which also has PUIDb
+		and PUIDb maps to TrackB too, then PUIDa should map to
+		TrackB too...
+	"""
+	tracks = tracks[:]
+	done_track_ids = []
+	done_puids=[]
+
+	# Don't return the tracks that were passed in.
+	for track in tracks:
+		done_track_ids.append(track.id)
+
+	while tracks:
+		t = tracks.pop()
+		print "Looking for any tracks related to %s" % t.id
+		track = lookups.get_track_by_id(t.id)
+		for puid in track.puids:
+			if puid in done_puids:
 				continue
-			donepuids.append(p)
-			ts = lookups.get_tracks_by_puid(p)
-			for u in ts:
-				if u.id in donetrackids:
+			done_puids.append(puid)
+			tracks2 = lookups.get_tracks_by_puid(puid)
+			for t2 in tracks2:
+				if t2.id in done_track_ids:
 					continue
-				tracks.append(u)
-				donetrackids.append(u.id)
-					
+				tracks.append(t2)
+				print " via %s considering track: %s" % (puid, t2.id)
+		if t.id not in done_track_ids:
+			done_track_ids.append(t.id)
+			print " * adding %s" % t.id
+			yield t
+
+
 def find_even_more_tracks(fname,tracknum,possible_releases):
 	gotone = False
         if fname.lower().endswith(".flac"):
@@ -210,10 +224,8 @@ def guess_album2(trackinfo):
 	completed_releases=[]
 	for (tracknum,(fname,artist,trackname,dur,trackids,puid)) in trackinfo.iteritems():
 		track_generator[tracknum]=itertools.chain(
-					(track
-						for track in trackids),
-					find_more_tracks([
-						track for track in trackids]),
+					(track for track in trackids),
+					generate_track_puid_possibilities(trackids),
 					find_even_more_tracks(fname,
 							tracknum,
 							possible_releases)
