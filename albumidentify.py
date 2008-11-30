@@ -375,13 +375,15 @@ def guess_album(trackinfo):
 
 if __name__=="__main__":
 	trackinfo=get_dir_info(sys.argv[1])
-	for (albumartist,release,rid,releases,asin,trackdata,albumartistid,releaseid) in guess_album(trackinfo):
-		print albumartist,"-",release
-		print "ASIN:",asin
-		print "Release Dates:",
-		for i in releases:
-			print "",i
-		for (tracknum,artist,sortartist,title,dur,fname,artistid,trkid) in trackdata:
-			print "",tracknum,"-",artist,"-",title,"%2d:%06.3f" % (int(dur/60000),(dur % 60000)/1000)
-			print " ",fname
+	album_info = guess_album(trackinfo)
+	(artist, release, rid, releases, asin, trackdata, albumartist,
+			releaseid) = album_info.next()
+	print albumartist,"-",release
+	print "ASIN:",asin
+	print "Release Dates:",
+	for i in releases:
+		print "",i
+	for (tracknum,artist,sortartist,title,dur,fname,artistid,trkid) in trackdata:
+		print "",tracknum,"-",artist,"-",title,"%2d:%06.3f" % (int(dur/60000),(dur % 60000)/1000)
+		print " ",fname
 
