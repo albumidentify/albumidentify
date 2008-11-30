@@ -15,6 +15,8 @@ import puidsubmit
 import albumidentifyconfig
 
 def output_list(l):
+	if not l:
+		return "[]"
 	l.sort()
 	ret=[]
 	start=l[0]
