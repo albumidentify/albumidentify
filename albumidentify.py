@@ -59,25 +59,33 @@ class FingerprintFailed(Exception):
 
 
 def get_file_info(fname):
+	fp = None
+	dur = None
 	print "identifying",fname
 	#sys.stdout.write("identifying "+os.path.basename(fname)+"\r\x1B[K")
 	#sys.stdout.flush()
 	fhash = md5.md5(open(fname,"r").read()).hexdigest()
 	if fhash in fileinfocache:
-		return fileinfocache[fhash]
-	# While testing this uses a fixed name in /tmp
-	# and checks if it exists, and doesn't decode if it does.
-	# This is for speed while debugging, should be changed with
-	# tmpname later
-	toname=os.path.join("/tmp/fingerprint.wav")
-	if not os.path.exists(toname):
-		sys.stdout.write("decoding"+os.path.basename(fname)+"\r\x1B[K")
+		data = fileinfocache[fhash]
+		if len(data) > 2:
+			# Full data from musicbrainz cached.
+			return data
+		# FP only cached, musicbrainz had nothing last time.
+		fp, dur = data
+	if not fp:
+		# While testing this uses a fixed name in /tmp
+		# and checks if it exists, and doesn't decode if it does.
+		# This is for speed while debugging, should be changed with
+		# tmpname later
+		toname=os.path.join("/tmp/fingerprint.wav")
+		if not os.path.exists(toname):
+			sys.stdout.write("decoding"+os.path.basename(fname)+"\r\x1B[K")
+			sys.stdout.flush()
+			decode(fname,toname)
+		sys.stdout.write("Generating fingerprint\r")
 		sys.stdout.flush()
-		decode(fname,toname)
-	sys.stdout.write("Generating fingerprint\r")
-	sys.stdout.flush()
-	(fp, dur) = fingerprint.fingerprint(toname)
-	os.unlink(toname)
+		(fp, dur) = fingerprint.fingerprint(toname)
+		os.unlink(toname)
 
 	sys.stdout.write("Fetching fingerprint info\r")
 	sys.stdout.flush()
@@ -92,7 +100,7 @@ def get_file_info(fname):
 	if tracks!=[]:
 		fileinfocache[fhash]=data
 	else:
-		print "Musicbrainz doesn't know about this track, not caching"
+		fileinfocache[fhash]=(fp, dur)
 	return data
 
 def get_dir_info(dirname):
