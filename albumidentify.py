@@ -155,6 +155,29 @@ def find_even_more_tracks(fname,tracknum,possible_releases):
         if fname.lower().endswith(".flac"):
                 return
 	mp3data = parsemp3.parsemp3(fname)
+
+def generate_track_name_possibilities(fname, tracknum, possible_releases):
+	"""Return all track ids matching the tracks.
+
+	Args:
+		fname: The file containing the track in question.
+		track: A list of tracks to match against.
+		possible_releases: Dictionary containing releases under consideration.
+	
+	Yields:
+		All releated track_ids. Looks at all track names in the releases under
+		consideration and case insensitively compares the tracks, returning any
+		matches.
+	"""
+	if fname.lower().endswith(".flac"):
+		return
+	try:
+		mp3data = parsemp3.parsemp3(fname)
+	except:
+		# Parsing MP3s is a source of bugs... be robust here.
+		print "Failed to parse mp3: %s" % fname
+		return
+
 	if "TIT2" not in mp3data["v2"]:
 		return
 	ftrackname = mp3data["v2"]["TIT2"]
