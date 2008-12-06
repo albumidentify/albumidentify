@@ -7,12 +7,51 @@ import pickle
 import os
 import atexit
 import shelve
+import urllib2
+
+DEFAULT_RATE = 2
+MAX_BACKOFF = 60
+MAX_TRIES = 5
 
 AMAZON_LICENSE_KEY='1WQQTEA14HEA9AERDMG2'
 
-lastwsquery = time.time()
-
 memocache={}
+
+
+def _openUrl_with_delay(self, url, data=None):
+    cur_rate = getattr(_openUrl_with_delay, "cur_rate", DEFAULT_RATE)
+    lastquery = getattr(_openUrl_with_delay, "lastquery", None)
+    for i in range(MAX_TRIES):
+        if lastquery:
+            age = time.time() - lastquery
+            if age <= cur_rate:
+                delay = max(cur_rate - age, 1)
+                time.sleep(cur_rate - age)
+        try:
+            _openUrl_with_delay.lastquery = time.time()
+            rv = _openUrl_with_delay.origfunc(self, url, data)
+        except (ws.WebServiceError, urllib2.HTTPError), e:
+            reason = getattr(e, 'reason', e)
+            if reason.code == 503:
+                # Timeout, backoff.
+                if cur_rate < MAX_BACKOFF:
+                    _openUrl_with_delay.cur_rate = cur_rate * 2
+                continue
+            else:
+                raise
+        # Success! Reduce backoff if necessary.
+        if cur_rate > DEFAULT_RATE:
+            _openUrl_with_delay.cur_rate = cur_rate / 2
+        return rv
+    # Timed out and tries exceeded.
+    raise ws.WebServiceError("Timeout exceeded!")
+
+
+# Monkey patch above function into musicbrainz to ensure we don't send queries
+# too fast and that we backoff exponentially if we do get a temp fail message.
+_openUrl_with_delay.origfunc = ws.WebService._openUrl
+ws.WebService._openUrl = _openUrl_with_delay
+
 
 # Make sure we write it out every so often
 
@@ -30,25 +69,7 @@ def memoify(func):
 		return memocache[func.__name__][key]
 	return memoify
 
-MAXDELAY=1.5
-
-def delayed(func):
-	"Decorator to make sure a function isn't called more often than once every 2 seconds. used to space webservice calls"
-	def delay(*args,**kwargs):
-		global lastwsquery
-		if time.time()-lastwsquery<MAXDELAY:
-			wait=MAXDELAY-(time.time()-lastwsquery)
-			time.sleep(wait)
-		ret=func(*args,**kwargs)
-		lastwsquery=time.time()
-		return ret
-	delay.__name__="delayed_"+func.__name__
-	return delay
-		
-	
-
 @memoify
-@delayed
 def get_tracks_by_puid(puid):
 	""" Lookup a list of musicbrainz tracks by PUID. Returns a list of Track
 	objects. """ 
@@ -61,7 +82,6 @@ def get_tracks_by_puid(puid):
 	return results
 
 @memoify
-@delayed
 def get_track_by_id(id):
 	q = ws.Query()
 	results = []
@@ -70,7 +90,6 @@ def get_track_by_id(id):
 	return t
 
 @memoify
-@delayed
 def get_release_by_releaseid(releaseid):
 	""" Given a musicbrainz release-id, fetch the release from musicbrainz. """
 	q = ws.Query()
@@ -78,7 +97,6 @@ def get_release_by_releaseid(releaseid):
 	return q.getReleaseById(id_ = releaseid, include=includes)
 
 @memoify
-@delayed
 def get_releases_by_cdtext(title, performer, num_tracks):
 	""" Given the performer, title and number of tracks on a disc,
 	lookup the release in musicbrainz. This method returns a list of possible
@@ -93,7 +111,6 @@ def get_releases_by_cdtext(title, performer, num_tracks):
         return [r for r in rels if len(get_release_by_releaseid(r.release.id).getTracks()) == num_tracks]
 
 @memoify
-@delayed
 def get_releases_by_discid(discid):
         """ Given a musicbrainz disc-id, fetch a list of possible releases. """
         q = ws.Query()
@@ -111,7 +128,6 @@ def track_number(tracks, track):
 	return -1
 
 @memoify
-@delayed
 def get_track_artist_for_track(track):
 	""" Returns the musicbrainz Artist object for the given track. This may
 		require a webservice lookup
