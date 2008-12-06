@@ -373,9 +373,23 @@ def guess_album(trackinfo):
 		)
 		yield albuminfo
 
+
+def process_dir(dir_path):
+	"""Process a directory and guess the album in it.
+
+	Args:
+		dir_path: Full path to the directory to guess from.
+
+	Returns:
+		A generator which will yield album_info guesses. See guess_album for
+		details of the guess format.
+	"""
+	trackinfo = get_dir_info(dir_path)
+	return guess_album(trackinfo)
+
+
 if __name__=="__main__":
-	trackinfo=get_dir_info(sys.argv[1])
-	album_info = guess_album(trackinfo)
+	album_info = process_dir(sys.argv[1])
 	(artist, release, rid, releases, asin, trackdata, albumartist,
 			releaseid) = album_info.next()
 	print albumartist,"-",release
