@@ -1,0 +1,27 @@
+#!/usr/bin/python
+import parsemp3
+import sys
+import os
+
+for i in sys.argv[2:]:
+	try:
+		a=parsemp3.parsemp3(i)
+	except:
+		print "Failed to parse, broken?",`i`
+		continue
+	alb=""
+	if "TALB" in a["v2"]:
+		alb=a["v2"]["TALB"]
+		alb=alb.replace("/","_").replace("\x00"," ").strip().encode("utf8")
+	if alb=="" and "TALB" in a["v1"]:
+		alb=a["v1"]["TALB"]
+		alb=alb.replace("/","_").replace("\x00"," ").strip().encode("utf8")
+	if alb:
+		print i,"->",alb
+		try:
+			os.mkdir(os.path.join(sys.argv[1],alb))
+		except:
+			pass
+		os.rename(i,os.path.join(sys.argv[1],alb,os.path.basename(i)))
+	else:
+		print "untagged:",i
