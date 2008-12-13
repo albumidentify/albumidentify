@@ -30,12 +30,14 @@ def memoify(func):
 		return memocache[func.__name__][key]
 	return memoify
 
+MAXDELAY=1.5
+
 def delayed(func):
 	"Decorator to make sure a function isn't called more often than once every 2 seconds. used to space webservice calls"
 	def delay(*args,**kwargs):
 		global lastwsquery
-		if time.time()-lastwsquery<2:
-			wait=2-(time.time()-lastwsquery)
+		if time.time()-lastwsquery<MAXDELAY:
+			wait=MAXDELAY-(time.time()-lastwsquery)
 			time.sleep(wait)
 		ret=func(*args,**kwargs)
 		lastwsquery=time.time()
