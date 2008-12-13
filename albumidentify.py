@@ -47,8 +47,12 @@ def decode(frommp3name, towavname):
 fileinfocache=shelve.open(os.path.expanduser("~/.albumidentifycachedb"),"c")
 
 class FingerprintFailed(Exception):
+	def __init__(self,fname):
+		self.fname = fname
+
 	def __str__(self):
-		return "Failed to fingerprint track"
+		return "Failed to fingerprint track %s" % repr(self.fname)
+
 
 def get_file_info(fname):
 	print "identifying",fname
@@ -76,7 +80,7 @@ def get_file_info(fname):
 	(trackname, artist, puid) = musicdns.lookup_fingerprint(fp, dur, key)
 	print "***",`artist`,`trackname`,puid
 	if puid is None:
-		raise FingerprintFailed()
+		raise FingerprintFailed(fname)
 	sys.stdout.write("Looking up PUID\r")
 	sys.stdout.flush()
 	tracks = lookups.get_tracks_by_puid(puid)
@@ -151,6 +155,35 @@ def find_even_more_tracks(fname,tracknum,possible_releases):
 		if rtrackname.lower() == ftrackname.lower():
 			yield release.tracks[tracknum-1]
 
+
+# We need to choose a track to expand out.
+# We want to choose a track that's more likely to give us a result.  For
+# For example, if we have a track that appears in several nearly complete
+# albums, we probably don't need to expand it that frequently (but we still
+# should occasionally).
+def choose_track(possible_releases, track_generator, trackinfo):
+	total=0
+	track_prob={}
+	for tracknum in range(len(trackinfo)):
+		tracknum=tracknum+1
+		if tracknum not in track_generator:
+			continue
+		track_prob[tracknum]=1
+		total=total+1
+		for release in possible_releases:
+			if tracknum not in possible_releases[release]:
+				track_prob[tracknum]+=len(possible_releases[release])**2
+				total+=track_prob[tracknum]
+	r=random.random()*total
+	tot=0
+	for tracknum in track_prob:
+		if tracknum not in track_generator:
+			continue
+		tot+=track_prob[tracknum]
+		if tot>=r:
+			return tracknum
+	return tracknum
+
 def guess_album2(trackinfo):
 	# trackinfo is
 	#  <tracknum> => (fname,artist,trackname,dur,[mbtrackids])
@@ -189,28 +222,7 @@ def guess_album2(trackinfo):
 		print "No tracks to identify?"
 		return
 	while track_generator!={}:
-		if 1 or old_possible_releases!=possible_releases:
-			total=0
-			track_prob={}
-			for i in range(len(trackinfo)):
-				if (i+1) not in track_generator:
-					continue
-				track_prob[i+1]=1
-				total=total+1
-				for j in possible_releases:
-					if (i+1) not in possible_releases[j]:
-						track_prob[i+1]+=len(possible_releases[j])
-						total+=len(possible_releases[j])
-			old_possible_releases=possible_releases.copy()
-		r=random.random()*total
-		tot=0
-		for tracknum in track_prob:
-			if tracknum not in track_generator:
-				continue
-			tot+=track_prob[tracknum]
-			if tot>=r:
-				if tot>=r:
-					break
+		tracknum = choose_track(possible_releases, track_generator, trackinfo)
 		try:
 			track = track_generator[tracknum].next()
 		except StopIteration, si:
