@@ -282,7 +282,7 @@ def flacname(disc, release, srcpath, newpath, embedcovers=False, noact=False, mo
 		else:
 			track_artist = lookups.get_track_artist_for_track(mbtrack)
 
-		newfilename = "%s - %s - %s.flac" % (tracknum, mp3names.FixArtist(track_artist.name), mbtrack.title)
+		newfilename = "%s - %s - %s.flac" % (tracknum, track_artist.name, mbtrack.title)
 		newfilename = mp3names.FixFilename(newfilename)
 
                 if newfilename.endswith("_silence_.flac"):
@@ -306,11 +306,13 @@ MUSICBRAINZ_TRACKID=%s
 MUSICBRAINZ_DISCID=%s
 DATE=%s
 YEAR=%s
+SORTARTIST=%s
+SORTALBUMARTIST=%s
 COMPILATION=%s
 ''' % (mbtrack.title, track_artist.name, disc.artist, str(tracknum), str(len(disc.tracks)), str(len(disc.tracks)), 
 			disc.album, os.path.basename(release.id), os.path.basename(release.artist.id),
 			os.path.basename(track_artist.id), os.path.basename(mbtrack.id), disc.discid, disc.releasedate, disc.year,
-			str(disc.compilation))
+			mp3names.FixArtist(track_artist.name), mp3names.FixArtist(disc.artist), str(disc.compilation))
 		
 		if track.isrc is not None:
 			flactags += "ISRC=%s\n" % track.isrc
