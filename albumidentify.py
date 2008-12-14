@@ -11,6 +11,8 @@ import pickle
 import md5
 import random
 import shelve
+import puidsubmit
+import albumidentifyconfig
 
 def output_list(l):
 	l.sort()
@@ -184,6 +186,19 @@ def choose_track(possible_releases, track_generator, trackinfo):
 			return tracknum
 	return tracknum
 
+def submit_shortcut_puids(releaseid,trackinfo):
+	if not albumidentifyconfig.config.getboolean("albumidentify",
+		"push_shortcut_puids"):
+		print "Not submiting shortcut puids: not enabled in config"
+		return
+	print "Submitting shortcut puids to musicbrainz"
+	for (tracknum,(fname,artist,trackname,dur,trackids,puid)) \
+			in trackinfo.items():
+		release = lookups.get_release_by_releaseid(releaseid)
+		trackid=release.tracks[tracknum-1].id
+		puidsubmit.submit_puid(trackid,puid)
+
+
 def guess_album2(trackinfo):
 	# trackinfo is
 	#  <tracknum> => (fname,artist,trackname,dur,[mbtrackids])
@@ -232,6 +247,7 @@ def guess_album2(trackinfo):
 			print
 			print "All possibilities for track",tracknum,"exhausted"
 			print "puid:",trackinfo[tracknum][5]#[0].puids
+			print "filename",trackinfo[tracknum][0]
 			removed_releases={}
 			for i in possible_releases.keys():
 				# Ignore any release that doesn't have this
@@ -246,6 +262,7 @@ def guess_album2(trackinfo):
 					for releaseid in removed_releases:
 						release = lookups.get_release_by_releaseid(releaseid)
 						print release.artist.name,"-",release.title
+						print "",release.tracks[tracknum-1].title
 						print "",release.tracks[tracknum-1].id
 						print "",output_list(removed_releases[releaseid])
 				return
@@ -304,6 +321,7 @@ def guess_album2(trackinfo):
 
 			if len(possible_releases[releaseid])==len(trackinfo) and releaseid not in completed_releases:
 				print release.title,"seems ok\x1b[K"
+				submit_shortcut_puids(releaseid,trackinfo)
 				yield releaseid
 				completed_releases.append(releaseid)
 			
