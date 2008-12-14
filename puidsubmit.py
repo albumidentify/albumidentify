@@ -6,18 +6,28 @@ import shelve
 import pickle
 import os
 import re
+import albumidentifyconfig
 
 #url="http://musicbrainz.homeip.net/ws/1/track/"
 url="http://musicbrainz.org/ws/1/track/"
 
-authinfo = urllib2.HTTPDigestAuthHandler()
-authinfo.add_password(realm="musicbrainz.org",
-		uri=url,
-		user="user",
-		passwd="realsekrit")
+albumidentifyconfig.readconfig()
 
-opener = urllib2.build_opener(authinfo)
-urllib2.install_opener(opener)
+opener = None
+
+def build_opener():
+	global opener
+	if opener is not None:
+		return
+
+	authinfo = urllib2.HTTPDigestAuthHandler()
+	authinfo.add_password(realm="musicbrainz.org",
+			uri=url,
+			user=albumidentifyconfig.config.get("musicbrainz","username"),
+			passwd=albumidentifyconfig.config.get("musicbrainz","password"))
+
+	opener = urllib2.build_opener(authinfo)
+	urllib2.install_opener(opener)
 
 def clean_uuid(uuid):
 	r=re.match("(?:.*/)?([a-zA-Z0-9-]{36})(?:.html)?",uuid)
@@ -27,6 +37,7 @@ def clean_uuid(uuid):
 	return r.group(1)
 
 def submit_puid(trackid,puid):
+	build_opener()
 	trackid = clean_uuid(trackid)
 	puid = clean_uuid(puid)
 	assert len(trackid)==36
@@ -38,7 +49,7 @@ def submit_puid(trackid,puid):
 
 	try:
 		f = urllib2.urlopen(url,data)
-		print f.read()
+		f.read()
 	except urllib2.HTTPError, e:
 		print e
 		print e.read()
