@@ -9,7 +9,7 @@ import atexit
 import shelve
 import urllib2
 
-DEFAULT_RATE = 2
+DEFAULT_RATE = 1.5
 MAX_BACKOFF = 60
 MAX_TRIES = 5
 
