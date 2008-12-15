@@ -159,12 +159,6 @@ def generate_track_puid_possibilities(tracks):
 			yield t
 
 
-def find_even_more_tracks(fname,tracknum,possible_releases):
-	gotone = False
-        if fname.lower().endswith(".flac"):
-                return
-	mp3data = parsemp3.parsemp3(fname)
-
 def generate_track_name_possibilities(fname, tracknum, possible_releases):
 	"""Return all track ids matching the tracks.
 
@@ -269,7 +263,7 @@ def guess_album2(trackinfo):
 		track_generator[tracknum]=itertools.chain(
 					(track for track in trackids),
 					generate_track_puid_possibilities(trackids),
-					find_even_more_tracks(fname,
+					generate_track_name_possibilities(fname,
 							tracknum,
 							possible_releases)
 					)
