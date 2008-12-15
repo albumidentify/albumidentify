@@ -13,6 +13,7 @@ import random
 import shelve
 import puidsubmit
 import albumidentifyconfig
+import re
 
 def output_list(l):
 	l.sort()
@@ -154,8 +155,16 @@ def find_even_more_tracks(fname,tracknum,possible_releases):
 	for (rid,v) in possible_releases.items():
 		release = lookups.get_release_by_releaseid(rid)
 		rtrackname = release.tracks[tracknum-1].title
+
+		# Remove everything in ()'s, Remove all punctuation.
+		rtrackname = re.sub(r"\(.*\)","",rtrackname)
+		rtrackname = re.sub(r"[^A-Za-z0-9]","",rtrackname)
+
+		ftrackname = re.sub(r"\(.*\)","",ftrackname)
+		ftrackname = re.sub(r"[^A-Za-z0-9]","",ftrackname)
+
 		if rtrackname.lower() == ftrackname.lower():
-			yield release.tracks[tracknum-1]
+			yield lookups.get_track_by_id(release.tracks[tracknum-1].id)
 
 
 # We need to choose a track to expand out.
@@ -170,7 +179,9 @@ def choose_track(possible_releases, track_generator, trackinfo):
 		tracknum=tracknum+1
 		if tracknum not in track_generator:
 			continue
-		track_prob[tracknum]=1
+		# use the number of trackid's found as a hint, so we avoid
+		# exhausting a track too soon.
+		track_prob[tracknum]=1+len(trackinfo[tracknum][4])
 		total=total+1
 		for release in possible_releases:
 			if tracknum not in possible_releases[release]:
