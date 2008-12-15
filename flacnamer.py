@@ -320,7 +320,7 @@ COMPILATION=%s
 			flactags += "MCN=%s\n" % disc.mcn
 		if disc.totalnumber > 1:
 			# only add total number of discs if it's a collection
-			flactags += "DISC=%s\nDISCC=%s\nDISCNUMBER=%s\nDISCTOTAL=%s" % \
+			flactags += "DISC=%s\nDISCC=%s\nDISCNUMBER=%s\nDISCTOTAL=%s\n" % \
 					(str(disc.number), str(disc.totalnumber), str(disc.number), str(disc.totalnumber))
 
 		for rtype in disc.releasetypes:
