@@ -164,6 +164,7 @@ def find_even_more_tracks(fname,tracknum,possible_releases):
 		ftrackname = re.sub(r"[^A-Za-z0-9]","",ftrackname)
 
 		if rtrackname.lower() == ftrackname.lower():
+			print "Using text based comparison for",`release.tracks[tracknum-1].title`
 			yield lookups.get_track_by_id(release.tracks[tracknum-1].id)
 
 
