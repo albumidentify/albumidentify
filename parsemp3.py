@@ -413,6 +413,10 @@ def parsemp3(fname):
 			unknown+=chr(b)
 			continue
 		b=f.read(1)
+		if b=="":
+			bitstream=bitstream[:-1] # strip off the incomplete header
+			print "Truncated header"
+			break
 		bitstream+=b
 		b=ord(b)
 		if b&0xe0 != 0xe0:
