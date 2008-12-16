@@ -58,40 +58,50 @@ class FingerprintFailed(Exception):
 	def __str__(self):
 		return "Failed to fingerprint track %s" % repr(self.fname)
 
+def populate_fingerprint_cache(fname):
+	# While testing this uses a fixed name in /tmp
+	# and checks if it exists, and doesn't decode if it does.
+	# This is for speed while debugging, should be changed with
+	# tmpname later
+	toname=os.path.join("/tmp/fingerprint.wav")
+	if not os.path.exists(toname):
+		sys.stdout.write("\x1B[Kdecoding "+os.path.basename(fname)+"\r")
+		sys.stdout.flush()
+		decode(fname,toname)
+	sys.stdout.write("\x1B[KGenerating fingerprint\r")
+	sys.stdout.flush()
+	(fp, dur) = fingerprint.fingerprint(toname)
+	os.unlink(toname)
+
+	sys.stdout.write("Fetching fingerprint info\r")
+	sys.stdout.flush()
+	return fp, dur
+	
+
+def hash_file(fname):
+	return md5.md5(open(fname,"r").read()).hexdigest()
 
 def get_file_info(fname):
 	fp = None
 	dur = None
-	print "identifying",fname
 	#sys.stdout.write("identifying "+os.path.basename(fname)+"\r\x1B[K")
 	#sys.stdout.flush()
-	fhash = md5.md5(open(fname,"r").read()).hexdigest()
+	fhash = hash_file(fname)
 	if fhash in fileinfocache:
 		data = fileinfocache[fhash]
 		if len(data) > 2:
+			(fname,artist,trackname,dur,tracks,puid)=data
+			print "***",`artist`,`trackname`,`fname`
 			# Full data from musicbrainz cached.
 			return data
 		# FP only cached, musicbrainz had nothing last time.
 		fp, dur = data
 	if not fp:
-		# While testing this uses a fixed name in /tmp
-		# and checks if it exists, and doesn't decode if it does.
-		# This is for speed while debugging, should be changed with
-		# tmpname later
-		toname=os.path.join("/tmp/fingerprint.wav")
-		if not os.path.exists(toname):
-			sys.stdout.write("decoding"+os.path.basename(fname)+"\r\x1B[K")
-			sys.stdout.flush()
-			decode(fname,toname)
-		sys.stdout.write("Generating fingerprint\r")
-		sys.stdout.flush()
-		(fp, dur) = fingerprint.fingerprint(toname)
-		os.unlink(toname)
+		fp, dur = populate_fingerprint_cache(fname)
 
-	sys.stdout.write("Fetching fingerprint info\r")
-	sys.stdout.flush()
 	(trackname, artist, puid) = musicdns.lookup_fingerprint(fp, dur, key)
-	print "***",`artist`,`trackname`,puid
+
+	print "***",`artist`,`trackname`,`fname`
 	if puid is None:
 		raise FingerprintFailed(fname)
 	sys.stdout.write("Looking up PUID\r")
@@ -141,7 +151,7 @@ def generate_track_puid_possibilities(tracks):
 
 	while tracks:
 		t = tracks.pop()
-		print "Looking for any tracks related to %s" % t.id
+		#print "Looking for any tracks related to %s" % t.id
 		track = lookups.get_track_by_id(t.id)
 		for puid in track.puids:
 			if puid in done_puids:
@@ -152,12 +162,18 @@ def generate_track_puid_possibilities(tracks):
 				if t2.id in done_track_ids:
 					continue
 				tracks.append(t2)
-				print " via %s considering track: %s" % (puid, t2.id)
+				#print " via %s considering track: %s" % (puid, t2.id)
 		if t.id not in done_track_ids:
 			done_track_ids.append(t.id)
-			print " * adding %s" % t.id
+			#print " * adding %s" % t.id
 			yield t
 
+def clean_name(name):
+	name = re.sub(r"\(.*\)","",name)
+	name = re.sub(r"\[.*\]","",name)
+	name = re.sub(r"\{.*\}","",name)
+	name = re.sub(r"[^A-Za-z0-9]","",name)
+	return name.lower()
 
 def generate_track_name_possibilities(fname, tracknum, possible_releases):
 	"""Return all track ids matching the tracks.
@@ -188,16 +204,15 @@ def generate_track_name_possibilities(fname, tracknum, possible_releases):
 		release = lookups.get_release_by_releaseid(rid)
 		rtrackname = release.tracks[tracknum-1].title
 
-		# Remove everything in ()'s, Remove all punctuation.
-		rtrackname = re.sub(r"\(.*\)","",rtrackname)
-		rtrackname = re.sub(r"[^A-Za-z0-9]","",rtrackname)
+		# Don't bother if we've already found this track!
+		if tracknum in v:
+			continue
 
-		ftrackname = re.sub(r"\(.*\)","",ftrackname)
-		ftrackname = re.sub(r"[^A-Za-z0-9]","",ftrackname)
-
-		if rtrackname.lower() == ftrackname.lower():
-			print "Using text based comparison for",`release.tracks[tracknum-1].title`
+		if clean_name(rtrackname) == clean_name(ftrackname):
+			print "Using text based comparison for track",tracknum,`rtrackname`
 			yield lookups.get_track_by_id(release.tracks[tracknum-1].id)
+		else:
+			print "Failed text based comparison for track",tracknum,`rtrackname`,"vs",`ftrackname`
 
 
 # We need to choose a track to expand out.
@@ -303,11 +318,14 @@ def guess_album2(trackinfo):
 					print "Possible releases:"
 					for releaseid in removed_releases:
 						release = lookups.get_release_by_releaseid(releaseid)
-						print release.artist.name,"-",release.title
-						print "",release.tracks[tracknum-1].title
+						print release.artist.name,"-",\
+							release.title,"-", \
+							release.tracks[tracknum-1].title
 						print "",release.tracks[tracknum-1].id
 						print "",output_list(removed_releases[releaseid])
 				return
+			for i in possible_releases:
+				print "",lookups.get_release_by_releaseid(i).title,"(tracks found: %s)" % (output_list(possible_releases[i])),failed_releases.get(i,0)
 			#return
 			continue
 
@@ -355,11 +373,6 @@ def guess_album2(trackinfo):
 				possible_releases[releaseid]=[tracknum]
 				track_counts[tracknum]=track_counts[tracknum]+1
 				print "Considering",release.title,"\x1b[K"
-				if possible_releases!={}:
-					print "Currently Considering:"
-					for i in possible_releases:
-						print "",lookups.get_release_by_releaseid(i).title,"(tracks found: %s)" % (output_list(possible_releases[i])),failed_releases.get(i,0)
-					print
 
 			if len(possible_releases[releaseid])==len(trackinfo) and releaseid not in completed_releases:
 				print release.title,"seems ok\x1b[K"
