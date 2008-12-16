@@ -99,6 +99,8 @@ def get_file_info(fname):
 	if not fp:
 		fp, dur = populate_fingerprint_cache(fname)
 
+	sys.stdout.write("Looking up fingerprint\r")
+	sys.stdout.flush()
 	(trackname, artist, puid) = musicdns.lookup_fingerprint(fp, dur, key)
 
 	print "***",`artist`,`trackname`,`fname`
@@ -128,6 +130,11 @@ def get_dir_info(dirname):
 		tracknum=tracknum+1
 		fname=os.path.join(dirname,i)
 		trackinfo[tracknum]=get_file_info(fname)
+		# If this is a duplicate of the previous track, ignore it.
+		# Dedupe by PUID
+		if len(trackinfo)>1 and trackinfo[tracknum][5]==trackinfo[tracknum-1][5]:
+			print "WARNING: Duplicate track ignored",`trackinfo[tracknum][0]`,"and",`trackinfo[tracknum-1][0]`
+			tracknum-=1
 	return trackinfo
 
 def generate_track_puid_possibilities(tracks):
@@ -415,7 +422,8 @@ def guess_album(trackinfo):
 		trackdata=[]
 		for tracknum in range(len(tracks)):
 			trk=tracks[tracknum]
-			(fname,artist,trackname,dur,trackprints,puid) = trackinfo[tracknum+1]
+			(fname,artist,trackname,dur,trackprints,puid) = \
+					trackinfo[tracknum+1]
 			if trk.artist is None:
 				artist=albumartist.name
 				sortartist=albumartist.sortName
@@ -425,7 +433,14 @@ def guess_album(trackinfo):
 				sortartist=trk.artist.sortName
 				artistid=trk.artist.id
 			#print " ",tracknum+1,"-",artist,"-",trk.title,"%2d:%06.3f" % (int(dur/60000),(dur%6000)/1000),`fname`
-			trackdata.append((tracknum+1,artist,sortartist,trk.title,dur,fname,artistid,trk.id))
+			trackdata.append((tracknum+1,
+					artist,
+					sortartist,
+					trk.title,
+					dur,
+					fname,
+					artistid,
+					trk.id))
 		asin = lookups.get_asin_from_release(release)
 		albuminfo = (
 			directoryname,
