@@ -49,7 +49,7 @@ def get_release_by_fingerprints(disc):
                 (directoryname, albumname, rid, events, asin, trackdata, albumartist, releaseid) = \
                         data.next()
         except StopIteration,si:
-                raise Exception("Can't find release via fingerprint search. Giving up")
+		return None
 
         release = lookups.get_release_by_releaseid(releaseid)
         print "Got result via audio fingerprinting!"
