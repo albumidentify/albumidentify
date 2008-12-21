@@ -56,7 +56,7 @@ def submit_puid(trackid,puid):
 		raise
 	# Flush these entries out of the track by puid cache
 	try:
-		sh=shelve.open(os.path.expanduser("~/.mbcache/delayed_get_tracks_by_puid"),"w")
+		sh=shelve.open(os.path.expanduser("~/.mbcache/delayed_get_tracks_by_puid"),"c")
 		key=pickle.dumps(((unicode(puid),),{}))
 		if key in sh:
 			del sh[key]
