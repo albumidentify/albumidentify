@@ -261,9 +261,9 @@ def submit_shortcut_puids(releaseid,trackinfo,releaseinfo):
 		print "Not submiting shortcut puids: not enabled in config"
 		return
 	print "Submitting shortcut puids to musicbrainz"
-	print release.title
 	for trackind in range(len(releaseinfo)):
 		release = lookups.get_release_by_releaseid(releaseid)
+		print release.title
 		trackid = release.tracks[trackind].id
 		puid = trackinfo[releaseinfo[trackind+1]][5]
 		if trackid not in lookups.get_tracks_by_puid(puid):
