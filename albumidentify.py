@@ -60,7 +60,14 @@ def decode(frommp3name, towavname):
                 os.spawnlp(os.P_WAIT,"flac","flac","-d", "--totally-silent", "-o", towavname,
                         frommp3name)
 
-fileinfocache=shelve.open(os.path.expanduser("~/.albumidentifycachedb"),"c")
+fileinfocache = None
+
+def open_fileinfo_cache():
+	global fileinfocache
+	if fileinfocache is None:
+		fileinfocache=shelve.open(
+			os.path.expanduser("~/.albumidentifycachedb"),
+			"c")
 
 class FingerprintFailed(Exception):
 	def __init__(self,fname):
@@ -74,7 +81,10 @@ def populate_fingerprint_cache(fname):
 	# and checks if it exists, and doesn't decode if it does.
 	# This is for speed while debugging, should be changed with
 	# tmpname later
-	toname=os.path.join("/tmp/fingerprint.wav")
+	# Yes -- this is insecure.  I'd like to use tmpnam/tmpname(), I really
+	# would, but they produce annoying warnings, so I'm stuck doing
+	# something even more stupid.  Sigh.
+	toname=os.path.join("/tmp",`os.getpid()`+".wav")
 	if not os.path.exists(toname):
 		update_progress("decoding "+os.path.basename(fname))
 		decode(fname,toname)
@@ -93,6 +103,7 @@ def get_file_info(fname):
 	fp = None
 	dur = None
 	fhash = hash_file(fname)
+	open_fileinfo_cache()
 	if fhash in fileinfocache:
 		data = fileinfocache[fhash]
 		if len(data) > 2:
@@ -121,6 +132,7 @@ def get_file_info(fname):
 	return data
 
 def get_dir_info(dirname):
+	global fileinfocache
 	files=os.listdir(dirname)
 	files.sort()
 	trackinfo={}
@@ -140,6 +152,9 @@ def get_dir_info(dirname):
 		else:
 			lastpuid = trackinfo[fname][5]
 			lastfile = fname
+	# close the cache, we probably don't need it.
+	fileinfocache.close()
+	fileinfocache=None
 	return trackinfo
 
 def generate_track_puid_possibilities(tracks):
@@ -340,7 +355,7 @@ def add_new_track(release, releaseid, possible_releases, fileid, track):
 		if found_tracknumber not in possible_releases[releaseid] \
 		  and fileid not in possible_releases[releaseid].values():
 			possible_releases[releaseid][found_tracknumber]=fileid
-			print "Found track",found_tracknumber,"(",release.tracks[found_tracknumber-1].title,")","of",release.title,":",fileid,"(tracks found: %s)\x1b[K" % (output_list(possible_releases[releaseid].keys()))
+			print "Found track",found_tracknumber,"(",release.tracks[found_tracknumber-1].title,")","of",release.title,":",os.path.basename(fileid),"(tracks found: %s)\x1b[K" % (output_list(possible_releases[releaseid].keys()))
 	else:
 		possible_releases[releaseid]={found_tracknumber:fileid}
 		print "Considering",release.title," (track",found_tracknumber,")\x1b[K"
