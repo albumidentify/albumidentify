@@ -58,7 +58,7 @@ except StopIteration,si:
 if len(events) == 0:
 	print "Coultn'd find a release event",sys.argv[1]
 	report_file=open(os.path.join(sys.argv[1],"report.txt"),"w")
-	print >>report_file,"No release events"
+	print >>report_file,"No release events for",releaseid
 	report_file.close()
 	sys.exit(1)
 
