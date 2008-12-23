@@ -434,6 +434,7 @@ def guess_album2(trackinfo):
 			if len(possible_releases[releaseid])==len(trackinfo) \
 					and releaseid not in completed_releases:
 				print release.title,"seems ok\x1b[K"
+				print "Id:",release.id
 				submit_shortcut_puids(releaseid,
 					trackinfo,
 					possible_releases[releaseid])
