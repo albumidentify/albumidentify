@@ -7,6 +7,7 @@ import pickle
 import os
 import re
 import albumidentifyconfig
+import lookups
 
 #url="http://musicbrainz.homeip.net/ws/1/track/"
 url="http://musicbrainz.org/ws/1/track/"
@@ -36,6 +37,7 @@ def clean_uuid(uuid):
 		return uuid
 	return r.group(1)
 
+@delay
 def submit_puid(trackid,puid):
 	build_opener()
 	trackid = clean_uuid(trackid)
