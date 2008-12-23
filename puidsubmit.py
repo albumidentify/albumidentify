@@ -36,7 +36,7 @@ def clean_uuid(uuid):
 		return uuid
 	return r.group(1)
 
-#@lookups.delayed
+@lookups.delayed()
 def submit_puid(trackid,puid):
 	build_opener()
 	trackid = clean_uuid(trackid)
@@ -67,7 +67,7 @@ def submit_puid(trackid,puid):
 	except Exception, e:
 		print e
 
-@lookups.delayed
+@lookups.delayed()
 def _submit_puids(puid2track):
 	build_opener()
 	data= urllib.urlencode([

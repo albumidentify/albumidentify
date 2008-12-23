@@ -14,7 +14,7 @@ musicdns_host = 'ofa.musicdns.org'
 musicdns_port = 80
 
 @lookups.memoify
-@lookups.delayed
+@lookups.delayed("musicdns")
 def lookup_fingerprint(fingerprint, duration, musicdns_key):
 	""" Given a fingerprint and duration, lookup the track using the 
 	MusicDNS web-service and return the PUID, if found.
