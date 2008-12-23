@@ -279,18 +279,24 @@ def submit_shortcut_puids(releaseid,trackinfo,releaseinfo):
 		"push_shortcut_puids"):
 		print "Not submiting shortcut puids: not enabled in config"
 		return
-	print "Submitting shortcut puids to musicbrainz"
+	flag=0
 	release = lookups.get_release_by_releaseid(releaseid)
-	print release.artist.name,"-",release.title,":"
 	puid2trackid={}
 	for trackind in range(len(releaseinfo)):
 		trackid = release.tracks[trackind].id
 		puid = trackinfo[releaseinfo[trackind+1]][5]
 		if trackid not in [t.id for t in lookups.get_tracks_by_puid(puid)]:
+			if not flag:
+				print "Submitting shortcut puids to musicbrainz"
+				print release.artist.name,"-",release.title,":"
+				flag=1
 			print "%02d" % (trackind+1),":",puid,"->",release.tracks[trackind].title
 			puid2trackid[puid]=trackid
-	print
-	puidsubmit.submit_puids(puid2trackid)
+	if flag:
+		print
+		puidsubmit.submit_puids(puid2trackid)
+	else:
+		print "No shortcut puids need submitting"
 
 def giving_up(removed_releases,fileid):
 	print "No possible releases left"
