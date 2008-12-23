@@ -278,13 +278,15 @@ def submit_shortcut_puids(releaseid,trackinfo,releaseinfo):
 	print "Submitting shortcut puids to musicbrainz"
 	release = lookups.get_release_by_releaseid(releaseid)
 	print release.artist.name,"-",release.title,":"
+	puid2trackid={}
 	for trackind in range(len(releaseinfo)):
 		trackid = release.tracks[trackind].id
 		puid = trackinfo[releaseinfo[trackind+1]][5]
 		if trackid not in lookups.get_tracks_by_puid(puid):
 			print "%02d" % (trackind+1),":",puid,"->",release.tracks[trackind].title
-			puidsubmit.submit_puid(trackid,puid)
+			puid2trackid[puid]=trackid
 	print
+	puidsubmit.submit_puids(puid2trackid)
 
 def giving_up(removed_releases,fileid):
 	print "No possible releases left"
