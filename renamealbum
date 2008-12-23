@@ -109,7 +109,7 @@ for (tracknum,artist,sortartist,title,dur,origname,artistid,trkid) in trackdata:
 	try:
 		shutil.copy(origname,"/tmp/tmp.mp3")
 		# Undo any normalisation thats been done.
-		os.spawnlp(os.P_WAIT,"mp3gain","mp3gain","-u","/tmp/tmp.mp3")
+		os.spawnlp(os.P_WAIT,"mp3gain","mp3gain","-u","-q","/tmp/tmp.mp3")
 		parsed_data[tracknum]=parsemp3.parsemp3("/tmp/tmp.mp3")
 	except:
 		print "Failed to parse",`origname`
