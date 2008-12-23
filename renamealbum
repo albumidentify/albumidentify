@@ -77,7 +77,12 @@ if "-" in date:
 else:
 	year=date
 
-destdir=os.path.join(dest,mp3names.FixFilename(mp3names.FixArtist(albumartist.sortName.strip())),mp3names.FixFilename("%(sortartist)s - %(date)s - %(name)s" % {
+if artist == "Soundtrack":
+        dirname = artist
+else:
+        dirname = albumartist.sortName.strip()
+
+destdir=os.path.join(dest,mp3names.FixFilename(mp3names.FixArtist(dirname)),mp3names.FixFilename("%(sortartist)s - %(date)s - %(name)s" % {
 	"sortartist" : mp3names.FixArtist(albumartist.sortName.strip()),
 	"date" : year,
 	"name" : album.strip(),
