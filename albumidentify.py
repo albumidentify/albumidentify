@@ -23,6 +23,8 @@ FORCE_ORDER=True
 # tracknum's are 1 based
 
 def update_progress(msg):
+	if type(msg) == type(''):
+		msg = msg.decode('utf8','ignore')
 	sys.stdout.write(msg.encode("ascii","ignore")+"\x1b[K\r")
 	sys.stdout.flush()
 
