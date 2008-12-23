@@ -422,6 +422,7 @@ def guess_album2(trackinfo):
 			if releaseid in impossible_releases:
 				continue
 
+			update_progress("Considering %s" %releaseid)
 			release = lookups.get_release_by_releaseid(releaseid)
 
 			# Is the track usable?
