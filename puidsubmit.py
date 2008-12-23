@@ -37,7 +37,7 @@ def clean_uuid(uuid):
 		return uuid
 	return r.group(1)
 
-@delay
+@lookups.delayed
 def submit_puid(trackid,puid):
 	build_opener()
 	trackid = clean_uuid(trackid)
@@ -68,5 +68,49 @@ def submit_puid(trackid,puid):
 	except Exception, e:
 		print e
 
+@lookups.delayed
+def _submit_puids(puid2track):
+	build_opener()
+	#trackid = clean_uuid(trackid)
+	#puid = clean_uuid(puid)
+	data= urllib.urlencode([
+			("client" , "albumrenamer-1"),
+			]+[ 
+				("puid" , "%s %s" % (clean_uuid(trackid),
+					clean_uuid(puid)))
+				for (puid,trackid) in puid2track.items()
+			],True)
+
+	try:
+		print data
+		#f = urllib2.urlopen(url,data)
+		#f.read()
+	except urllib2.HTTPError, e:
+		print e
+		print e.read()
+		raise
+	# Flush these entries out of the track by puid cache
+	try:
+		sh=shelve.open(os.path.expanduser("~/.mbcache/delayed_get_tracks_by_puid"),"c")
+		key=pickle.dumps(((unicode(puid),),{}))
+		if key in sh:
+			del sh[key]
+		key=pickle.dumps(((str(puid),),{}))
+		if key in sh:
+			del sh[key]
+	except Exception, e:
+		print e
+
+def submit_puids(puid2trackid):
+	"Bulk submit puids"
+	puid2trackid = puid2trackid.items()
+	while len(puid2trackid)>0:
+		_submit_puids(dict(puid2trackid[:20]))
+		puid2trackid=puid2trackid[20:]
+
+
 if __name__=="__main__":
-	submit_puid(sys.argv[1],sys.argv[2])
+	puid2track={}
+	for i in range(len(sys.argv[1:])/2):
+		puid2track[sys.argv[2+i*2]]=sys.argv[1+i*2]
+	submit_puids(puid2track)
