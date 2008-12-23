@@ -1,0 +1,10 @@
+Title: Be consistant with program parameters
+
+flacnamer and albumrenamer should both use
+$0 <sourcedir> <destdir>
+and should both use 
+<destdir>/
+ <sortorder artist>/
+  <sortorderartist> - <year> - <albumtitle>/
+   <tracknum> - <trackartist> - <tracktitle>.<extension>
+
