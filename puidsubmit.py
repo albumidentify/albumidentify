@@ -82,9 +82,8 @@ def _submit_puids(puid2track):
 			],True)
 
 	try:
-		print data
-		#f = urllib2.urlopen(url,data)
-		#f.read()
+		f = urllib2.urlopen(url,data)
+		f.read()
 	except urllib2.HTTPError, e:
 		print e
 		print e.read()
