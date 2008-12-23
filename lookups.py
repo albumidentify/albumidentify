@@ -30,6 +30,14 @@ def memoify(func):
 		return memocache[func.__name__][key]
 	return memoify
 
+def cleanup_memos():
+	while memocache!={}:
+		i=memocache.keys()[0]
+		memocache[i].close()
+		del memocache[i]
+
+atexit.register(cleanup_memos)
+
 MAXDELAY=1.5
 
 def delayed(func):
