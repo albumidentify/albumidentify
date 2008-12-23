@@ -2,8 +2,8 @@
 
 
 movefile() {
-SORTARTIST=$(metaflac --show-tag=SORTARTIST "$1"/01*)
-SORTARTIST=${SORTARTIST#SORTARTIST=}
+SORTARTIST=$(metaflac --show-tag=SORTALBUMARTIST "$1"/01*)
+SORTARTIST=${SORTARTIST#SORTALBUMARTIST=}
 
 echo "$1" -\> "$2/$SORTARTIST/"
 mkdir -p "$2/$SORTARTIST/"
