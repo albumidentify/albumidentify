@@ -155,8 +155,10 @@ def get_dir_info(dirname):
 			lastpuid = trackinfo[fname][5]
 			lastfile = fname
 	# close the cache, we probably don't need it.
-	fileinfocache.close()
-	fileinfocache=None
+	# This means multiple concurrent runs don't stand on each others feet
+	if fileinfocache:
+		fileinfocache.close()
+		fileinfocache=None
 	return trackinfo
 
 def generate_track_puid_possibilities(tracks):
