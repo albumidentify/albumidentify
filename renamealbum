@@ -12,9 +12,10 @@ import md5
 import shutil
 
 def print_usage():
-        print "usage: " + sys.argv[0] + " <srcpath> <destpath>"
+        print "usage: " + sys.argv[0] + " <srcpath> <destpath> [options]"
         print "  srcpath     A path containing MP3s to fingerprint and tag"
         print "  destpath    A path to write the tagged files to"
+	print "  --force     Try and rename even when we think there are too few tracks"
 
 def calc_average_bitrate(parsed_data):
 	return (reduce(lambda a,b:a+b,
@@ -25,7 +26,15 @@ if len(sys.argv) < 3:
 	print_usage()
 	sys.exit(1)
 
+force = False
+
 dest=sys.argv[2]
+
+if len(sys.argv) > 3:
+	for arg in sys.argv[3:]:
+		if arg == "--force":
+			force = True
+
 try:
 	dirinfo = albumidentify.get_dir_info(sys.argv[1])
 except albumidentify.FingerprintFailed, e:
@@ -35,8 +44,8 @@ except albumidentify.FingerprintFailed, e:
 	report_file.close()
 	sys.exit(1)
 
-if len(dirinfo)<3:
-	print "Too few tracks to be reliable, giving up"
+if len(dirinfo)<3 and not force:
+	print "Too few tracks to be reliable, giving up.  Use --force to override"
 	report_file=open(os.path.join(sys.argv[1],"report.txt"),"w")
 	print >>report_file,"Too few tracks to be reliable"
 	report_file.close()
