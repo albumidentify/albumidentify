@@ -282,7 +282,7 @@ def submit_shortcut_puids(releaseid,trackinfo,releaseinfo):
 	for trackind in range(len(releaseinfo)):
 		trackid = release.tracks[trackind].id
 		puid = trackinfo[releaseinfo[trackind+1]][5]
-		if trackid not in lookups.get_tracks_by_puid(puid):
+		if trackid not in [t.id for t in lookups.get_tracks_by_puid(puid)]:
 			print "%02d" % (trackind+1),":",puid,"->",release.tracks[trackind].title
 			puid2trackid[puid]=trackid
 	print
