@@ -8,10 +8,13 @@
 import urllib
 from xml.etree import ElementTree
 import re
+import lookups
 
 musicdns_host = 'ofa.musicdns.org'
 musicdns_port = 80
 
+@lookups.memoify
+@lookups.delayed
 def lookup_fingerprint(fingerprint, duration, musicdns_key):
 	""" Given a fingerprint and duration, lookup the track using the 
 	MusicDNS web-service and return the PUID, if found.
