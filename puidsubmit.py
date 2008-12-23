@@ -28,7 +28,6 @@ def build_opener():
 			passwd=albumidentifyconfig.config.get("musicbrainz","password"))
 
 	opener = urllib2.build_opener(authinfo)
-	urllib2.install_opener(opener)
 
 def clean_uuid(uuid):
 	r=re.match("(?:.*/)?([a-zA-Z0-9-]{36})(?:.html)?",uuid)
@@ -37,7 +36,7 @@ def clean_uuid(uuid):
 		return uuid
 	return r.group(1)
 
-@lookups.delayed
+#@lookups.delayed
 def submit_puid(trackid,puid):
 	build_opener()
 	trackid = clean_uuid(trackid)
@@ -50,7 +49,7 @@ def submit_puid(trackid,puid):
 			],True)
 
 	try:
-		f = urllib2.urlopen(url,data)
+		f = opener.open(url,data)
 		f.read()
 	except urllib2.HTTPError, e:
 		print e
@@ -71,8 +70,6 @@ def submit_puid(trackid,puid):
 @lookups.delayed
 def _submit_puids(puid2track):
 	build_opener()
-	#trackid = clean_uuid(trackid)
-	#puid = clean_uuid(puid)
 	data= urllib.urlencode([
 			("client" , "albumrenamer-1"),
 			]+[ 
@@ -82,7 +79,7 @@ def _submit_puids(puid2track):
 			],True)
 
 	try:
-		f = urllib2.urlopen(url,data)
+		f = opener.open(url,data)
 		f.read()
 	except urllib2.HTTPError, e:
 		print e
