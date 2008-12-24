@@ -395,7 +395,7 @@ def add_new_track(release, releaseid, possible_releases, fileid, track, trackinf
 						fileid,
 						track):
 					possible_releases[releaseid][trackind+1]=fileid
-					print " Also found track",trackind+1,release.tracks[found_tracknumber-1].title,"(%s)" % (output_list(possible_releases[releaseid].keys()))
+					print " Also found track",trackind+1,release.tracks[trackind].title,"(%s)" % (output_list(possible_releases[releaseid].keys()))
 
 
 
