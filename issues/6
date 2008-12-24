@@ -1,0 +1,8 @@
+Subject: Create a TODO webpage
+
+Given a directory, find all the report.txt's in it, and generate a webpage of
+all the musicbrains information that needs to be found, such as missing ASIN's,
+missing release events, and so on.
+
+<alastair_> since most voters frown on using wikipedia as a source of information
+<alastair_> if you can get the same year from wikipedia, discogs and amazon, they might accept it
