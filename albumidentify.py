@@ -109,13 +109,14 @@ def get_file_info(fname):
 	if fhash in fileinfocache:
 		data = fileinfocache[fhash]
 		if len(data) > 2:
-			(fname,artist,trackname,dur,tracks,puid)=data
+			(fname2,artist,trackname,dur,tracks,puid)=data
 			print "***",`puid`,`artist`,`trackname`,`fname`
-			return data
+			return (fname,artist,trackname,dur,tracks,puid)
 		# FP only cached, musicbrainz had nothing last time.
 		fp, dur = data
 	if not fp:
 		fp, dur = populate_fingerprint_cache(fname)
+		fileinfocache[fhash]=(fp, dur)
 
 	update_progress("Looking up fingerprint")
 	(trackname, artist, puid) = musicdns.lookup_fingerprint(fp, dur, key)
@@ -127,10 +128,6 @@ def get_file_info(fname):
 	tracks = lookups.get_tracks_by_puid(puid)
 	update_progress("Done")
 	data=(fname,artist,trackname,dur,tracks,puid)
-	if tracks!=[]:
-		fileinfocache[fhash]=data
-	else:
-		fileinfocache[fhash]=(fp, dur)
 	return data
 
 def get_dir_info(dirname):
