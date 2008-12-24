@@ -123,6 +123,7 @@ def get_file_info(fname):
 
 	print "***",`puid`,`artist`,`trackname`,`fname`
 	if puid is None:
+		del fileinfocache[fhash]
 		raise FingerprintFailed(fname)
 	update_progress("Looking up tracks by PUID")
 	tracks = lookups.get_tracks_by_puid(puid)
