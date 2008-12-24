@@ -361,20 +361,47 @@ def verify_track(releaseid, release, possible_releases, impossible_releases,
 
 	return True
 
-def add_new_track(release, releaseid, possible_releases, fileid, track):
+def add_new_track(release, releaseid, possible_releases, fileid, track, trackinfo, impossible_releases):
 	found_tracknumber=lookups.track_number(release.tracks, track)
 	if releaseid in possible_releases:
-		if found_tracknumber not in possible_releases[releaseid] \
-		  and fileid not in possible_releases[releaseid].values():
-			possible_releases[releaseid][found_tracknumber]=fileid
-			print "Found track",found_tracknumber,"(",release.tracks[found_tracknumber-1].title,")","of",release.title,":",os.path.basename(fileid),"(tracks found: %s)\x1b[K" % (output_list(possible_releases[releaseid].keys()))
+		if found_tracknumber in possible_releases[releaseid]:
+			# We already have a file for this track
+			return
+		if fileid in possible_releases[releaseid].values():
+			# This file has already has a track
+			return
+		possible_releases[releaseid][found_tracknumber]=fileid
+		print "Found track",found_tracknumber,"(",release.tracks[found_tracknumber-1].title,")","of",release.title,":",os.path.basename(fileid),"(tracks found: %s)\x1b[K" % (output_list(possible_releases[releaseid].keys()))
 	else:
 		possible_releases[releaseid]={found_tracknumber:fileid}
 		print "Considering",release.title," (track",found_tracknumber,")\x1b[K"
 
+	# Right, lets see if we can find some other tracks quick smart
+	for trackind in range(len(release.tracks)):
+		# Don't waste time on things we've already found
+		if (trackind+1) in possible_releases[releaseid]:
+			continue
+		track = lookups.get_track_by_id(release.tracks[trackind].id)
+		for fileid in trackinfo:
+			if fileid in possible_releases[releaseid].values():
+				continue
+			if trackinfo[fileid][5] in track.puids:
+				# yay, found one.
+				if verify_track(releaseid, 
+						release,
+						possible_releases,
+						impossible_releases,
+						trackinfo,
+						fileid,
+						track):
+					possible_releases[releaseid][trackind+1]=fileid
+					print " Also found track",trackind+1,release.tracks[found_tracknumber-1].title,"(%s)" % (output_list(possible_releases[releaseid].keys()))
+
+
+
 def guess_album2(trackinfo):
 	# trackinfo is
-	#  <fname> => (fname,artist,trackname,dur,[mbtrackids])
+	#  <fname> => (fname,artist,trackname,dur,[mbtrackids],puid)
 	#
 	# returns a list of possible release id's
 	#
@@ -435,8 +462,13 @@ def guess_album2(trackinfo):
 					track):
 				continue
 
-			add_new_track(release, releaseid, 
-					possible_releases, fileid, track)
+			add_new_track(release, 
+					releaseid, 
+					possible_releases, 
+					fileid, 
+					track, 
+					trackinfo, 
+					impossible_releases)
 
 			if len(possible_releases[releaseid])==len(trackinfo) \
 					and releaseid not in completed_releases:
