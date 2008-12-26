@@ -14,6 +14,7 @@ import shelve
 import puidsubmit
 import albumidentifyconfig
 import re
+import sets
 
 # If set to True, this will force tracks to be found in order
 # if set to False, tracks can be found in any order (has false positives)
@@ -173,31 +174,29 @@ def generate_track_puid_possibilities(tracks):
 		TrackB too...
 	"""
 	tracks = tracks[:]
-	done_track_ids = []
-	done_puids=[]
+	done_track_ids = sets.Set()
+	done_puids=sets.Set()
 
 	# Don't return the tracks that were passed in.
 	for track in tracks:
-		done_track_ids.append(track.id)
+		done_track_ids.add(track.id)
 
 	while tracks:
 		t = tracks.pop()
-		#print "Looking for any tracks related to %s" % t.id
+		#print "Looking for any tracks related to %s" % t.title
 		track = lookups.get_track_by_id(t.id)
 		for puid in track.puids:
 			if puid in done_puids:
 				continue
-			done_puids.append(puid)
+			done_puids.add(puid)
 			tracks2 = lookups.get_tracks_by_puid(puid)
 			for t2 in tracks2:
 				if t2.id in done_track_ids:
 					continue
+				yield t2
+				done_track_ids.add(t2.id)
 				tracks.append(t2)
-				#print " via %s considering track: %s" % (puid, t2.id)
-		if t.id not in done_track_ids:
-			done_track_ids.append(t.id)
-			#print " * adding %s" % t.id
-			yield t
+				#print " via %s considering track: %s" % (puid, t2.title)
 
 def clean_name(name):
 	name = re.sub(r"\(.*\)","",name)
