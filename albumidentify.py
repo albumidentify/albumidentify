@@ -132,6 +132,9 @@ def get_file_info(fname):
 	data=(fname,artist,trackname,dur,tracks,puid)
 	return data
 
+def score_track(albumfreq,track):
+	return reduce(lambda a,b:a+b, [albumfreq[release.id] for release in track.releases])
+
 def get_dir_info(dirname):
 	global fileinfocache
 	files=os.listdir(dirname)
@@ -139,6 +142,7 @@ def get_dir_info(dirname):
 	trackinfo={}
 	lastpuid=None
 	lastfile=None
+	albumfreq={}
 	for i in files:
 		if not (i.lower().endswith(".mp3") or i.lower().endswith(".flac")):
 			print "Skipping non mp3/flac file",`i`
@@ -153,11 +157,17 @@ def get_dir_info(dirname):
 		else:
 			lastpuid = trackinfo[fname][5]
 			lastfile = fname
+			for mbtrack in trackinfo[fname][4]:
+				for release in mbtrack.releases:
+					albumfreq[release.id]=albumfreq.get(release.id,0)+1
 	# close the cache, we probably don't need it.
 	# This means multiple concurrent runs don't stand on each others feet
 	if fileinfocache:
 		fileinfocache.close()
 		fileinfocache=None
+	# Sort by the most likely album first.
+	for fileid in trackinfo:
+		trackinfo[fileid][4].sort(lambda b,a:cmp(score_track(albumfreq,a),score_track(albumfreq,b)))
 	return trackinfo
 
 def generate_track_puid_possibilities(tracks):
