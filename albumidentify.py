@@ -459,6 +459,7 @@ def guess_album2(trackinfo):
 			update_progress("Considering %s" %releaseid)
 			release = lookups.get_release_by_releaseid(releaseid)
 
+			update_progress("Considering %s" %release.title)
 			# Is the track usable?
 			if not verify_track(releaseid, 
 					release, 
