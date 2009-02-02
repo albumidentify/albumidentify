@@ -366,7 +366,6 @@ def verify_track(releaseid, release, possible_releases, impossible_releases,
 		if found_tracknumber != file_ids.index(fileid)+1:
 			update_progress(release.title[:40]+": track at wrong position")
 			return False
-		
 
 	return True
 
