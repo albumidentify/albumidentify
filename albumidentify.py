@@ -15,6 +15,7 @@ import puidsubmit
 import albumidentifyconfig
 import re
 import sets
+import time
 
 # If set to True, this will force tracks to be found in order
 # if set to False, tracks can be found in any order (has false positives)
@@ -26,7 +27,7 @@ FORCE_ORDER=True
 def update_progress(msg):
 	if type(msg) == type(''):
 		msg = msg.decode('utf8','ignore')
-	sys.stdout.write(msg.encode("ascii","ignore")+"\x1b[K\r")
+	sys.stdout.write(time.strftime("%H:%M:%S ")+msg.encode("ascii","ignore")+"\x1b[K\r")
 	sys.stdout.flush()
 
 def output_list(l):
