@@ -380,6 +380,7 @@ def add_new_track(release, releaseid, possible_releases, fileid, track, trackinf
 			return
 		possible_releases[releaseid][found_tracknumber]=fileid
 		print "Found track",found_tracknumber,"(",release.tracks[found_tracknumber-1].title,")","of",release.title,":",os.path.basename(fileid),"(tracks found: %s)\x1b[K" % (output_list(possible_releases[releaseid].keys()))
+		return
 	else:
 		possible_releases[releaseid]={found_tracknumber:fileid}
 		print "Considering",release.artist.name,"-",release.title," (found track",found_tracknumber,")\x1b[K"
