@@ -329,7 +329,7 @@ def giving_up(removed_releases,fileid):
 			#print "",release.tracks[tracknum-1].id
 			print "",output_list(removed_releases[releaseid].keys())
 
-def end_of_track(possible_releases,track_generator,trackinfo,fileid):
+def end_of_track(possible_releases,impossible_releases,track_generator,trackinfo,fileid):
 	# If there are no more tracks for this
 	# skip it and try more.
 	del track_generator[fileid]
@@ -344,6 +344,7 @@ def end_of_track(possible_releases,track_generator,trackinfo,fileid):
 		if fileid not in possible_releases[i].values():
 			removed_releases[i]=possible_releases[i]
 			del possible_releases[i]
+			impossible_releases.append(i)
 	if possible_releases=={}:
 		giving_up(removed_releases, fileid)
 		return
@@ -441,6 +442,7 @@ def guess_album2(trackinfo):
 			track = track_generator[fileid].next()
 		except StopIteration, si:
 			end_of_track(possible_releases,
+				impossible_releases,
 				track_generator,
 				trackinfo,
 				fileid)
