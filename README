@@ -1,0 +1,48 @@
+albumidentify -- Tools to identify and manage music albums
+
+Ripping new CDs
+---------------
+Requires:
+cdrdao, cdrecord, cueconvert, bchunk, flac, libofa, pymusicbrainz2
+
+mkdir raw flac
+cd raw
+ripcd.sh
+cd ..; 2flac.sh
+for i in flac/cd-* ; do flacnamer.py "$i"; done
+
+flacnamer writes reports to the flac/cd-* directories.  To get a list of
+information, run
+flacreport.py flac/cd-*
+
+Albums are identified first by CD-TOC, then by the PUID of the tracks.
+
+If an album cannot be identified, you can add it to MusicBrainz. Run
+submit.py <flac directory>
+to get a URL to submit to.
+
+Renaming existing albums (mp3 only)
+-----------------------------------
+
+renamealbum <srcpath> <destpath>
+
+Submitting PUIDs
+----------------
+To submit PUIDs back to MusicBrainz and help other people rename their music
+more quickly, create a file ~/.albumidentifyrc with contents
+
+musicbrainz.username=<your mb username>
+musicbrainz.password=<your mb password>
+albumidentify.push_shortcut_puids=True
+
+Bug reports
+-----------
+To submit a bug report, fork the repository, add a file to issues/ and send us
+a merge request on github.
+Patches welcome!
+
+Authors:
+Perry Lorrier
+Scott Raynel
+Alastair Porter
+Matt Brown
