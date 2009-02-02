@@ -298,7 +298,7 @@ def lyricsv2(data):
 
 def apev2(ape):
 	data={}
-	assert ape.startswith("APETAGEX"),`ape`
+	assert ape[-32:].startswith("APETAGEX"),`ape`
 	ape=ape[32:]
 	while ape!="":
 		apelen=ord(ape[3])*256*256*256+ord(ape[2])*256*256+ord(ape[ 1])*256+ord(ape[ 0])
@@ -346,8 +346,6 @@ def parsemp3(fname):
 			apelen=ord(ape[15])*256*256*256+ord(ape[14])*256*256+ord(ape[13])*256+ord(ape[12])
 			apecnt=ord(ape[19])*256*256*256+ord(ape[18])*256*256+ord(ape[17])*256+ord(ape[16])
 			apeflg=ord(ape[23])*256*256*256+ord(ape[22])*256*256+ord(ape[21])*256+ord(ape[20])
-			ape=ape[23:]
-
 			flength-=32
 			flength-=apelen
 
@@ -356,7 +354,7 @@ def parsemp3(fname):
 			#print "apecnt:",apecnt
 			#print "apeflg:",hex(apeflg)
 			f.seek(flength)
-			apedata=f.read(apelen)
+			apedata=f.read(apelen+32)
 
 			apedata=apev2(apedata)
 
