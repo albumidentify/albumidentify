@@ -9,7 +9,7 @@ mkdir raw flac
 cd raw
 ripcd.sh
 cd ..; 2flac.sh
-for i in flac/cd-* ; do flacnamer.py "$i"; done
+for i in flac/cd-* ; do flacnamer.py "$i" >"$i"/report.txt; done
 
 flacnamer writes reports to the flac/cd-* directories.  To get a list of
 information, run
