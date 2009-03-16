@@ -16,11 +16,14 @@ class Disc:
 		self.discid = None
 		self.releaseid = None
                 self.dirname = None
+                self.tocfilename = None
 
 		if cdrdaotocfile is not None:
 			self.parse_cdrdao_toc(cdrdaotocfile)
+                        self.tocfilename = cdrdaotocfile
 		elif cdrecordtocfile is not None:
 			# TODO: Write some code to deal with cdrecord TOCs
+                        self.tocfilename = cdrecordtocfile
 			raise Exception("cdrecord-style TOCs not yet implemented")
 
 	def get_first_track_num(self):
@@ -97,6 +100,9 @@ class Disc:
 		for i in range(len(self.tracks)):
 			self.tracks[i].mb_track = mb_tracks[i]
 
+        def clear_tracks(self):
+                self.tracks = []
+
 
 class Track:
 	def __init__(self, tracknum):
@@ -108,6 +114,7 @@ class Track:
 		self.title = None
 		self.performer = None
 		self.puid = None
+                self.filename = None
 
 	def __repr__(self):
 		return ("<track %i, start %i, length %i, offset %i, end %i>" % (self.tracknum, self.track_start,

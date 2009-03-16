@@ -23,6 +23,7 @@ import submit #musicbrainz_submission_url()
 import musicdns
 import lookups
 import albumidentify
+import operator
 
 def print_usage():
 	print "usage: " + sys.argv[0] + " <srcpath> [OPTIONS]"
@@ -53,9 +54,23 @@ def get_release_by_fingerprints(disc):
 
         release = lookups.get_release_by_releaseid(releaseid)
         print "Got result via audio fingerprinting!"
-        print "Suggest submitting TOC and discID to musicbrainz:"
-        print "Release URL: " + release.id + ".html"
-        print "Submit URL : " + submit.musicbrainz_submission_url(disc)
+
+        if disc.tocfilename:
+                print "Suggest submitting TOC and discID to musicbrainz:"
+                print "Release URL: " + release.id + ".html"
+                print "Submit URL : " + submit.musicbrainz_submission_url(disc)
+
+        # When we id by fingerprints, the sorted original filenames may not
+        # match the actual tracks (i.e. out of order, bad naming, etc). Here we
+        # have identified the release, so we need to remember the actual
+        # filename for each track for later.
+        sorted(trackdata, key=operator.itemgetter(0)) # sort trackdata by tracknum
+        disc.clear_tracks()
+        for (tracknum,artist,sortartist,title,dur,origname,artistid,trkid) in trackdata:
+                t = toc.Track(tracknum)
+                t.filename = origname
+                disc.tracks.append(t)
+
         return release
 
 def get_musicbrainz_release(disc):
@@ -63,25 +78,23 @@ def get_musicbrainz_release(disc):
 	musicbrainz.  If a releaseid is specified, use this, otherwise search by
 	discid, then search by CD-TEXT and finally search by audio-fingerprinting.
 	"""
-	if disc.discid is None and disc.releaseid is None:
-		raise Exception("Specify at least one of discid or releaseid")
-
 	# If a release id has been specified, that takes precedence
 	if disc.releaseid is not None:
 		return lookups.get_release_by_releaseid(disc.releaseid)
 
 	# Otherwise, lookup the releaseid using the discid as a key
-	results = lookups.get_releases_by_discid(disc.discid)
-	if len(results) > 1:
-		for result in results:
-			print result.release.id + ".html"
-                print "Ambiguous DiscID, trying fingerprint matching"
-                return get_release_by_fingerprints(disc)
+        if disc.discid is not None:
+                results = lookups.get_releases_by_discid(disc.discid)
+                if len(results) > 1:
+                        for result in results:
+                                print result.release.id + ".html"
+                        print "Ambiguous DiscID, trying fingerprint matching"
+                        return get_release_by_fingerprints(disc)
 
-	# We have an exact match, use this.
-	if len(results) == 1:
-		releaseid = results[0].release.id
-		return lookups.get_release_by_releaseid(results[0].release.id)
+                # DiscID lookup gave us an exact match. Use this!
+                if len(results) == 1:
+                        releaseid = results[0].release.id
+                        return lookups.get_release_by_releaseid(results[0].release.id)
 
 	# Otherwise, use CD-TEXT if present to guess the release
 	if disc.performer is not None and disc.title is not None:
@@ -144,24 +157,20 @@ def main():
 
 	print "Source path: " + srcpath
 
-	tocfilename = ""
 	if os.path.exists(os.path.join(srcpath, "data.toc")):
-		tocfilename = "data.toc"
+                disc = toc.Disc(cdrdaotocfile = os.path.join(srcpath, "data.toc"))
 	elif os.path.exists(os.path.join(srcpath, "TOC")):
-		tocfilename = "TOC"
-	else:
-		print "No TOC in source path!"
-		sys.exit(4)
+                disc = toc.Disc(cdrecordtocfile = os.path.join(srcpath, "data.toc"))
+        else:
+                disc = toc.Disc()
+                disc.dirname = srcpath
 
-	disc = toc.Disc(cdrdaotocfile=os.path.join(srcpath, tocfilename))
-
-	disc.tocfilename = tocfilename
-	disc.discid = discid.generate_musicbrainz_discid(
-			disc.get_first_track_num(),
-			disc.get_last_track_num(),
-			disc.get_track_offsets())
-
-	print "discID: " + disc.discid
+        if disc.tocfilename:
+                disc.discid = discid.generate_musicbrainz_discid(
+                                disc.get_first_track_num(),
+                                disc.get_last_track_num(),
+                                disc.get_track_offsets())
+                print "discID: " + disc.discid
 
 	if releaseid:
 		disc.releaseid = releaseid
@@ -258,14 +267,24 @@ def main():
 
 supported_extensions = [".flac"]
 
+def get_file_list(disc):
+        # If the tracks don't have filenames attached, just use the files in
+        # the directory as if they are already in order
+        files = []
+        if (disc.tracks[0].filename is None):
+                files = [ x for x in os.listdir(disc.dirname) if x[x.rfind("."):] in supported_extensions ]
+                files.sort()
+        else:
+                files = [ x.filename for x in disc.tracks ]
+        return files
+
 def flacname(disc, release, srcpath, newpath, embedcovers=False, noact=False, move=False):
-        files = [ x for x in os.listdir(srcpath) if x[x.rfind("."):] in supported_extensions ]
+        files = get_file_list(disc)
 
         if len(files) != len(disc.tracks):
                 print "Number of files to rename (%i) != number of tracks in release (%i)" % (len(files), len(disc.tracks))
                 return
 
-        files.sort()
         tracknum = 0
 	for file in files:
                 (root,ext) = os.path.splitext(file)
@@ -335,9 +354,10 @@ COMPILATION=%s
 			p.stdin.close()
 			p.wait()
 
-	print os.path.join(srcpath, disc.tocfilename) + " -> " + os.path.join(newpath, "data.toc")
-	if not noact:
-		shutil.copyfile(os.path.join(srcpath, disc.tocfilename), os.path.join(newpath, "data.toc"))
+        if disc.tocfilename:
+                print os.path.join(srcpath, disc.tocfilename) + " -> " + os.path.join(newpath, "data.toc")
+                if not noact:
+                        shutil.copyfile(os.path.join(srcpath, disc.tocfilename), os.path.join(newpath, "data.toc"))
 	#os.system("rm \"%s\" -rf" % srcpath)
 	
 
