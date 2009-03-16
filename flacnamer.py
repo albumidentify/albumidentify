@@ -161,11 +161,6 @@ def main():
 			disc.get_last_track_num(),
 			disc.get_track_offsets())
 
-	for i in range(len(disc.tracks)):
-		disc.tracks[i].filename = os.path.join(srcpath,  "track" + str(i + 1).zfill(2) + ".flac")
-		if not os.path.exists(disc.tracks[i].filename):
-			disc.tracks[i].filename = os.path.join(srcpath,  "track" + str(i + 1).zfill(2) + ".cdda.flac")
-
 	print "discID: " + disc.discid
 
 	if releaseid:
@@ -260,21 +255,22 @@ def main():
 	print "disc " + str(disc.number) + " of " + str(disc.totalnumber)
 	flacname(disc, release, srcpath, newpath, embedcovers, noact)
 
-def flacname(disc, release, srcpath, newpath, embedcovers=False, noact=False, move=False):
-	# Warning: This code doesn't actually check if the number of tracks in the
-	# current directory matches the number of tracks in the release. It's
-	# assumed that seeing as the TOC describes this directory and the discId is
-	# unique, then things should all work out for the best.  A safer assumption
-	# would be to iterate over the track list rather than the file list. Meh
-	# for now.
-	for file in os.listdir(srcpath):
-		if not file.endswith(".flac"):
-			continue
-		if not file.startswith("track"):
-			continue
 
-		tracknum = file[5:7]
-		track = disc.tracks[int(tracknum) -1]
+supported_extensions = [".flac"]
+
+def flacname(disc, release, srcpath, newpath, embedcovers=False, noact=False, move=False):
+        files = [ x for x in os.listdir(srcpath) if x[x.rfind("."):] in supported_extensions ]
+
+        if len(files) != len(disc.tracks):
+                print "Number of files to rename (%i) != number of tracks in release (%i)" % (len(files), len(disc.tracks))
+                return
+
+        files.sort()
+        tracknum = 0
+	for file in files:
+                (root,ext) = os.path.splitext(file)
+                tracknum = tracknum + 1
+		track = disc.tracks[tracknum - 1]
 		mbtrack = track.mb_track
 
 		if release.isSingleArtistRelease():
@@ -282,10 +278,10 @@ def flacname(disc, release, srcpath, newpath, embedcovers=False, noact=False, mo
 		else:
 			track_artist = lookups.get_track_artist_for_track(mbtrack)
 
-		newfilename = "%s - %s - %s.flac" % (tracknum, track_artist.name, mbtrack.title)
+		newfilename = "%s - %s - %s%s" % (tracknum, track_artist.name, mbtrack.title, ext)
 		newfilename = mp3names.FixFilename(newfilename)
 
-                if newfilename.endswith("_silence_.flac"):
+                if newfilename.startswith("_silence_"):
                         continue
 
 		print os.path.join(srcpath, file) + " -> " + os.path.join(newpath, newfilename)
