@@ -39,6 +39,8 @@ def print_usage():
 	print "                      re-issue to the date of the original release or to"
 	print "                      provide a date where one is missing"
 	print "  -n                  Don't actually tag and rename files"
+        print "  --no-force-order    Don't require source files to be in order."
+        print "                      May cause false positives."
 
 def get_release_by_fingerprints(disc):
         """ Do a fingerprint based search for a matching release.
@@ -145,6 +147,8 @@ def main():
 			noact = True
 		elif option.startswith("--total-discs"):
 			totaldiscs = option.split("=",1)[1].strip()
+                elif option.startswith("--no-force-order"):
+                        albumidentify.FORCE_ORDER = False
 
 	srcpath = os.path.abspath(sys.argv[1])
 
