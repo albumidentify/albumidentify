@@ -302,7 +302,7 @@ def name_album(disc, release, srcpath, newpath, embedcovers=False, noact=False, 
 		else:
 			track_artist = lookups.get_track_artist_for_track(mbtrack)
 
-		newfilename = "%s - %s - %s%s" % (tracknum, track_artist.name, mbtrack.title, ext)
+		newfilename = "%02d - %s - %s%s" % (tracknum, track_artist.name, mbtrack.title, ext)
 		newfilename = mp3names.FixFilename(newfilename)
 
                 if newfilename.startswith("_silence_"):
