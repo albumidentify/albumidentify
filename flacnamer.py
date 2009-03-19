@@ -270,7 +270,7 @@ def main():
 	name_album(disc, release, srcpath, newpath, embedcovers, noact)
 
 
-supported_extensions = [".flac"]
+supported_extensions = [".flac", ".ogg"]
 
 def get_file_list(disc):
         # If the tracks don't have filenames attached, just use the files in
