@@ -24,6 +24,7 @@ import musicdns
 import lookups
 import albumidentify
 import operator
+import tag
 
 def print_usage():
 	print "usage: " + sys.argv[0] + " <srcpath> [OPTIONS]"
@@ -266,7 +267,7 @@ def main():
 		disc.totalnumber = len(discs)
 
 	print "disc " + str(disc.number) + " of " + str(disc.totalnumber)
-	flacname(disc, release, srcpath, newpath, embedcovers, noact)
+	name_album(disc, release, srcpath, newpath, embedcovers, noact)
 
 
 supported_extensions = [".flac"]
@@ -282,7 +283,7 @@ def get_file_list(disc):
                 files = [ x.filename for x in disc.tracks ]
         return files
 
-def flacname(disc, release, srcpath, newpath, embedcovers=False, noact=False, move=False):
+def name_album(disc, release, srcpath, newpath, embedcovers=False, noact=False, move=False):
         files = get_file_list(disc)
 
         if len(files) != len(disc.tracks):
@@ -311,52 +312,45 @@ def flacname(disc, release, srcpath, newpath, embedcovers=False, noact=False, mo
 		if not noact:
 			shutil.copyfile(os.path.join(srcpath, file), os.path.join(newpath, newfilename))
 
-		flactags = '''TITLE=%s
-ARTIST=%s
-ALBUMARTIST=%s
-TRACKNUMBER=%s
-TRACKTOTAL=%s
-TOTALTRACKS=%s
-ALBUM=%s
-MUSICBRAINZ_ALBUMID=%s
-MUSICBRAINZ_ALBUMARTISTID=%s
-MUSICBRAINZ_ARTISTID=%s
-MUSICBRAINZ_TRACKID=%s
-MUSICBRAINZ_DISCID=%s
-DATE=%s
-YEAR=%s
-SORTARTIST=%s
-SORTALBUMARTIST=%s
-COMPILATION=%s
-''' % (mbtrack.title, track_artist.name, disc.artist, str(tracknum), str(len(disc.tracks)), str(len(disc.tracks)), 
-			disc.album, os.path.basename(release.id), os.path.basename(release.artist.id),
-			os.path.basename(track_artist.id), os.path.basename(mbtrack.id), disc.discid, disc.releasedate, disc.year,
-			mp3names.FixArtist(track_artist.name), mp3names.FixArtist(disc.artist), str(disc.compilation))
-		
-		if track.isrc is not None:
-			flactags += "ISRC=%s\n" % track.isrc
-		if disc.mcn is not None:
-			flactags += "MCN=%s\n" % disc.mcn
-		if disc.totalnumber > 1:
-			# only add total number of discs if it's a collection
-			flactags += "DISC=%s\nDISCC=%s\nDISCNUMBER=%s\nDISCTOTAL=%s\n" % \
-					(str(disc.number), str(disc.totalnumber), str(disc.number), str(disc.totalnumber))
+                # Set up the tag list so that we can pass it off to the
+                # container-specific tagger function later.
+                tags = {}
+                tags[tag.TITLE] = mbtrack.title
+                tags[tag.ARTIST] = track_artist.name
+                tags[tag.ALBUM_ARTIST] = disc.artist
+                tags[tag.TRACK_NUMBER] = str(tracknum)
+                tags[tag.TRACK_TOTAL] = str(len(disc.tracks))
+                tags[tag.ALBUM] = disc.album
+                tags[tag.ALBUM_ID] = os.path.basename(release.id)
+                tags[tag.ALBUM_ARTIST_ID] = os.path.basename(release.artist.id)
+                tags[tag.ARTIST_ID] = os.path.basename(track_artist.id)
+                tags[tag.TRACK_ID] = os.path.basename(mbtrack.id)
+                tags[tag.DATE] = disc.releasedate
+                tags[tag.YEAR] = disc.year
+                tags[tag.SORT_ARTIST] = mp3names.FixArtist(track_artist.name)
+                tags[tag.SORT_ALBUM_ARTIST] = mp3names.FixArtist(disc.artist)
 
-		for rtype in disc.releasetypes:
-			flactags += "MUSICBRAINZ_RELEASE_ATTRIBUTE=%s\n" % musicbrainz2.utils.getReleaseTypeName(rtype)
+                if disc.discid:
+                        tags[tag.DISC_ID] = disc.discid
+                if disc.compilation:
+                        tags[tag.COMPILATION] = "1"
+                if track.isrc is not None:
+                        tags[tag.ISRC] = track.isrc
+                if disc.mcn is not None:
+                        tags[tag.MCN] = disc.mcn
+                for rtype in disc.releasetypes:
+                        types = tags.get(tag.RELEASE_TYPES, [])
+                        types.append(musicbrainz2.utils.getReleaseTypeName(rtype))
+                        tags[tag.RELEASE_TYPES] = types
+                if disc.totalnumber > 1:
+                        tags[tag.DISC_NUMBER] = str(disc.number)
+                        tags[tag.DISC_TOTAL_NUMBER] = str(disc.totalnumber)
 
-		proclist = ["metaflac", "--import-tags-from=-"]
+                image = None
+                if embedcovers:
+                        image = os.path.join(srcpath, "folder.jpg")
 
-		if embedcovers:
-			proclist.append("--import-picture-from=" + os.path.join(newpath, "folder.jpg"))
-
-		proclist.append(os.path.join(newpath, newfilename))
-
-		if not noact:
-			p = subprocess.Popen(proclist, stdin=subprocess.PIPE)
-			p.stdin.write(flactags.encode("utf8"))
-			p.stdin.close()
-			p.wait()
+                tag.tag(os.path.join(newpath, newfilename), tags, noact, image)
 
         if disc.tocfilename:
                 print os.path.join(srcpath, disc.tocfilename) + " -> " + os.path.join(newpath, "data.toc")
