@@ -79,9 +79,21 @@ def __tag_flac(filename, tags, noact = False, image = None):
                 p = subprocess.Popen(proclist, stdin=subprocess.PIPE)
                 p.stdin.write(flactags.encode("utf8"))
                 p.stdin.close()
+                p.wait
+
+def __tag_ogg(filename, tags, noact=False, image=None):
+        oggtags = __gen_flac_tags(tags)
+        proclist = ["vorbiscomment", "-R", "-c", "-", "-w", filename]
+
+        if not noact:
+                p = subprocess.Popen(proclist, stdin=subprocess.PIPE)
+                (stdout, stderr) = p.communicate(oggtags.encode("utf8"))
                 p.wait()
 
 def tag(filename, tags, noact=False, image=None):
         if filename.endswith(".flac"):
                 return __tag_flac(filename, tags, noact, image)
+        elif filename.endswith(".ogg"):
+                return __tag_ogg(filename, tags, noact, image)
+
         raise Exception("Don't know how to tag this file type!")
