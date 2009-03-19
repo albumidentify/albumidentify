@@ -25,6 +25,8 @@ import lookups
 import albumidentify
 import operator
 import tag
+import parsemp3
+import serialisemp3
 
 def print_usage():
 	print "usage: " + sys.argv[0] + " <srcpath> [OPTIONS]"
@@ -235,10 +237,12 @@ def main():
 	# Get album art
 	imageurl = lookups.get_album_art_url_for_asin(disc.asin)
 	# Check for manual image
+        imagemime = None
 	if os.path.exists(os.path.join(srcpath, "folder.jpg")):
 		print "Using existing image"
 		if not noact:
 			shutil.copyfile(os.path.join(srcpath, "folder.jpg"), os.path.join(newpath, "folder.jpg"))
+                        imagemime="image/jpeg"
 	elif imageurl is not None:
 		if not noact:
                         try:
@@ -247,11 +251,15 @@ def main():
                                 if h.getmaintype() != "image":
                                         print "WARNING: Failed to retrieve coverart (%s)" % imageurl
                                         embedcovers = False
+                                else:
+                                        imagemime = h.gettype()
                         except:
                                 print "WARNING: Failed to retrieve coverart (%s)" % imageurl
                                 embedcovers = False
 	else:
 		embedcovers = False
+
+        print "imagemime=" + str(imagemime)
 
 	# Deal with disc x of y numbering
 	(albumname, discnumber, disctitle) = lookups.parse_album_name(disc.album)
@@ -267,10 +275,15 @@ def main():
 		disc.totalnumber = len(discs)
 
 	print "disc " + str(disc.number) + " of " + str(disc.totalnumber)
-	name_album(disc, release, srcpath, newpath, embedcovers, noact)
+	(srcfiles, destfiles, need_mp3_gain) = name_album(disc, release, srcpath, newpath, imagemime, embedcovers, noact)
 
+        if (need_mp3_gain):
+                os.spawnlp(os.P_WAIT, "mp3gain", "mp3gain",
+                        "-a", # album gain
+                        "-c", # ignore clipping warning
+                        *destfiles)
 
-supported_extensions = [".flac", ".ogg"]
+supported_extensions = [".flac", ".ogg", ".mp3"]
 
 def get_file_list(disc):
         # If the tracks don't have filenames attached, just use the files in
@@ -283,7 +296,7 @@ def get_file_list(disc):
                 files = [ x.filename for x in disc.tracks ]
         return files
 
-def name_album(disc, release, srcpath, newpath, embedcovers=False, noact=False, move=False):
+def name_album(disc, release, srcpath, newpath, imagemime=None, embedcovers=False, noact=False, move=False):
         files = get_file_list(disc)
 
         if len(files) != len(disc.tracks):
@@ -291,6 +304,9 @@ def name_album(disc, release, srcpath, newpath, embedcovers=False, noact=False, 
                 return
 
         tracknum = 0
+        srcfiles = []
+        destfiles = []
+        need_mp3_gain = False
 	for file in files:
                 (root,ext) = os.path.splitext(file)
                 tracknum = tracknum + 1
@@ -308,9 +324,13 @@ def name_album(disc, release, srcpath, newpath, embedcovers=False, noact=False, 
                 if newfilename.startswith("_silence_"):
                         continue
 
-		print os.path.join(srcpath, file) + " -> " + os.path.join(newpath, newfilename)
-		if not noact:
-			shutil.copyfile(os.path.join(srcpath, file), os.path.join(newpath, newfilename))
+                destfilepath = os.path.join(newpath, newfilename)
+                srcfilepath = os.path.join(srcpath, file)
+
+		print srcfilepath + " -> " + destfilepath
+
+		if not noact and ext != ".mp3":
+                       shutil.copyfile(os.path.join(srcpath, file), os.path.join(newpath, newfilename))
 
                 # Set up the tag list so that we can pass it off to the
                 # container-specific tagger function later.
@@ -352,11 +372,34 @@ def name_album(disc, release, srcpath, newpath, embedcovers=False, noact=False, 
 
                 tag.tag(os.path.join(newpath, newfilename), tags, noact, image)
 
+                # Special case mp3.. tag.tag() won't do anything with mp3 files
+                # as we write out the tags + bitstream in one operation, so do
+                # that here.
+                if ((not noact) and (ext == ".mp3")):
+                        # Make a temp copy and undo any mp3gain
+                        shutil.copy(srcfilepath, "/tmp/tmp.mp3")
+                        os.spawnlp(os.P_WAIT, "mp3gain", "mp3gain", "-u", "-q", "/tmp/tmp.mp3")
+                        parsed_data = parsemp3.parsemp3("/tmp/tmp.mp3")
+                        outtags = tag.get_mp3_tags(tags)
+                        outtags["bitstream"] = parsed_data["bitstream"]
+                        if image:
+                                imagefp=open(image, "rb")
+                                imagedata=imagefp.read()
+                                imagefp.close()
+                                outtags["APIC"] = (imagemime,"\x03","",imagedata)
+                        serialisemp3.output(destfilepath, outtags)
+                        need_mp3_gain = True
+
+                srcfiles.append(srcfilepath)
+                destfiles.append(destfilepath)
+
         if disc.tocfilename:
                 print os.path.join(srcpath, disc.tocfilename) + " -> " + os.path.join(newpath, "data.toc")
                 if not noact:
                         shutil.copyfile(os.path.join(srcpath, disc.tocfilename), os.path.join(newpath, "data.toc"))
 	#os.system("rm \"%s\" -rf" % srcpath)
+
+        return (srcfiles, destfiles, need_mp3_gain)
 	
 
 if __name__ == "__main__":
