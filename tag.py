@@ -95,5 +95,31 @@ def tag(filename, tags, noact=False, image=None):
                 return __tag_flac(filename, tags, noact, image)
         elif filename.endswith(".ogg"):
                 return __tag_ogg(filename, tags, noact, image)
+        elif filename.endswith(".mp3"):
+                # Don't bother doing anything with mp3 at the moment.
+                return
 
         raise Exception("Don't know how to tag this file type!")
+
+def get_mp3_tags(tags):
+        return {
+                "TIT2" : tags[TITLE],
+                "TPE1" : tags[ARTIST],
+                "TALB" : tags[ALBUM],
+                "TYER" : tags[YEAR],
+                "TDAT" : tags[DATE],
+                "TRCK" : "%s/%s" % (tags[TRACK_NUMBER], tags[TRACK_TOTAL]),
+                "UFID" : ("http://musicbrainz.org",tags[TRACK_ID]),
+                "TXXX" : [("MusicBrainz Artist Id", tags[ARTIST_ID]),
+                          ("MusicBrainz Album Id", tags[ALBUM_ID])],
+                # TCOM -- Composer
+                # TDLY -- Playlist delay (preample)
+                # TSOA -- Album sort order
+                # TSOP -- Performer sort
+                # TSOT -- Title Sort
+                # TIPL -- Involved People
+                # TPOS -- Part of set
+                # TSST -- Set subtitle
+                "COMM" : ""
+                }
+
