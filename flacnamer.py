@@ -41,9 +41,11 @@ def print_usage():
 	print "  --year=YEAR         Overwrite the album release year.  Use to force a"
 	print "                      re-issue to the date of the original release or to"
 	print "                      provide a date where one is missing"
-	print "  -n                  Don't actually tag and rename files"
+	print "  -n, --no-act        Don't actually tag and rename files"
         print "  --no-force-order    Don't require source files to be in order."
         print "                      May cause false positives."
+        print "  --dest-path=PATH    Use PATH instead of the current path for creating"
+        print "                      output directories."
 
 def get_release_by_fingerprints(disc):
         """ Do a fingerprint based search for a matching release.
@@ -136,6 +138,7 @@ def main():
 	year = None
 	noact = False
 	totaldiscs = None
+        destprefix = ""
 
 	for option in sys.argv[2:]:
 		if option.startswith("--release-id="):
@@ -146,12 +149,18 @@ def main():
 			asin = option.split("=",1)[1].strip()
 		elif option.startswith("--year="):
 			year = option.split("=")[1].strip()
-		elif option.startswith("-n"):
+		elif option.startswith("-n") or option.startswith("--no-act"):
 			noact = True
 		elif option.startswith("--total-discs"):
 			totaldiscs = option.split("=",1)[1].strip()
                 elif option.startswith("--no-force-order"):
                         albumidentify.FORCE_ORDER = False
+                elif option.startswith("--dest-path="):
+                        destprefix = option.split("=")[1].strip()
+                        destprefix = os.path.abspath(destprefix)
+                        if not os.path.isdir(destprefix):
+                                print "ERROR: PATH must be a directory"
+                                sys.exit(1)
 
 	srcpath = os.path.abspath(sys.argv[1])
 
@@ -222,7 +231,12 @@ def main():
 	else:
 		newpath = "%s - %s - %s" % (mp3names.FixArtist(disc.artist), disc.year, disc.album)
 	newpath = mp3names.FixFilename(newpath)
-	newpath = os.path.join(srcpath, "../%s/" % newpath)
+
+        if destprefix != "":
+                newpath = os.path.join(destprefix, newpath)
+        else:
+                newpath = os.path.join(srcpath, "../%s/" % newpath)
+
 	newpath = os.path.normpath(newpath)
 
 	print "Destination path: " + newpath
@@ -258,8 +272,6 @@ def main():
                                 embedcovers = False
 	else:
 		embedcovers = False
-
-        print "imagemime=" + str(imagemime)
 
 	# Deal with disc x of y numbering
 	(albumname, discnumber, disctitle) = lookups.parse_album_name(disc.album)
