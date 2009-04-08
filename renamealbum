@@ -172,28 +172,29 @@ else:
 	overwrite_reason="New version has the same bitrate, but different bitstream"
 
 
-# Grab album art
-mkdirs(destdir)
-
-imagemime = ""
-imagedata = ""
-if asin is not None:
-	imageurl = lookups.get_album_art_url_for_asin(asin)
-	if imageurl is not None:
-		print imageurl
-		imagedest = os.path.join(destdir, "folder.jpg")
-		urllib.urlretrieve(imageurl, imagedest)
-		if imageurl[-3:] == "jpg":
-			imagemime = "image/jpeg"
-		else:
-			imagemime = "image/"+imageurl[-3:]
-		print "Image encoding is ",imagemime
-
-		imagefp = open(imagedest,"rb")
-		imagedata = imagefp.read()
 
 
 if overwrite:
+	mkdirs(destdir)
+
+	# Grab album art
+	imagemime = ""
+	imagedata = ""
+	if asin is not None:
+		imageurl = lookups.get_album_art_url_for_asin(asin)
+		if imageurl is not None:
+			print imageurl
+			imagedest = os.path.join(destdir, "folder.jpg")
+			urllib.urlretrieve(imageurl, imagedest)
+			if imageurl[-3:] == "jpg":
+				imagemime = "image/jpeg"
+			else:
+				imagemime = "image/"+imageurl[-3:]
+			print "Image encoding is ",imagemime
+
+			imagefp = open(imagedest,"rb")
+			imagedata = imagefp.read()
+	# Write out the new MP3
 	for i in parsed_data:
 		if asin is not None:
 			parsed_data[i]["outtags"]["APIC"]  \
