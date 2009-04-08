@@ -126,7 +126,8 @@ def get_file_info(fname):
 	print "***",`puid`,`artist`,`trackname`,`fname`
 	if puid is None:
 		del fileinfocache[fhash]
-		raise FingerprintFailed(fname)
+		return (fname,None,None,None,[],None)
+		#raise FingerprintFailed(fname)
 	update_progress("Looking up tracks by PUID")
 	tracks = lookups.get_tracks_by_puid(puid)
 	update_progress("Done")
@@ -152,7 +153,7 @@ def get_dir_info(dirname):
 		trackinfo[fname]=get_file_info(fname)
 		# If this is a duplicate of the previous track, ignore it.
 		# Dedupe by PUID
-		if trackinfo[fname][5] == lastpuid:
+		if lastpuid is not None and trackinfo[fname][5] == lastpuid:
 			print "WARNING: Duplicate track ignored",`trackinfo[fname][0]`,"and",`trackinfo[lastfile][0]`
 			del trackinfo[fname]
 		else:
@@ -293,6 +294,13 @@ def submit_shortcut_puids(releaseid,trackinfo,releaseinfo):
 	for trackind in range(len(releaseinfo)):
 		trackid = release.tracks[trackind].id
 		puid = trackinfo[releaseinfo[trackind+1]][5]
+		if puid == None:
+			if not flag:
+				print "Submitting shortcut puids to musicbrainz"
+				print release.artist.name,"-",release.title,":"
+				flag=1
+			print "%02d" % (trackind+1),": No PUID"
+			continue
 		if trackid not in [t.id for t in lookups.get_tracks_by_puid(puid)]:
 			if not flag:
 				print "Submitting shortcut puids to musicbrainz"
