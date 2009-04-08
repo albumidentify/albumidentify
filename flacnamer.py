@@ -252,26 +252,26 @@ def main():
 	imageurl = lookups.get_album_art_url_for_asin(disc.asin)
 	# Check for manual image
         imagemime = None
+        imagepath = None
 	if os.path.exists(os.path.join(srcpath, "folder.jpg")):
 		print "Using existing image"
 		if not noact:
 			shutil.copyfile(os.path.join(srcpath, "folder.jpg"), os.path.join(newpath, "folder.jpg"))
                         imagemime="image/jpeg"
+                        imagepath = os.path.join(newpath, "folder.jpg")
 	elif imageurl is not None:
+                print "Downloading album art from %s" % imageurl
 		if not noact:
                         try:
                                 (f,h) = urllib.urlretrieve(imageurl, \
                                         os.path.join(newpath, "folder.jpg"))
                                 if h.getmaintype() != "image":
-                                        print "WARNING: Failed to retrieve coverart (%s)" % imageurl
-                                        embedcovers = False
+                                        print "WARNING: image url returned unexpected mimetype: %s" % h.gettype()
                                 else:
                                         imagemime = h.gettype()
+                                        imagepath = os.path.join(newpath, "folder.jpg")
                         except:
                                 print "WARNING: Failed to retrieve coverart (%s)" % imageurl
-                                embedcovers = False
-	else:
-		embedcovers = False
 
 	# Deal with disc x of y numbering
 	(albumname, discnumber, disctitle) = lookups.parse_album_name(disc.album)
@@ -287,7 +287,7 @@ def main():
 		disc.totalnumber = len(discs)
 
 	print "disc " + str(disc.number) + " of " + str(disc.totalnumber)
-	(srcfiles, destfiles, need_mp3_gain) = name_album(disc, release, srcpath, newpath, imagemime, embedcovers, noact)
+	(srcfiles, destfiles, need_mp3_gain) = name_album(disc, release, srcpath, newpath, imagemime, imagepath, embedcovers, noact)
 
         if (need_mp3_gain):
                 os.spawnlp(os.P_WAIT, "mp3gain", "mp3gain",
@@ -308,7 +308,7 @@ def get_file_list(disc):
                 files = [ x.filename for x in disc.tracks ]
         return files
 
-def name_album(disc, release, srcpath, newpath, imagemime=None, embedcovers=False, noact=False, move=False):
+def name_album(disc, release, srcpath, newpath, imagemime=None, imagepath=None, embedcovers=False, noact=False, move=False):
         files = get_file_list(disc)
 
         if len(files) != len(disc.tracks):
@@ -379,8 +379,8 @@ def name_album(disc, release, srcpath, newpath, imagemime=None, embedcovers=Fals
                         tags[tag.DISC_TOTAL_NUMBER] = str(disc.totalnumber)
 
                 image = None
-                if embedcovers:
-                        image = os.path.join(srcpath, "folder.jpg")
+                if embedcovers and imagepath:
+                        image = imagepath
 
                 tag.tag(os.path.join(newpath, newfilename), tags, noact, image)
 
