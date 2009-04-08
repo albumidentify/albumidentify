@@ -63,6 +63,9 @@ def decode(frommp3name, towavname):
         elif frommp3name.lower().endswith(".flac"):
                 os.spawnlp(os.P_WAIT,"flac","flac","-d", "--totally-silent", "-o", towavname,
                         frommp3name)
+	elif frommp3name.lower().endswith(".ogg"):
+		os.spawnlp(os.P_WAIT,"oggdec","oggdec","--quiet","-o",
+			towavname,frommp3name)
 
 fileinfocache = None
 
@@ -146,8 +149,9 @@ def get_dir_info(dirname):
 	lastfile=None
 	albumfreq={}
 	for i in files:
-		if not (i.lower().endswith(".mp3") or i.lower().endswith(".flac")):
-			print "Skipping non mp3/flac file",`i`
+		if not (i.lower().endswith(".mp3") or i.lower().endswith(".flac") 
+				or i.lower().endswith(".ogg")):
+			print "Skipping non mp3/flac/ogg file",`i`
 			continue
 		fname=os.path.join(dirname,i)
 		trackinfo[fname]=get_file_info(fname)
@@ -231,6 +235,8 @@ def generate_track_name_possibilities(fname, fileid, possible_releases):
 		matches.
 	"""
 	if fname.lower().endswith(".flac"):
+		return
+	elif fname.lower().endswith(".ogg"):
 		return
 	try:
 		mp3data = parsemp3.parsemp3(fname)

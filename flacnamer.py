@@ -23,6 +23,10 @@ import submit #musicbrainz_submission_url()
 import musicdns
 import lookups
 import albumidentify
+import operator
+import tag
+import parsemp3
+import serialisemp3
 
 def print_usage():
 	print "usage: " + sys.argv[0] + " <srcpath> [OPTIONS]"
@@ -37,7 +41,11 @@ def print_usage():
 	print "  --year=YEAR         Overwrite the album release year.  Use to force a"
 	print "                      re-issue to the date of the original release or to"
 	print "                      provide a date where one is missing"
-	print "  -n                  Don't actually tag and rename files"
+	print "  -n, --no-act        Don't actually tag and rename files"
+        print "  --no-force-order    Don't require source files to be in order."
+        print "                      May cause false positives."
+        print "  --dest-path=PATH    Use PATH instead of the current path for creating"
+        print "                      output directories."
 
 def get_release_by_fingerprints(disc):
         """ Do a fingerprint based search for a matching release.
@@ -53,9 +61,23 @@ def get_release_by_fingerprints(disc):
 
         release = lookups.get_release_by_releaseid(releaseid)
         print "Got result via audio fingerprinting!"
-        print "Suggest submitting TOC and discID to musicbrainz:"
-        print "Release URL: " + release.id + ".html"
-        print "Submit URL : " + submit.musicbrainz_submission_url(disc)
+
+        if disc.tocfilename:
+                print "Suggest submitting TOC and discID to musicbrainz:"
+                print "Release URL: " + release.id + ".html"
+                print "Submit URL : " + submit.musicbrainz_submission_url(disc)
+
+        # When we id by fingerprints, the sorted original filenames may not
+        # match the actual tracks (i.e. out of order, bad naming, etc). Here we
+        # have identified the release, so we need to remember the actual
+        # filename for each track for later.
+        sorted(trackdata, key=operator.itemgetter(0)) # sort trackdata by tracknum
+        disc.clear_tracks()
+        for (tracknum,artist,sortartist,title,dur,origname,artistid,trkid) in trackdata:
+                t = toc.Track(tracknum)
+                t.filename = origname
+                disc.tracks.append(t)
+
         return release
 
 def get_musicbrainz_release(disc):
@@ -63,25 +85,23 @@ def get_musicbrainz_release(disc):
 	musicbrainz.  If a releaseid is specified, use this, otherwise search by
 	discid, then search by CD-TEXT and finally search by audio-fingerprinting.
 	"""
-	if disc.discid is None and disc.releaseid is None:
-		raise Exception("Specify at least one of discid or releaseid")
-
 	# If a release id has been specified, that takes precedence
 	if disc.releaseid is not None:
 		return lookups.get_release_by_releaseid(disc.releaseid)
 
 	# Otherwise, lookup the releaseid using the discid as a key
-	results = lookups.get_releases_by_discid(disc.discid)
-	if len(results) > 1:
-		for result in results:
-			print result.release.id + ".html"
-                print "Ambiguous DiscID, trying fingerprint matching"
-                return get_release_by_fingerprints(disc)
+        if disc.discid is not None:
+                results = lookups.get_releases_by_discid(disc.discid)
+                if len(results) > 1:
+                        for result in results:
+                                print result.release.id + ".html"
+                        print "Ambiguous DiscID, trying fingerprint matching"
+                        return get_release_by_fingerprints(disc)
 
-	# We have an exact match, use this.
-	if len(results) == 1:
-		releaseid = results[0].release.id
-		return lookups.get_release_by_releaseid(results[0].release.id)
+                # DiscID lookup gave us an exact match. Use this!
+                if len(results) == 1:
+                        releaseid = results[0].release.id
+                        return lookups.get_release_by_releaseid(results[0].release.id)
 
 	# Otherwise, use CD-TEXT if present to guess the release
 	if disc.performer is not None and disc.title is not None:
@@ -118,6 +138,7 @@ def main():
 	year = None
 	noact = False
 	totaldiscs = None
+        destprefix = ""
 
 	for option in sys.argv[2:]:
 		if option.startswith("--release-id="):
@@ -128,10 +149,18 @@ def main():
 			asin = option.split("=",1)[1].strip()
 		elif option.startswith("--year="):
 			year = option.split("=")[1].strip()
-		elif option.startswith("-n"):
+		elif option.startswith("-n") or option.startswith("--no-act"):
 			noact = True
 		elif option.startswith("--total-discs"):
 			totaldiscs = option.split("=",1)[1].strip()
+                elif option.startswith("--no-force-order"):
+                        albumidentify.FORCE_ORDER = False
+                elif option.startswith("--dest-path="):
+                        destprefix = option.split("=")[1].strip()
+                        destprefix = os.path.abspath(destprefix)
+                        if not os.path.isdir(destprefix):
+                                print "ERROR: PATH must be a directory"
+                                sys.exit(1)
 
 	srcpath = os.path.abspath(sys.argv[1])
 
@@ -144,29 +173,20 @@ def main():
 
 	print "Source path: " + srcpath
 
-	tocfilename = ""
 	if os.path.exists(os.path.join(srcpath, "data.toc")):
-		tocfilename = "data.toc"
+                disc = toc.Disc(cdrdaotocfile = os.path.join(srcpath, "data.toc"))
 	elif os.path.exists(os.path.join(srcpath, "TOC")):
-		tocfilename = "TOC"
-	else:
-		print "No TOC in source path!"
-		sys.exit(4)
+                disc = toc.Disc(cdrecordtocfile = os.path.join(srcpath, "data.toc"))
+        else:
+                disc = toc.Disc()
+                disc.dirname = srcpath
 
-	disc = toc.Disc(cdrdaotocfile=os.path.join(srcpath, tocfilename))
-
-	disc.tocfilename = tocfilename
-	disc.discid = discid.generate_musicbrainz_discid(
-			disc.get_first_track_num(),
-			disc.get_last_track_num(),
-			disc.get_track_offsets())
-
-	for i in range(len(disc.tracks)):
-		disc.tracks[i].filename = os.path.join(srcpath,  "track" + str(i + 1).zfill(2) + ".flac")
-		if not os.path.exists(disc.tracks[i].filename):
-			disc.tracks[i].filename = os.path.join(srcpath,  "track" + str(i + 1).zfill(2) + ".cdda.flac")
-
-	print "discID: " + disc.discid
+        if disc.tocfilename:
+                disc.discid = discid.generate_musicbrainz_discid(
+                                disc.get_first_track_num(),
+                                disc.get_last_track_num(),
+                                disc.get_track_offsets())
+                print "discID: " + disc.discid
 
 	if releaseid:
 		disc.releaseid = releaseid
@@ -211,7 +231,12 @@ def main():
 	else:
 		newpath = "%s - %s - %s" % (mp3names.FixArtist(disc.artist), disc.year, disc.album)
 	newpath = mp3names.FixFilename(newpath)
-	newpath = os.path.join(srcpath, "../%s/" % newpath)
+
+        if destprefix != "":
+                newpath = os.path.join(destprefix, newpath)
+        else:
+                newpath = os.path.join(srcpath, "../%s/" % newpath)
+
 	newpath = os.path.normpath(newpath)
 
 	print "Destination path: " + newpath
@@ -226,23 +251,27 @@ def main():
 	# Get album art
 	imageurl = lookups.get_album_art_url_for_asin(disc.asin)
 	# Check for manual image
+        imagemime = None
+        imagepath = None
 	if os.path.exists(os.path.join(srcpath, "folder.jpg")):
 		print "Using existing image"
 		if not noact:
 			shutil.copyfile(os.path.join(srcpath, "folder.jpg"), os.path.join(newpath, "folder.jpg"))
+                        imagemime="image/jpeg"
+                        imagepath = os.path.join(newpath, "folder.jpg")
 	elif imageurl is not None:
+                print "Downloading album art from %s" % imageurl
 		if not noact:
                         try:
                                 (f,h) = urllib.urlretrieve(imageurl, \
                                         os.path.join(newpath, "folder.jpg"))
                                 if h.getmaintype() != "image":
-                                        print "WARNING: Failed to retrieve coverart (%s)" % imageurl
-                                        embedcovers = False
+                                        print "WARNING: image url returned unexpected mimetype: %s" % h.gettype()
+                                else:
+                                        imagemime = h.gettype()
+                                        imagepath = os.path.join(newpath, "folder.jpg")
                         except:
                                 print "WARNING: Failed to retrieve coverart (%s)" % imageurl
-                                embedcovers = False
-	else:
-		embedcovers = False
 
 	# Deal with disc x of y numbering
 	(albumname, discnumber, disctitle) = lookups.parse_album_name(disc.album)
@@ -258,23 +287,42 @@ def main():
 		disc.totalnumber = len(discs)
 
 	print "disc " + str(disc.number) + " of " + str(disc.totalnumber)
-	flacname(disc, release, srcpath, newpath, embedcovers, noact)
+	(srcfiles, destfiles, need_mp3_gain) = name_album(disc, release, srcpath, newpath, imagemime, imagepath, embedcovers, noact)
 
-def flacname(disc, release, srcpath, newpath, embedcovers=False, noact=False, move=False):
-	# Warning: This code doesn't actually check if the number of tracks in the
-	# current directory matches the number of tracks in the release. It's
-	# assumed that seeing as the TOC describes this directory and the discId is
-	# unique, then things should all work out for the best.  A safer assumption
-	# would be to iterate over the track list rather than the file list. Meh
-	# for now.
-	for file in os.listdir(srcpath):
-		if not file.endswith(".flac"):
-			continue
-		if not file.startswith("track"):
-			continue
+        if (need_mp3_gain):
+                os.spawnlp(os.P_WAIT, "mp3gain", "mp3gain",
+                        "-a", # album gain
+                        "-c", # ignore clipping warning
+                        *destfiles)
 
-		tracknum = file[5:7]
-		track = disc.tracks[int(tracknum) -1]
+supported_extensions = [".flac", ".ogg", ".mp3"]
+
+def get_file_list(disc):
+        # If the tracks don't have filenames attached, just use the files in
+        # the directory as if they are already in order
+        files = []
+        if (disc.tracks[0].filename is None):
+                files = [ x for x in os.listdir(disc.dirname) if x[x.rfind("."):] in supported_extensions ]
+                files.sort()
+        else:
+                files = [ x.filename for x in disc.tracks ]
+        return files
+
+def name_album(disc, release, srcpath, newpath, imagemime=None, imagepath=None, embedcovers=False, noact=False, move=False):
+        files = get_file_list(disc)
+
+        if len(files) != len(disc.tracks):
+                print "Number of files to rename (%i) != number of tracks in release (%i)" % (len(files), len(disc.tracks))
+                return
+
+        tracknum = 0
+        srcfiles = []
+        destfiles = []
+        need_mp3_gain = False
+	for file in files:
+                (root,ext) = os.path.splitext(file)
+                tracknum = tracknum + 1
+		track = disc.tracks[tracknum - 1]
 		mbtrack = track.mb_track
 
 		if release.isSingleArtistRelease():
@@ -282,67 +330,88 @@ def flacname(disc, release, srcpath, newpath, embedcovers=False, noact=False, mo
 		else:
 			track_artist = lookups.get_track_artist_for_track(mbtrack)
 
-		newfilename = "%s - %s - %s.flac" % (tracknum, track_artist.name, mbtrack.title)
+		newfilename = "%02d - %s - %s%s" % (tracknum, track_artist.name, mbtrack.title, ext)
 		newfilename = mp3names.FixFilename(newfilename)
 
-                if newfilename.endswith("_silence_.flac"):
+                if newfilename.startswith("_silence_"):
                         continue
 
-		print os.path.join(srcpath, file) + " -> " + os.path.join(newpath, newfilename)
-		if not noact:
-			shutil.copyfile(os.path.join(srcpath, file), os.path.join(newpath, newfilename))
+                destfilepath = os.path.join(newpath, newfilename)
+                srcfilepath = os.path.join(srcpath, file)
 
-		flactags = '''TITLE=%s
-ARTIST=%s
-ALBUMARTIST=%s
-TRACKNUMBER=%s
-TRACKTOTAL=%s
-TOTALTRACKS=%s
-ALBUM=%s
-MUSICBRAINZ_ALBUMID=%s
-MUSICBRAINZ_ALBUMARTISTID=%s
-MUSICBRAINZ_ARTISTID=%s
-MUSICBRAINZ_TRACKID=%s
-MUSICBRAINZ_DISCID=%s
-DATE=%s
-YEAR=%s
-SORTARTIST=%s
-SORTALBUMARTIST=%s
-COMPILATION=%s
-''' % (mbtrack.title, track_artist.name, disc.artist, str(tracknum), str(len(disc.tracks)), str(len(disc.tracks)), 
-			disc.album, os.path.basename(release.id), os.path.basename(release.artist.id),
-			os.path.basename(track_artist.id), os.path.basename(mbtrack.id), disc.discid, disc.releasedate, disc.year,
-			mp3names.FixArtist(track_artist.name), mp3names.FixArtist(disc.artist), str(disc.compilation))
-		
-		if track.isrc is not None:
-			flactags += "ISRC=%s\n" % track.isrc
-		if disc.mcn is not None:
-			flactags += "MCN=%s\n" % disc.mcn
-		if disc.totalnumber > 1:
-			# only add total number of discs if it's a collection
-			flactags += "DISC=%s\nDISCC=%s\nDISCNUMBER=%s\nDISCTOTAL=%s\n" % \
-					(str(disc.number), str(disc.totalnumber), str(disc.number), str(disc.totalnumber))
+		print srcfilepath + " -> " + destfilepath
 
-		for rtype in disc.releasetypes:
-			flactags += "MUSICBRAINZ_RELEASE_ATTRIBUTE=%s\n" % musicbrainz2.utils.getReleaseTypeName(rtype)
+		if not noact and ext != ".mp3":
+                       shutil.copyfile(os.path.join(srcpath, file), os.path.join(newpath, newfilename))
 
-		proclist = ["metaflac", "--import-tags-from=-"]
+                # Set up the tag list so that we can pass it off to the
+                # container-specific tagger function later.
+                tags = {}
+                tags[tag.TITLE] = mbtrack.title
+                tags[tag.ARTIST] = track_artist.name
+                tags[tag.ALBUM_ARTIST] = disc.artist
+                tags[tag.TRACK_NUMBER] = str(tracknum)
+                tags[tag.TRACK_TOTAL] = str(len(disc.tracks))
+                tags[tag.ALBUM] = disc.album
+                tags[tag.ALBUM_ID] = os.path.basename(release.id)
+                tags[tag.ALBUM_ARTIST_ID] = os.path.basename(release.artist.id)
+                tags[tag.ARTIST_ID] = os.path.basename(track_artist.id)
+                tags[tag.TRACK_ID] = os.path.basename(mbtrack.id)
+                tags[tag.DATE] = disc.releasedate
+                tags[tag.YEAR] = disc.year
+                tags[tag.SORT_ARTIST] = mp3names.FixArtist(track_artist.name)
+                tags[tag.SORT_ALBUM_ARTIST] = mp3names.FixArtist(disc.artist)
 
-		if embedcovers:
-			proclist.append("--import-picture-from=" + os.path.join(newpath, "folder.jpg"))
+                if disc.discid:
+                        tags[tag.DISC_ID] = disc.discid
+                if disc.compilation:
+                        tags[tag.COMPILATION] = "1"
+                if track.isrc is not None:
+                        tags[tag.ISRC] = track.isrc
+                if disc.mcn is not None:
+                        tags[tag.MCN] = disc.mcn
+                for rtype in disc.releasetypes:
+                        types = tags.get(tag.RELEASE_TYPES, [])
+                        types.append(musicbrainz2.utils.getReleaseTypeName(rtype))
+                        tags[tag.RELEASE_TYPES] = types
+                if disc.totalnumber > 1:
+                        tags[tag.DISC_NUMBER] = str(disc.number)
+                        tags[tag.DISC_TOTAL_NUMBER] = str(disc.totalnumber)
 
-		proclist.append(os.path.join(newpath, newfilename))
+                image = None
+                if embedcovers and imagepath:
+                        image = imagepath
 
-		if not noact:
-			p = subprocess.Popen(proclist, stdin=subprocess.PIPE)
-			p.stdin.write(flactags.encode("utf8"))
-			p.stdin.close()
-			p.wait()
+                tag.tag(os.path.join(newpath, newfilename), tags, noact, image)
 
-	print os.path.join(srcpath, disc.tocfilename) + " -> " + os.path.join(newpath, "data.toc")
-	if not noact:
-		shutil.copyfile(os.path.join(srcpath, disc.tocfilename), os.path.join(newpath, "data.toc"))
+                # Special case mp3.. tag.tag() won't do anything with mp3 files
+                # as we write out the tags + bitstream in one operation, so do
+                # that here.
+                if ((not noact) and (ext == ".mp3")):
+                        # Make a temp copy and undo any mp3gain
+                        shutil.copy(srcfilepath, "/tmp/tmp.mp3")
+                        os.spawnlp(os.P_WAIT, "mp3gain", "mp3gain", "-u", "-q", "/tmp/tmp.mp3")
+                        parsed_data = parsemp3.parsemp3("/tmp/tmp.mp3")
+                        outtags = tag.get_mp3_tags(tags)
+                        outtags["bitstream"] = parsed_data["bitstream"]
+                        if image:
+                                imagefp=open(image, "rb")
+                                imagedata=imagefp.read()
+                                imagefp.close()
+                                outtags["APIC"] = (imagemime,"\x03","",imagedata)
+                        serialisemp3.output(destfilepath, outtags)
+                        need_mp3_gain = True
+
+                srcfiles.append(srcfilepath)
+                destfiles.append(destfilepath)
+
+        if disc.tocfilename:
+                print os.path.join(srcpath, disc.tocfilename) + " -> " + os.path.join(newpath, "data.toc")
+                if not noact:
+                        shutil.copyfile(os.path.join(srcpath, disc.tocfilename), os.path.join(newpath, "data.toc"))
 	#os.system("rm \"%s\" -rf" % srcpath)
+
+        return (srcfiles, destfiles, need_mp3_gain)
 	
 
 if __name__ == "__main__":
