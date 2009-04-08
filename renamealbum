@@ -156,6 +156,9 @@ for (tracknum,artist,sortartist,title,dur,origname,artistid,trkid) in trackdata:
 if bitidentical:
 	overwrite=True
 	overwrite_reason="Bitstreams are identical"
+elif total_old_bitrate == 0:
+	overwrite=True
+	overwrite_reason="File didn't exist"
 elif total_old_bitrate < total_new_bitrate:
 	overwrite=True
 	overwrite_reason="New version is higher bitrate (%f < %f)" % (
