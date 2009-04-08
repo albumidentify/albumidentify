@@ -40,7 +40,7 @@ try:
 except albumidentify.FingerprintFailed, e:
 	print e
 	report_file=open(os.path.join(sys.argv[1],"report.txt"),"w")
-	print >>report_file,"Couldn't fingerprint file",e.fname
+	print >>report_file,"No fingerprint available for file",e.fname
 	report_file.close()
 	sys.exit(1)
 
