@@ -245,7 +245,10 @@ def v2_2_0(tag):
 		#print "tag:",`tagid`,"(",v2_2_0_to_v2_4_0[tagid],")"
 		#print "taglen:",taglen
 		#print "data:",`tagdata`
-		data[v2_2_0_to_v2_4_0[tagid]]=tagdata
+		if tagid not in v2_2_0_to_v2_4_0:
+			print "Unknown ID3v2.2.0 tag:",`tagid`
+		else:
+			data[v2_2_0_to_v2_4_0[tagid]]=tagdata
 	return data
 
 def v2_3_0(tag):
