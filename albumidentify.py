@@ -84,17 +84,12 @@ class FingerprintFailed(Exception):
 		return "Failed to fingerprint track %s" % repr(self.fname)
 
 def populate_fingerprint_cache(fname):
-	# While testing this uses a fixed name in /tmp
-	# and checks if it exists, and doesn't decode if it does.
-	# This is for speed while debugging, should be changed with
-	# tmpname later
 	# Yes -- this is insecure.  I'd like to use tmpnam/tmpname(), I really
 	# would, but they produce annoying warnings, so I'm stuck doing
 	# something even more stupid.  Sigh.
 	toname=os.path.join("/tmp",`os.getpid()`+".wav")
-	if not os.path.exists(toname):
-		update_progress("decoding "+os.path.basename(fname))
-		decode(fname,toname)
+	update_progress("decoding "+os.path.basename(fname))
+	decode(fname,toname)
 	update_progress("Generating fingerprint")
 	(fp, dur) = fingerprint.fingerprint(toname)
 	os.unlink(toname)
