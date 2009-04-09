@@ -115,7 +115,6 @@ for (tracknum,artist,sortartist,title,dur,origname,artistid,trkid) in trackdata:
 		print "Failed to parse",`origname`
 		raise
 	destfile=os.path.join(destdir,destname)
-	print origname,"->",destfile
 	tags={
 		"TIT2" : title,
 		"TPE1" : artist,
@@ -140,6 +139,7 @@ for (tracknum,artist,sortartist,title,dur,origname,artistid,trkid) in trackdata:
 
 	tags["bitstream"] =  parsed_data[tracknum]["bitstream"]
 	parsed_data[tracknum]["destfile"]=destfile
+	parsed_data[tracknum]["origfile"]=origname
 	parsed_data[tracknum]["outtags"]=tags
 	if os.path.exists(parsed_data[tracknum]["destfile"]):
 		parsed_data[tracknum]["destparse"]=parsemp3.parsemp3(
@@ -199,6 +199,7 @@ if overwrite:
 		if asin is not None:
 			parsed_data[i]["outtags"]["APIC"]  \
 					= (imagemime,"\x03","",imagedata)
+		print parsed_data[i]["origfile"],"->",parsed_data[i]["destfile"]
 		serialisemp3.output(parsed_data[i]["destfile"],
 			parsed_data[i]["outtags"])
 	os.spawnlp(os.P_WAIT,"mp3gain","mp3gain",
