@@ -31,6 +31,11 @@ def memoify(func):
 		return memocache[func.__name__][key]
 	return memoify
 
+def remove_from_cache(funcname,*args,**kwargs):
+	key=pickle.dumps((args,kwargs))
+	if key in memocache[funcname]:
+		del memocache[funcname][key]
+
 def cleanup_memos():
 	while memocache!={}:
 		i=memocache.keys()[0]
@@ -59,7 +64,6 @@ def delayed(webservice="default"):
 		return delay
 	return delayed2
 	
-
 @memoify
 @delayed()
 def get_tracks_by_puid(puid):

@@ -29,11 +29,15 @@ renamealbum <srcpath> <destpath>
 Submitting PUIDs
 ----------------
 To submit PUIDs back to MusicBrainz and help other people rename their music
-more quickly, create a file ~/.albumidentifyrc with contents
+more quickly, create a file ~/.albumidentifyrc with contents:
 
-musicbrainz.username=<your mb username>
-musicbrainz.password=<your mb password>
-albumidentify.push_shortcut_puids=True
+[albumidentify]
+push_shortcut_puids=True
+genpuid_command=</path/to/genpuid>
+
+[musicbrainz]
+username=<your mb username>
+password=<your mb password>
 
 Bug reports
 -----------

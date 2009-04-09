@@ -123,9 +123,21 @@ def get_file_info(fname):
 
 	print "***",`puid`,`artist`,`trackname`,`fname`
 	if puid is None:
-		del fileinfocache[fhash]
+		genpuid_cmd=albumidentifyconfig.config.get("albumidentify","genpuid_command")
+		if genpuid_cmd:
+			# Submit the PUID for consideration by MusicDNS
+			# We probably can't use it this time through (it takes MusicDNS up to
+			# a few days to index new PUID's), but next time we're run hopefully we'll
+			# figure it out.
+			toname = os.path.join("/tmp", repr(os.getpid())+".wav")
+			decode(fname,toname)
+			print "Submitting fingerprint to MusicDNS"
+			os.system(genpuid_cmd+" "+toname)
+			os.unlink(toname)
+		else:
+			print "No genpuid command specified, can't submit fingerprint for %s" % fname
+		lookups.remove_from_cache("delayed_lookup_fingerprint",fp,dur,key)
 		return (fname,None,None,None,[],None)
-		#raise FingerprintFailed(fname)
 	update_progress("Looking up tracks by PUID")
 	tracks = lookups.get_tracks_by_puid(puid)
 	update_progress("Done")

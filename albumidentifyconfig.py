@@ -6,6 +6,7 @@ config=ConfigParser.ConfigParser()
 def readconfig():
 	config.add_section("albumidentify")
 	config.set("albumidentify","push_shortcut_puids","False")
+	config.set("albumidentify","genpuid_command","")
 	config.read(os.path.expanduser("~/.albumidentifyrc"))
 	
 if __name__=="__main__":
