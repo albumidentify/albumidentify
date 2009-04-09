@@ -314,13 +314,19 @@ def submit_shortcut_puids(releaseid,trackinfo,releaseinfo):
 				flag=1
 			print "%02d" % (trackind+1),": No PUID"
 			continue
-		if trackid not in [t.id for t in lookups.get_tracks_by_puid(puid)]:
+		elif trackid not in [t.id for t in lookups.get_tracks_by_puid(puid)]:
 			if not flag:
 				print "Submitting shortcut puids to musicbrainz"
 				print release.artist.name,"-",release.title,":"
 				flag=1
-			print "%02d" % (trackind+1),":",puid,"->",release.tracks[trackind].title
+			print "%02d:" % (trackind+1),puid,"->",release.tracks[trackind].title
 			puid2trackid[puid]=trackid
+		elif trackinfo[releaseinfo[trackind+1]][5] not in lookups.get_track_by_id(trackid).puids:
+			# There is a mapping of puid -> trackid, but not of trackid->puid,
+			# this almost certainly means our cache is out of date, so delete it.
+			# This just meant that searching was slower, so next time we can find this
+			# faster
+			lookups.remove_from_cache("delayed_get_track_by_id",trackid)
 	if flag:
 		print
 		puidsubmit.submit_puids(puid2trackid)
