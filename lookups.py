@@ -17,12 +17,15 @@ memocache={}
 
 # Make sure we write it out every so often
 
+def _assure_memocache_open(name):
+	if name not in memocache:
+		if not os.path.isdir(os.path.expanduser("~/.mbcache/")):
+			os.mkdir(os.path.expanduser("~/.mbcache/"))
+		memocache[name]=shelve.open(os.path.expanduser("~/.mbcache/"+name),"c")
+
 def memoify(func):
 	def memoify(*args,**kwargs):
-		if func.__name__ not in memocache:
-                        if not os.path.isdir(os.path.expanduser("~/.mbcache/")):
-                                os.mkdir(os.path.expanduser("~/.mbcache/"))
-			memocache[func.__name__]=shelve.open(os.path.expanduser("~/.mbcache/"+func.__name__),"c")
+		_assure_memocache_open(func.__name__)
 		key=pickle.dumps((args,kwargs))
 		if key not in memocache[func.__name__]:
 			memocache[func.__name__][key]=func(*args,**kwargs)
@@ -32,6 +35,7 @@ def memoify(func):
 	return memoify
 
 def remove_from_cache(funcname,*args,**kwargs):
+	_assure_memocache_open(funcname)
 	key=pickle.dumps((args,kwargs))
 	if key in memocache[funcname]:
 		del memocache[funcname][key]
