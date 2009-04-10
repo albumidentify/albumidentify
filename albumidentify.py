@@ -53,6 +53,12 @@ def output_list(l):
 		ret.append("%d" % start)
 	return "[%s]" % (",".join(ret))
 		
+def list_difference(src,remove):
+	res=src[:]
+	for i in remove:
+		if i in res:
+			res.remove(i)
+	return res
 
 key = 'a7f6063296c0f1c9b75c7f511861b89b'
 
@@ -88,13 +94,12 @@ def populate_fingerprint_cache(fname):
 	# would, but they produce annoying warnings, so I'm stuck doing
 	# something even more stupid.  Sigh.
 	toname=os.path.join("/tmp",`os.getpid()`+".wav")
-	update_progress("decoding "+os.path.basename(fname))
+	update_progress("Decoding "+os.path.basename(fname))
 	decode(fname,toname)
 	update_progress("Generating fingerprint")
 	(fp, dur) = fingerprint.fingerprint(toname)
 	os.unlink(toname)
 
-	update_progress("Fetching fingerprint info")
 	return fp, dur
 	
 
@@ -110,7 +115,7 @@ def get_file_info(fname):
 		data = fileinfocache[fhash]
 		if len(data) > 2:
 			(fname2,artist,trackname,dur,tracks,puid)=data
-			print "***",`puid`,`artist`,`trackname`,`fname`
+			print "***",`puid`,`artist`,`trackname`,`os.path.basename(fname)`
 			return (fname,artist,trackname,dur,tracks,puid)
 		# FP only cached, musicbrainz had nothing last time.
 		fp, dur = data
@@ -118,10 +123,10 @@ def get_file_info(fname):
 		fp, dur = populate_fingerprint_cache(fname)
 		fileinfocache[fhash]=(fp, dur)
 
-	update_progress("Looking up fingerprint")
+	update_progress("Looking up PUID")
 	(trackname, artist, puid) = musicdns.lookup_fingerprint(fp, dur, key)
 
-	print "***",`puid`,`artist`,`trackname`,`fname`
+	print "***",`puid`,`artist`,`trackname`,`os.path.basename(fname)`
 	if puid is None:
 		genpuid_cmd=albumidentifyconfig.config.get("albumidentify","genpuid_command")
 		if genpuid_cmd:
@@ -400,6 +405,10 @@ def end_of_track(possible_releases,impossible_releases,track_generator,trackinfo
 	del track_generator[fileid]
 	print "All possibilities for file",fileid,"exhausted\x1b[K"
 	print "filename",trackinfo[fileid][0]
+	if trackinfo[fileid][0].lower().endswith(".mp3"):
+		md=parsemp3.parsemp3(trackinfo[fileid][0])
+		if "TIT2" in md["v2"]:
+			print "ID3 Title:",`md["v2"]["TIT2"]`
 	print "puid:",trackinfo[fileid][5]#[0].puids
 	removed_releases={}
 	print "Current possible releases:"
@@ -454,6 +463,7 @@ def add_new_track(release, releaseid, possible_releases, fileid, track, trackinf
 	for trackind in range(len(release.tracks)):
 		# Don't waste time on things we've already found
 		if (trackind+1) in possible_releases[releaseid]:
+			print " Already found    %02d: %s" % (trackind+1,release.tracks[trackind].title)
 			continue
 		track = lookups.get_track_by_id(release.tracks[trackind].id)
 		for fileid in trackinfo:
@@ -469,7 +479,15 @@ def add_new_track(release, releaseid, possible_releases, fileid, track, trackinf
 						fileid,
 						track):
 					possible_releases[releaseid][trackind+1]=fileid
-					print " Also found track",trackind+1,release.tracks[trackind].title,"(%s)" % (output_list(possible_releases[releaseid].keys()))
+					print " Also found track %02d: %s" % (trackind+1,release.tracks[trackind].title)
+					break
+		else:
+			print " Couldn't find track %02d" % (trackind +1 )
+	print " Found tracks: %s  Missing tracks: %s"% (
+		output_list(possible_releases[releaseid].keys()),
+		output_list(
+			list_difference(range(1,len(release.tracks)+1),
+			possible_releases[releaseid].keys())))
 
 
 
@@ -550,7 +568,7 @@ def guess_album2(trackinfo):
 			if len(possible_releases[releaseid])==len(trackinfo) \
 					and releaseid not in completed_releases:
 				print release.title,"seems ok\x1b[K"
-				print "Id:",release.id
+				print "Musicbrainz Release Id:",release.id
 				submit_shortcut_puids(releaseid,
 					trackinfo,
 					possible_releases[releaseid])
