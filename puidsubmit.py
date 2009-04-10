@@ -55,15 +55,10 @@ def submit_puid(trackid,puid):
 		print e
 		print e.read()
 		raise
-	# Flush these entries out of the track by puid cache
+	# Flush these entries out of the cache, so they'll be found next time
 	try:
-		sh=shelve.open(os.path.expanduser("~/.mbcache/delayed_get_tracks_by_puid"),"c")
-		key=pickle.dumps(((unicode(puid),),{}))
-		if key in sh:
-			del sh[key]
-		key=pickle.dumps(((str(puid),),{}))
-		if key in sh:
-			del sh[key]
+		lookups.remove_from_cache("delayed_get_tracks_by_puid",puid)
+		lookups.remote_from_cache("delayed_get_track_by_id",trackid)
 	except Exception, e:
 		print e
 
