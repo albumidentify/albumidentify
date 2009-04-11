@@ -245,9 +245,6 @@ def main():
 		print "Destination path already exists, skipping" 
 		sys.exit(3)
 
-	if not noact:
-		os.mkdir(newpath)
-
 	# Get album art
 	imageurl = lookups.get_album_art_url_for_asin(disc.asin)
 	# Check for manual image
@@ -318,6 +315,9 @@ def name_album(disc, release, srcpath, newpath, imagemime=None, imagepath=None, 
         srcfiles = []
         destfiles = []
         need_mp3_gain = False
+
+	if not noact:
+		os.makedirs(newpath)
 
         # Move in cover art
         if imagepath:
