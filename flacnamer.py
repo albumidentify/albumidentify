@@ -256,20 +256,19 @@ def main():
 	if os.path.exists(os.path.join(srcpath, "folder.jpg")):
 		print "Using existing image"
 		if not noact:
-			shutil.copyfile(os.path.join(srcpath, "folder.jpg"), os.path.join(newpath, "folder.jpg"))
                         imagemime="image/jpeg"
-                        imagepath = os.path.join(newpath, "folder.jpg")
+                        imagepath = os.path.join(srcpath, "folder.jpg")
 	elif imageurl is not None:
                 print "Downloading album art from %s" % imageurl
 		if not noact:
                         try:
                                 (f,h) = urllib.urlretrieve(imageurl, \
-                                        os.path.join(newpath, "folder.jpg"))
+                                        os.path.join("/tmp", "folder.jpg"))
                                 if h.getmaintype() != "image":
                                         print "WARNING: image url returned unexpected mimetype: %s" % h.gettype()
                                 else:
                                         imagemime = h.gettype()
-                                        imagepath = os.path.join(newpath, "folder.jpg")
+                                        imagepath = os.path.join("/tmp", "folder.jpg")
                         except:
                                 print "WARNING: Failed to retrieve coverart (%s)" % imageurl
 
@@ -319,6 +318,11 @@ def name_album(disc, release, srcpath, newpath, imagemime=None, imagepath=None, 
         srcfiles = []
         destfiles = []
         need_mp3_gain = False
+
+        # Move in cover art
+        if imagepath:
+                shutil.copyfile(imagepath, os.path.join(newpath, "folder.jpg"))
+
 	for file in files:
                 (root,ext) = os.path.splitext(file)
                 tracknum = tracknum + 1
