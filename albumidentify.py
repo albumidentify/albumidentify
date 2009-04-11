@@ -104,6 +104,7 @@ def populate_fingerprint_cache(fname):
 	
 
 def hash_file(fname):
+	update_progress("Hashing file")
 	return md5.md5(open(fname,"r").read()).hexdigest()
 
 def get_file_info(fname):
@@ -160,6 +161,7 @@ def get_dir_info(dirname):
 	lastpuid=None
 	lastfile=None
 	albumfreq={}
+	print "Examining",dirname
 	for i in files:
 		if not (i.lower().endswith(".mp3") or i.lower().endswith(".flac") 
 				or i.lower().endswith(".ogg")):
@@ -267,7 +269,7 @@ def generate_from_metadata(fname, num_tracks):
 			rtrackname = release.tracks[trackind].title
 
 			if clean_name(rtrackname) == clean_name(title):
-				print "Using album based text comparison for track",trackind+1,`rtrackname`
+				print "Using album based text comparison for",artist,album,"'s track",trackind+1,`rtrackname`
 				yield lookups.get_track_by_id(release.tracks[trackind].id)
 	
 
