@@ -23,12 +23,12 @@ import submit #musicbrainz_submission_url()
 import musicdns
 import lookups
 import albumidentify
+import albumidentifyconfig
 import operator
 import tag
 import parsemp3
 import serialisemp3
 
-default_scheme = "%(sortalbumartist)s - %(year)i - %(album)s/%(tracknumber)02i - %(trackartist)s - %(trackname)s"
 known_expandos = ["trackname", "trackartist", "tracknumber", "album", "year", "albumartist", "sortalbumartist", "sorttrackartist"]
 
 def makedirs(path):
@@ -146,7 +146,7 @@ def get_musicbrainz_release(disc):
 def scheme_help():
         print "Naming scheme help:"
         print "Naming schemes are specified as a standard Python string expansion. The default scheme is:"
-        print default_scheme
+        print albumidentifyconfig.config.get("renamealbum", "naming_scheme")
         print "A custom scheme can be specified with --scheme. The list of expandos are:"
         for i in known_expandos:
                 print i
@@ -163,7 +163,7 @@ def main():
 	noact = False
 	totaldiscs = None
         destprefix = ""
-        scheme = default_scheme
+        scheme = albumidentifyconfig.config.get("renamealbum", "naming_scheme")
 
 	for option in sys.argv[2:]:
 		if option.startswith("--release-id="):
