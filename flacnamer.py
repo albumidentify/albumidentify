@@ -400,6 +400,10 @@ def name_album(disc, release, srcpath, scheme, destprefix, imagemime=None, image
 		if not noact and ext != ".mp3":
                        shutil.copyfile(os.path.join(srcpath, file), newpath)
 
+                track_artist = release.artist
+                if not disc.is_single_artist:
+                        track_artist = lookups.get_track_artist_for_track(track.mb_track)
+
                 # Set up the tag list so that we can pass it off to the
                 # container-specific tagger function later.
                 tags = {}
