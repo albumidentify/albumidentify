@@ -327,12 +327,14 @@ def expand_scheme(scheme, disc, track, tracknumber):
         if not disc.is_single_artist:
                 trackartist = lookups.get_track_artist_for_track(track.mb_track)
 
-        expando_values = { "trackartist" : trackartist,
-                    "albumartist" : mp3names.FixArtist(disc.artist),
-                    "album" : disc.album,
+        # We "fix" each component individually so that we can preserve forward
+        # slashes in the naming scheme.
+        expando_values = { "trackartist" : mp3names.FixFilename(trackartist),
+                    "albumartist" : mp3names.FixFilename(mp3names.FixArtist(disc.artist)),
+                    "album" : mp3names.FixFilename(disc.album),
                     "year" : int(disc.year),
                     "tracknumber" : int(tracknumber),
-                    "trackname" : track.mb_track.title
+                    "trackname" : mp3names.FixFilename(track.mb_track.title)
         }
         
         try:
@@ -340,10 +342,9 @@ def expand_scheme(scheme, disc, track, tracknumber):
                 newpath = scheme % expando_values
                 print newpath
         except KeyError, e:
-                raise Exception("Unkown expando %s" % e.args)
+                raise Exception("Unknown expando %s" % e.args)
 
         newpath = os.path.normpath(newpath)
-        newpath = mp3names.FixFilename(newpath)
 
         return newpath
 
