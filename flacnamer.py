@@ -198,6 +198,12 @@ def main():
 		print_usage()
 		sys.exit(2)
 	
+        try:
+                check_scheme(scheme)
+        except Exception, e:
+                print "Naming scheme error: " + e.args[0]
+                sys.exit(1)
+
         print "Using naming scheme: " + scheme
 
 	if noact:
@@ -317,6 +323,20 @@ def get_file_list(disc):
         else:
                 files = [ x.filename for x in disc.tracks ]
         return files
+
+def check_scheme(scheme):
+        """ Tries a dummy expansion on the naming scheme, raises an exception
+            if the scheme contains expandos that we don't recognise.
+        """
+        dummyvalues = {}
+        for k in known_expandos:
+                dummyvalues[k] = "foo"
+        try:
+                scheme % dummyvalues
+        except KeyError, e:
+                raise Exception("Unknown expando in naming scheme: %s" % e.args)
+        except ValueError, e:
+                raise Exception("Failed to parse naming scheme: %s" % e.args)
 
 def expand_scheme(scheme, disc, track, tracknumber):
         albumartist = mp3names.FixArtist(disc.artist)
