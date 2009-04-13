@@ -28,8 +28,8 @@ import tag
 import parsemp3
 import serialisemp3
 
-default_scheme = "%(albumartist)s - %(year)i - %(album)s/%(tracknumber)02i - %(trackartist)s - %(trackname)s"
-known_expandos = ["trackname", "trackartist", "tracknumber", "album", "year", "albumartist"]
+default_scheme = "%(sortalbumartist)s - %(year)i - %(album)s/%(tracknumber)02i - %(trackartist)s - %(trackname)s"
+known_expandos = ["trackname", "trackartist", "tracknumber", "album", "year", "albumartist", "sortalbumartist", "sorttrackartist"]
 
 def makedirs(path):
         """ Ensure all directories exist """
@@ -330,7 +330,9 @@ def expand_scheme(scheme, disc, track, tracknumber):
         # We "fix" each component individually so that we can preserve forward
         # slashes in the naming scheme.
         expando_values = { "trackartist" : mp3names.FixFilename(trackartist),
-                    "albumartist" : mp3names.FixFilename(mp3names.FixArtist(disc.artist)),
+                    "albumartist" : mp3names.FixFilename(disc.artist),
+                    "sortalbumartist" : mp3names.FixFilename(mp3names.FixArtist(disc.artist)),
+                    "sorttrackartist" : mp3names.FixFilename(mp3names.FixArtist(trackartist)),
                     "album" : mp3names.FixFilename(disc.album),
                     "year" : int(disc.year),
                     "tracknumber" : int(tracknumber),
