@@ -106,7 +106,7 @@ def get_releases_by_cdtext(title, performer, num_tracks):
 	results, or the empty list if there were no matches. """
 
 	q = ws.Query()
-	filter = ws.ReleaseFilter(title=title, artistName=performer)
+	filter = ws.ReleaseFilter(title=title.encode("utf8"), artistName=performer.encode("utf8"))
 	rels = q.getReleases(filter=filter)
 	
 	# Filter out of the list releases with a different number of tracks to the

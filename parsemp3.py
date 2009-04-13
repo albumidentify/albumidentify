@@ -174,9 +174,13 @@ def strip_padding(x):
 
 def parse_unicode(x):
 	if x.startswith("\xff\xfe"):
-		return x.decode("utf-16-le")
+		st= x.decode("utf-16-le")
 	else:
-		return x.decode("utf-16-be")
+		st= x.decode("utf-16-be")
+	# Strip leading whitespace
+	while st.startswith(u"\ufeff"):
+		st=st[1:]
+	return st
 
 # How many bloody versions of id3 do we REALLY need?!
 
