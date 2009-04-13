@@ -29,7 +29,8 @@ import tag
 import parsemp3
 import serialisemp3
 
-known_expandos = ["trackname", "trackartist", "tracknumber", "album", "year", "albumartist", "sortalbumartist", "sorttrackartist"]
+string_expandos = ["trackname", "trackartist", "album", "albumartist", "sortalbumartist", "sorttrackartist"]
+integer_expandos = ["tracknumber", "year"]
 
 def makedirs(path):
         """ Ensure all directories exist """
@@ -148,8 +149,10 @@ def scheme_help():
         print "Naming schemes are specified as a standard Python string expansion. The default scheme is:"
         print albumidentifyconfig.config.get("renamealbum", "naming_scheme")
         print "A custom scheme can be specified with --scheme. The list of expandos are:"
-        for i in known_expandos:
-                print i
+        for i in string_expandos:
+                print i + " (string)"
+        for i in integer_expandos:
+                print i + " (integer)"
 
 def main():
 	if len(sys.argv) < 2:
@@ -329,8 +332,10 @@ def check_scheme(scheme):
             if the scheme contains expandos that we don't recognise.
         """
         dummyvalues = {}
-        for k in known_expandos:
+        for k in string_expandos:
                 dummyvalues[k] = "foo"
+        for k in integer_expandos:
+                dummyvalues[k] = 1
         try:
                 scheme % dummyvalues
         except KeyError, e:
