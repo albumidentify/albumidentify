@@ -338,9 +338,7 @@ def expand_scheme(scheme, disc, track, tracknumber):
         }
         
         try:
-                print "Expanding " + scheme
                 newpath = scheme % expando_values
-                print newpath
         except KeyError, e:
                 raise Exception("Unknown expando %s" % e.args)
 
@@ -383,12 +381,6 @@ def name_album(disc, release, srcpath, scheme, destprefix, imagemime=None, image
 
                 if not noact:
                         makedirs(newdir)
-
-                print "newpath = " + newpath
-                print "newdir = " + newdir
-                print "newfilename = " + newfilename
-
-                print "Destination path: " + newdir
 
                 if (os.path.exists(newpath)):
                         print "Destination path already exists, skipping"
