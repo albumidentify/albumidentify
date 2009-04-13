@@ -297,7 +297,7 @@ def main():
 	print "disc " + str(disc.number) + " of " + str(disc.totalnumber)
 
         disc.is_single_artist = release.isSingleArtistRelease()
-	(srcfiles, destfiles, need_mp3_gain) = name_album(disc, release, srcpath, scheme, imagemime, imagepath, embedcovers, noact)
+	(srcfiles, destfiles, need_mp3_gain) = name_album(disc, release, srcpath, scheme, destprefix, imagemime, imagepath, embedcovers, noact)
 
         if (need_mp3_gain):
                 os.spawnlp(os.P_WAIT, "mp3gain", "mp3gain",
@@ -347,7 +347,7 @@ def expand_scheme(scheme, disc, track, tracknumber):
 
         return newpath
 
-def name_album(disc, release, srcpath, scheme, imagemime=None, imagepath=None, embedcovers=False, noact=False, move=False):
+def name_album(disc, release, srcpath, scheme, destprefix, imagemime=None, imagepath=None, embedcovers=False, noact=False, move=False):
         files = get_file_list(disc)
 
         if len(files) != len(disc.tracks):
