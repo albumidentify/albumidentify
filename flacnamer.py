@@ -473,7 +473,7 @@ def name_album(disc, release, srcpath, scheme, destprefix, imagemime=None, image
                         shutil.copyfile(os.path.join(srcpath, disc.tocfilename), os.path.join(newdir, disc.tocfilename))
 
         # Move coverart
-        if imagepath:
+        if imagepath and not noact:
                 shutil.copyfile(imagepath, os.path.join(newdir, "folder.jpg"))
 
 	#os.system("rm \"%s\" -rf" % srcpath)
