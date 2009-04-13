@@ -268,10 +268,9 @@ def v2_3_0(tag):
 			break
 		tagid=tag[:4]
 		taglen=ord(tag[4])*128*128*128+ord(tag[5])*128*128+ord(tag[6])*128+ord(tag[7])
-		#taglen=ord(tag[4])*256*256*256+ord(tag[5])*256*256+ord(tag[6])*256+ord(tag[7])
 		tagflag=ord(tag[8])*256+ord(tag[9])
 		tagdata=tag[10:10+taglen]
-		print "got tagid %s, taglen is %d" % (tagid, taglen)
+		#print "got tagid %s, taglen is %d" % (tagid, taglen)
 		tag=tag[10+taglen:]
 		if tagid.startswith("T"):
 			if tagdata[0]=="\x00": # latin-1
