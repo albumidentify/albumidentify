@@ -28,6 +28,7 @@ import operator
 import tag
 import parsemp3
 import serialisemp3
+import tempfile
 
 string_expandos = ["trackname", "trackartist", "album", "albumartist", "sortalbumartist", "sorttrackartist"]
 integer_expandos = ["tracknumber", "year"]
@@ -373,6 +374,25 @@ def expand_scheme(scheme, disc, track, tracknumber):
 
         return newpath
 
+def rmrf(dir):
+        for root, dirs, files in os.walk(dir, topdown=False):
+            for name in files:
+                os.remove(os.path.join(root, name))
+            for name in dirs:
+                os.rmdir(os.path.join(root, name))
+        os.rmdir(dir)
+
+def calc_average_bitrate(filename):
+        if filename.endswith(".mp3"):
+                return calc_average_bitrate_mp3(parsemp3.parsemp3(filename))
+        else:
+                return 0
+
+def calc_average_bitrate_mp3(parsed_data):
+        return (reduce(lambda a,b:a+b,
+                [ (rate*count) for (rate,count) in parsed_data["bitrates"].items() ])/
+                        parsed_data["frames"])
+
 def name_album(disc, release, srcpath, scheme, destprefix, imagemime=None, imagepath=None, embedcovers=False, noact=False, move=False):
         files = get_file_list(disc)
 
@@ -385,6 +405,10 @@ def name_album(disc, release, srcpath, scheme, destprefix, imagemime=None, image
         destfiles = []
         need_mp3_gain = False
 
+        # Step 1: Tag all of the files into a temporary directory
+        tmpdir = tempfile.mkdtemp()
+        tmpfiles = [] 
+
 	for file in files:
                 (root,ext) = os.path.splitext(file)
                 tracknum = tracknum + 1
@@ -396,29 +420,22 @@ def name_album(disc, release, srcpath, scheme, destprefix, imagemime=None, image
 
                 newpath = expand_scheme(scheme, disc, track, tracknum)
                 newpath += ext
-
-                if destprefix != "":
-                        newpath = os.path.join(destprefix, newpath)
-                else:
-                        newpath = os.path.join(srcpath, "../%s/" % newpath)
-
                 newpath = os.path.normpath(newpath)
                 newfilename = os.path.basename(newpath)
                 newdir = os.path.dirname(newpath)
 
-                if not noact:
-                        makedirs(newdir)
+                print "Tagging: " + newfilename
 
-                if (os.path.exists(newpath)):
-                        print "Destination path already exists, skipping"
-                        sys.exit(3)
+                entry = {}
+                entry["srcfilepath"] = os.path.join(srcpath, file)
+                entry["tmpfilename"] = os.path.join(tmpdir, newfilename)
+                entry["destfilepath"] = newpath
+                tmpfiles.append(entry)
 
                 srcfilepath = os.path.join(srcpath, file)
 
-		print srcfilepath + " -> " + newpath
-
 		if not noact and ext != ".mp3":
-                       shutil.copyfile(os.path.join(srcpath, file), newpath)
+                        shutil.copyfile(os.path.join(srcpath, file), entry["tmpfilename"])
 
                 track_artist = release.artist
                 if not disc.is_single_artist:
@@ -462,7 +479,7 @@ def name_album(disc, release, srcpath, scheme, destprefix, imagemime=None, image
                 if embedcovers and imagepath:
                         image = imagepath
 
-                tag.tag(newpath, tags, noact, image)
+                tag.tag(entry["tmpfilename"], tags, noact, image)
 
                 # Special case mp3.. tag.tag() won't do anything with mp3 files
                 # as we write out the tags + bitstream in one operation, so do
@@ -479,10 +496,54 @@ def name_album(disc, release, srcpath, scheme, destprefix, imagemime=None, image
                                 imagedata=imagefp.read()
                                 imagefp.close()
                                 outtags["APIC"] = (imagemime,"\x03","",imagedata)
-                        serialisemp3.output(newpath, outtags)
+                        serialisemp3.output(entry["tmpfilename"], outtags)
                         need_mp3_gain = True
 
                 srcfiles.append(srcfilepath)
+
+        # Step 2: Compare old and new bitrates
+        old_total_bitrate = 0
+        new_total_bitrate = 0
+        for entry in tmpfiles:
+                if os.path.exists(entry["destfilepath"]):
+                        old_total_bitrate += calc_average_bitrate(entry["destfilepath"])
+                new_total_bitrate += calc_average_bitrate(entry["tmpfilename"])
+
+        if old_total_bitrate == 0:
+                print "Destination files do not exist, creating"
+        elif old_total_bitrate == new_total_bitrate:
+                print "Bitrates are the same, compare bitstream hashes!"
+        elif old_total_bitrate < new_total_bitrate:
+                print "Old bitrate lower than new bitrate (%d / %d)" % (old_total_bitrate, new_total_bitrate)
+        elif old_total_bitrate > new_total_bitrate:
+                print "Not overwriting, old bitrate higher than new (%d / %d)" % (old_total_bitrate, new_total_bitrate)
+                rmrf(tmpdir)
+                return (srcfiles, destfiles, False)
+
+        # Step 3: Overwrite/create files if appropriate
+        for entry in tmpfiles:
+                newpath = entry["destfilepath"]
+                
+                if destprefix != "":
+                        newpath = os.path.join(destprefix, newpath)
+                else:
+                        newpath = os.path.join(srcpath, "../%s" % newpath)
+
+                newpath = os.path.normpath(newpath)
+
+                newdir = os.path.dirname(newpath)
+                newfile = os.path.basename(newpath)
+
+                if not noact:
+                        makedirs(newdir)
+                        print entry["srcfilepath"] + " -> " + newpath
+                        # Try renaming first, then fall back to copy/rm
+                        try:
+                                os.rename(entry["tmpfilename"], newpath)
+                        except OSError:
+                                shutil.copyfile(entry["tmpfilename"], newdir)
+                                os.remove(entry["tmpfilename"])
+
                 destfiles.append(newpath)
 
         # Move original TOC
@@ -493,10 +554,12 @@ def name_album(disc, release, srcpath, scheme, destprefix, imagemime=None, image
 
         # Move coverart
         if imagepath and not noact:
+                print imagepath + " -> " + os.path.join(newdir, "folder.jpg")
                 shutil.copyfile(imagepath, os.path.join(newdir, "folder.jpg"))
 
 	#os.system("rm \"%s\" -rf" % srcpath)
 
+        rmrf(tmpdir)
         return (srcfiles, destfiles, need_mp3_gain)
 	
 
