@@ -16,6 +16,7 @@ import albumidentifyconfig
 import re
 import sets
 import time
+import tempfile
 
 # If set to True, this will force tracks to be found in order
 # if set to False, tracks can be found in any order (has false positives)
@@ -90,10 +91,7 @@ class FingerprintFailed(Exception):
 		return "Failed to fingerprint track %s" % repr(self.fname)
 
 def populate_fingerprint_cache(fname):
-	# Yes -- this is insecure.  I'd like to use tmpnam/tmpname(), I really
-	# would, but they produce annoying warnings, so I'm stuck doing
-	# something even more stupid.  Sigh.
-	toname=os.path.join("/tmp",`os.getpid()`+".wav")
+	(fd,toname)=tempfile.mkstemp(suffix=".wav")
 	update_progress("Decoding "+os.path.basename(fname))
 	decode(fname,toname)
 	update_progress("Generating fingerprint")
