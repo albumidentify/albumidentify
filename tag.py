@@ -1,5 +1,6 @@
 
 import subprocess
+import parsemp3
 
 TITLE = "TITLE"
 ARTIST = "ARTIST"
@@ -123,3 +124,37 @@ def get_mp3_tags(tags):
                 "COMM" : ""
                 }
 
+def read_tags(filename):
+        #if filename.endswith(".flac"):
+	#        return __read_tags_flac(filename)
+	#elif filename.endswith(".ogg"):
+	#        return __read_tags_ogg(filename)
+        if filename.endswith(".mp3"):
+		return __read_tags_mp3(filename)
+
+        raise Exception("Don't know how to read tags for this file type!")
+
+def __read_tags_mp3(filename):
+	data = parsemp3.parsemp3(filename)
+	mp3tags = data["v2"]
+	tags = {
+		TITLE: mp3tags["TIT2"],
+		ARTIST: mp3tags["TPE1"],
+		ALBUM: mp3tags["TALB"],
+		YEAR: mp3tags["TYER"]
+		}
+	if "TDAT" in mp3tags:
+		tags[DATE] = mp3tags["TDAT"]
+	if "TXXX" in mp3tags:
+		if type(mp3tags["TXXX"]) == type([]):
+			parts = mp3tags["TXXX"]
+		else:
+			parts = [mp3tags["TXXX"]]
+		for i in parts:
+			(k,v) = tuple(i.split("\0"))
+			if k == "MusicBrainz Artist Id":
+				tags[ARTIST_ID] = v
+			elif k == "MusicBrainz Album Id":
+				tags[ALBUM_ID] = v
+	print tags
+	return tags
