@@ -39,6 +39,27 @@ genpuid_command=</path/to/genpuid>
 username=<your mb username>
 password=<your mb password>
 
+Custom Naming Schemes
+---------------------
+flacnamer supports custom renaming schemes, which are specified as a standard 
+Python string expansion. The default scheme is:
+
+%(albumartist)s - %(year)i - %(album)s/%(tracknumber)i - %(trackartist)s - %(trackname)s
+
+See --scheme-help for a list of supported expansions.
+
+Use --scheme to specify a custom scheme, making sure to quote appropriately.
+
+If you specify a scheme which results in directories being created per-track,
+the coverart and cd-toc will be placed in the last directory created. This
+might change in the future. 
+
+You can also specify the default naming scheme to use in the ~/.albumidentifyrc
+file, using the naming_scheme key in the renamealbum section:
+
+[renamealbum]
+naming_scheme=%(album)s - %(trackname)s
+
 Bug reports
 -----------
 To submit a bug report, fork the repository, add a file to issues/ and send us

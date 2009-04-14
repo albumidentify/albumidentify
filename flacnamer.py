@@ -23,10 +23,25 @@ import submit #musicbrainz_submission_url()
 import musicdns
 import lookups
 import albumidentify
+import albumidentifyconfig
 import operator
 import tag
 import parsemp3
 import serialisemp3
+import tempfile
+
+string_expandos = ["trackname", "trackartist", "album", "albumartist", "sortalbumartist", "sorttrackartist"]
+integer_expandos = ["tracknumber", "year"]
+
+def makedirs(path):
+        """ Ensure all directories exist """
+        if path == os.sep:
+                return
+        makedirs(os.path.dirname(path))
+        try:
+                os.mkdir(path)
+        except:
+                pass
 
 def print_usage():
 	print "usage: " + sys.argv[0] + " <srcpath> [OPTIONS]"
@@ -46,6 +61,9 @@ def print_usage():
         print "                      May cause false positives."
         print "  --dest-path=PATH    Use PATH instead of the current path for creating"
         print "                      output directories."
+        print " --scheme=SCHEME      Specify a naming scheme, see --scheme-help"
+        print " --scheme-help        Help on naming schemes"
+
 
 def get_release_by_fingerprints(disc):
         """ Do a fingerprint based search for a matching release.
@@ -127,6 +145,16 @@ def get_musicbrainz_release(disc):
         print "Trying fingerprint search"
         return get_release_by_fingerprints(disc)
 
+def scheme_help():
+        print "Naming scheme help:"
+        print "Naming schemes are specified as a standard Python string expansion. The default scheme is:"
+        print albumidentifyconfig.config.get("renamealbum", "naming_scheme")
+        print "A custom scheme can be specified with --scheme. The list of expandos are:"
+        for i in string_expandos:
+                print i + " (string)"
+        for i in integer_expandos:
+                print i + " (integer)"
+
 def main():
 	if len(sys.argv) < 2:
 		print_usage()
@@ -139,6 +167,7 @@ def main():
 	noact = False
 	totaldiscs = None
         destprefix = ""
+        scheme = albumidentifyconfig.config.get("renamealbum", "naming_scheme")
 
 	for option in sys.argv[2:]:
 		if option.startswith("--release-id="):
@@ -161,6 +190,11 @@ def main():
                         if not os.path.isdir(destprefix):
                                 print "ERROR: PATH must be a directory"
                                 sys.exit(1)
+                elif option.startswith("--scheme="):
+                        scheme = option.split("=")[1].strip()
+                elif option.startswith("--scheme-help"):
+                        scheme_help()
+                        sys.exit(0)
 
 	srcpath = os.path.abspath(sys.argv[1])
 
@@ -168,6 +202,14 @@ def main():
 		print_usage()
 		sys.exit(2)
 	
+        try:
+                check_scheme(scheme)
+        except Exception, e:
+                print "Naming scheme error: " + e.args[0]
+                sys.exit(1)
+
+        print "Using naming scheme: " + scheme
+
 	if noact:
 		print "Performing dry-run"
 
@@ -225,51 +267,31 @@ def main():
 	if musicbrainz2.model.Release.TYPE_COMPILATION in disc.releasetypes:
 		disc.compilation = 1
 	
-	# Name the target folder differently for soundtracks
-	if musicbrainz2.model.Release.TYPE_SOUNDTRACK in disc.releasetypes:
-		newpath = "Soundtrack - %s - %s" % (disc.year, disc.album)
-	else:
-		newpath = "%s - %s - %s" % (mp3names.FixArtist(disc.artist), disc.year, disc.album)
-	newpath = mp3names.FixFilename(newpath)
-
-        if destprefix != "":
-                newpath = os.path.join(destprefix, newpath)
-        else:
-                newpath = os.path.join(srcpath, "../%s/" % newpath)
-
-	newpath = os.path.normpath(newpath)
-
-	print "Destination path: " + newpath
-
-	if (os.path.exists(newpath)):
-		print "Destination path already exists, skipping" 
-		sys.exit(3)
-
-	if not noact:
-		os.mkdir(newpath)
-
 	# Get album art
 	imageurl = lookups.get_album_art_url_for_asin(disc.asin)
 	# Check for manual image
         imagemime = None
         imagepath = None
+        image_needs_unlink = False
 	if os.path.exists(os.path.join(srcpath, "folder.jpg")):
 		print "Using existing image"
 		if not noact:
-			shutil.copyfile(os.path.join(srcpath, "folder.jpg"), os.path.join(newpath, "folder.jpg"))
                         imagemime="image/jpeg"
-                        imagepath = os.path.join(newpath, "folder.jpg")
+                        imagepath = os.path.join(srcpath, "folder.jpg")
 	elif imageurl is not None:
                 print "Downloading album art from %s" % imageurl
 		if not noact:
                         try:
-                                (f,h) = urllib.urlretrieve(imageurl, \
-                                        os.path.join(newpath, "folder.jpg"))
+                                (fd,tmpfile) = tempfile.mkstemp(suffix = ".jpg")
+                                os.close(fd)
+                                (f,h) = urllib.urlretrieve(imageurl, tmpfile)
                                 if h.getmaintype() != "image":
                                         print "WARNING: image url returned unexpected mimetype: %s" % h.gettype()
+                                        os.unlink(tmpfile)
                                 else:
                                         imagemime = h.gettype()
-                                        imagepath = os.path.join(newpath, "folder.jpg")
+                                        imagepath = tmpfile
+                                        image_needs_unlink = True
                         except:
                                 print "WARNING: Failed to retrieve coverart (%s)" % imageurl
 
@@ -287,7 +309,12 @@ def main():
 		disc.totalnumber = len(discs)
 
 	print "disc " + str(disc.number) + " of " + str(disc.totalnumber)
-	(srcfiles, destfiles, need_mp3_gain) = name_album(disc, release, srcpath, newpath, imagemime, imagepath, embedcovers, noact)
+
+        disc.is_single_artist = release.isSingleArtistRelease()
+	(srcfiles, destfiles, need_mp3_gain) = name_album(disc, release, srcpath, scheme, destprefix, imagemime, imagepath, embedcovers, noact)
+
+        if (image_needs_unlink):
+                os.unlink(imagepath)
 
         if (need_mp3_gain):
                 os.spawnlp(os.P_WAIT, "mp3gain", "mp3gain",
@@ -308,7 +335,72 @@ def get_file_list(disc):
                 files = [ x.filename for x in disc.tracks ]
         return files
 
-def name_album(disc, release, srcpath, newpath, imagemime=None, imagepath=None, embedcovers=False, noact=False, move=False):
+def check_scheme(scheme):
+        """ Tries a dummy expansion on the naming scheme, raises an exception
+            if the scheme contains expandos that we don't recognise.
+        """
+        dummyvalues = {}
+        for k in string_expandos:
+                dummyvalues[k] = "foo"
+        for k in integer_expandos:
+                dummyvalues[k] = 1
+        try:
+                scheme % dummyvalues
+        except KeyError, e:
+                raise Exception("Unknown expando in naming scheme: %s" % e.args)
+        except ValueError, e:
+                raise Exception("Failed to parse naming scheme: %s" % e.args)
+
+def expand_scheme(scheme, disc, track, tracknumber):
+        albumartist = mp3names.FixArtist(disc.artist)
+	if musicbrainz2.model.Release.TYPE_SOUNDTRACK in disc.releasetypes:
+                albumartist = "Soundtrack"
+
+        trackartist = disc.artist
+        if not disc.is_single_artist:
+                trackartist = lookups.get_track_artist_for_track(track.mb_track)
+
+        # We "fix" each component individually so that we can preserve forward
+        # slashes in the naming scheme.
+        expando_values = { "trackartist" : mp3names.FixFilename(trackartist),
+                    "albumartist" : mp3names.FixFilename(disc.artist),
+                    "sortalbumartist" : mp3names.FixFilename(mp3names.FixArtist(disc.artist)),
+                    "sorttrackartist" : mp3names.FixFilename(mp3names.FixArtist(trackartist)),
+                    "album" : mp3names.FixFilename(disc.album),
+                    "year" : int(disc.year),
+                    "tracknumber" : int(tracknumber),
+                    "trackname" : mp3names.FixFilename(track.mb_track.title)
+        }
+        
+        try:
+                newpath = scheme % expando_values
+        except KeyError, e:
+                raise Exception("Unknown expando %s" % e.args)
+
+        newpath = os.path.normpath(newpath)
+
+        return newpath
+
+def rmrf(dir):
+        for root, dirs, files in os.walk(dir, topdown=False):
+            for name in files:
+                os.remove(os.path.join(root, name))
+            for name in dirs:
+                os.rmdir(os.path.join(root, name))
+        os.rmdir(dir)
+
+def calc_average_bitrate(filename):
+        if filename.endswith(".mp3"):
+                return calc_average_bitrate_mp3(parsemp3.parsemp3(filename))
+        else:
+                return 0
+
+def calc_average_bitrate_mp3(parsed_data):
+        return (reduce(lambda a,b:a+b,
+                [ (rate*count) for (rate,count) in parsed_data["bitrates"].items() ])/
+                        parsed_data["frames"])
+
+def name_album(disc, release, srcpath, scheme, destprefix, imagemime=None, imagepath=None, embedcovers=False, noact=False, move=False):
         files = get_file_list(disc)
 
         if len(files) != len(disc.tracks):
@@ -319,30 +411,47 @@ def name_album(disc, release, srcpath, newpath, imagemime=None, imagepath=None, 
         srcfiles = []
         destfiles = []
         need_mp3_gain = False
+
+        # Step 1: Tag all of the files into a temporary directory
+        tmpdir = tempfile.mkdtemp()
+        tmpfiles = [] 
+
 	for file in files:
                 (root,ext) = os.path.splitext(file)
                 tracknum = tracknum + 1
 		track = disc.tracks[tracknum - 1]
 		mbtrack = track.mb_track
 
-		if release.isSingleArtistRelease():
-			track_artist = release.artist
-		else:
-			track_artist = lookups.get_track_artist_for_track(mbtrack)
-
-		newfilename = "%02d - %s - %s%s" % (tracknum, track_artist.name, mbtrack.title, ext)
-		newfilename = mp3names.FixFilename(newfilename)
-
-                if newfilename.startswith("_silence_"):
+                if mbtrack.title == "_silence_":
                         continue
 
-                destfilepath = os.path.join(newpath, newfilename)
+                newpath = expand_scheme(scheme, disc, track, tracknum)
+                newpath += ext
+
+                if destprefix != "":
+                        newpath = os.path.join(destprefix, newpath)
+                else:
+                        newpath = os.path.join(srcpath, "../%s" % newpath)
+
+                newpath = os.path.normpath(newpath)
+                newfilename = os.path.basename(newpath)
+
+                print "Tagging: " + newfilename
+
+                entry = {}
+                entry["srcfilepath"] = os.path.join(srcpath, file)
+                entry["tmpfilename"] = os.path.join(tmpdir, newfilename)
+                entry["destfilepath"] = newpath
+                tmpfiles.append(entry)
+
                 srcfilepath = os.path.join(srcpath, file)
 
-		print srcfilepath + " -> " + destfilepath
-
 		if not noact and ext != ".mp3":
-                       shutil.copyfile(os.path.join(srcpath, file), os.path.join(newpath, newfilename))
+                        shutil.copyfile(os.path.join(srcpath, file), entry["tmpfilename"])
+
+                track_artist = release.artist
+                if not disc.is_single_artist:
+                        track_artist = lookups.get_track_artist_for_track(track.mb_track)
 
                 # Set up the tag list so that we can pass it off to the
                 # container-specific tagger function later.
@@ -382,16 +491,18 @@ def name_album(disc, release, srcpath, newpath, imagemime=None, imagepath=None, 
                 if embedcovers and imagepath:
                         image = imagepath
 
-                tag.tag(os.path.join(newpath, newfilename), tags, noact, image)
+                tag.tag(entry["tmpfilename"], tags, noact, image)
 
                 # Special case mp3.. tag.tag() won't do anything with mp3 files
                 # as we write out the tags + bitstream in one operation, so do
                 # that here.
                 if ((not noact) and (ext == ".mp3")):
                         # Make a temp copy and undo any mp3gain
-                        shutil.copy(srcfilepath, "/tmp/tmp.mp3")
-                        os.spawnlp(os.P_WAIT, "mp3gain", "mp3gain", "-u", "-q", "/tmp/tmp.mp3")
-                        parsed_data = parsemp3.parsemp3("/tmp/tmp.mp3")
+                        (fd,tmpmp3) = tempfile.mkstemp(suffix=".mp3")
+                        os.close(fd)
+                        shutil.copy(srcfilepath, tmpmp3)
+                        os.spawnlp(os.P_WAIT, "mp3gain", "mp3gain", "-u", "-q", tmpmp3)
+                        parsed_data = parsemp3.parsemp3(tmpmp3)
                         outtags = tag.get_mp3_tags(tags)
                         outtags["bitstream"] = parsed_data["bitstream"]
                         if image:
@@ -399,18 +510,63 @@ def name_album(disc, release, srcpath, newpath, imagemime=None, imagepath=None, 
                                 imagedata=imagefp.read()
                                 imagefp.close()
                                 outtags["APIC"] = (imagemime,"\x03","",imagedata)
-                        serialisemp3.output(destfilepath, outtags)
+                        serialisemp3.output(entry["tmpfilename"], outtags)
                         need_mp3_gain = True
+                        os.unlink(tmpmp3)
 
                 srcfiles.append(srcfilepath)
-                destfiles.append(destfilepath)
 
-        if disc.tocfilename:
-                print os.path.join(srcpath, disc.tocfilename) + " -> " + os.path.join(newpath, "data.toc")
+        # Step 2: Compare old and new bitrates
+        old_total_bitrate = 0
+        new_total_bitrate = 0
+        for entry in tmpfiles:
+                if os.path.exists(entry["destfilepath"]):
+                        old_total_bitrate += calc_average_bitrate(entry["destfilepath"])
+                new_total_bitrate += calc_average_bitrate(entry["tmpfilename"])
+
+        if old_total_bitrate == 0:
+                print "Destination files do not exist, creating"
+        elif old_total_bitrate == new_total_bitrate:
+                print "Bitrates are the same, compare bitstream hashes!"
+        elif old_total_bitrate < new_total_bitrate:
+                print "Old bitrate lower than new bitrate (%d / %d)" % (old_total_bitrate, new_total_bitrate)
+        elif old_total_bitrate > new_total_bitrate:
+                print "Not overwriting, old bitrate higher than new (%d / %d)" % (old_total_bitrate, new_total_bitrate)
+                rmrf(tmpdir)
+                return (srcfiles, destfiles, False)
+
+        # Step 3: Overwrite/create files if appropriate
+        for entry in tmpfiles:
+                newpath = entry["destfilepath"]
+                newdir = os.path.dirname(newpath)
+                newfile = os.path.basename(newpath)
+
                 if not noact:
-                        shutil.copyfile(os.path.join(srcpath, disc.tocfilename), os.path.join(newpath, "data.toc"))
+                        makedirs(newdir)
+                        print entry["srcfilepath"] + " -> " + newpath
+                        # Try renaming first, then fall back to copy/rm
+                        try:
+                                os.rename(entry["tmpfilename"], newpath)
+                        except OSError:
+                                shutil.copyfile(entry["tmpfilename"], newpath)
+                                os.remove(entry["tmpfilename"])
+
+                destfiles.append(newpath)
+
+        # Move original TOC
+        if disc.tocfilename:
+                print os.path.join(srcpath, disc.tocfilename) + " -> " +  os.path.join(newdir, disc.tocfilename)
+                if not noact:
+                        shutil.copyfile(os.path.join(srcpath, disc.tocfilename), os.path.join(newdir, disc.tocfilename))
+
+        # Move coverart
+        if imagepath and not noact:
+                print imagepath + " -> " + os.path.join(newdir, "folder.jpg")
+                shutil.copyfile(imagepath, os.path.join(newdir, "folder.jpg"))
+
 	#os.system("rm \"%s\" -rf" % srcpath)
 
+        rmrf(tmpdir)
         return (srcfiles, destfiles, need_mp3_gain)
 	
 

@@ -267,17 +267,16 @@ def v2_3_0(tag):
 				pass
 			break
 		tagid=tag[:4]
-		#taglen=ord(tag[4])*128*128*128+ord(tag[5])*128*128+ord(tag[6])*128+ord(tag[7])
-		taglen=ord(tag[4])*256*256*256+ord(tag[5])*256*256+ord(tag[6])*256+ord(tag[7])
+		taglen=ord(tag[4])*128*128*128+ord(tag[5])*128*128+ord(tag[6])*128+ord(tag[7])
 		tagflag=ord(tag[8])*256+ord(tag[9])
 		tagdata=tag[10:10+taglen]
+		#print "got tagid %s, taglen is %d" % (tagid, taglen)
 		tag=tag[10+taglen:]
 		if tagid.startswith("T"):
 			if tagdata[0]=="\x00": # latin-1
-				tagdata=tagdata[1:]
 				#if "\x00" in tagdata:
 				#	tagdata=tagdata[:tagdata.index("\x00")]
-				tagdata=tagdata.decode("ISO-8859-1")
+				tagdata=tagdata[1:].decode("ISO-8859-1")
 			elif tagdata[0]=="\x01": # utf16
 				#if "\x00\x00" in tagdata:
 				#	tagdata=tagdata[:tagdata.index("\x00\x00")]
@@ -285,10 +284,15 @@ def v2_3_0(tag):
 			elif tagdata[0]=="\x03": # utf8
 				#if "\x00" in tagdata:
 				#	tagdata=tagdata[:tagdata.index("\x00")]
-				tagdata=tagdata.decode("utf8")
+				tagdata=tagdata[1:].decode("utf8")
 			else:
 				raise "Unknown Encoding",`tagdata[0]`
-		data[tagid]=tagdata
+		if tagid in data and type(data[tagid]) == type([]):
+			data[tagid].append(tagdata)
+		elif tagid in data:
+			data[tagid] = [data[tagid], tagdata]
+		else:
+			data[tagid]=tagdata
 	return data
 
 def lyricsv2(data):
@@ -492,9 +496,13 @@ def parsemp3(fname):
 			framelengthinbytes = 144 * bitrate / samplerate + padding
 
 		# Durations are in milliseconds
-		frameduration=framelengthinbytes*8.0*1000/bitrate
-		duration+=frameduration
-		frames+=1
+		if framelengthinbytes == 0 or bitrate == 0:
+			frameduration = 0
+			frames+=1
+		else:
+			frameduration=framelengthinbytes*8.0*1000/bitrate
+			duration+=frameduration
+			frames+=1
 
 		#print "duration:",frameduration
 		#print "skipping",framelengthinbytes
@@ -624,7 +632,19 @@ if __name__=="__main__":
 			if data["v2"]!={}:
 				print "TAG: ID3v2:"
 				for i in data["v2"]:
-					if type(data["v2"][i])==type(u""):
+					if i == "APIC":
+						print "\t%s: Picture attached" % i
+					elif i == "TXXX" or i == "UFID" or i == "TMCL" or i == "TIPL":
+						print "\t%s:" % i
+						infos = data["v2"][i]
+						if type(infos) != type(list()):
+							infos = [infos]
+						for info in infos:
+							if len(info.split("\0")) != 2:
+								print "\t\tBad data:",`info`
+							else:
+								print "\t\t%s: %s" % tuple(info.split("\0"))
+					elif type(data["v2"][i])==type(u""):
 						print (u"\t%s: %s" % (i,data["v2"][i])).encode("ascii","replace")
 					else:
 						print (u"\t%s: %s" % (i,`data["v2"][i]`)).encode("ascii","replace")
