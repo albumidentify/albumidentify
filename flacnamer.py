@@ -283,7 +283,7 @@ def main():
 		if not noact:
                         try:
                                 (fd,tmpfile) = tempfile.mkstemp(suffix = ".jpg")
-                                fd.close()
+                                os.close(fd)
                                 (f,h) = urllib.urlretrieve(imageurl, tmpfile)
                                 if h.getmaintype() != "image":
                                         print "WARNING: image url returned unexpected mimetype: %s" % h.gettype()
@@ -494,7 +494,7 @@ def name_album(disc, release, srcpath, scheme, destprefix, imagemime=None, image
                 if ((not noact) and (ext == ".mp3")):
                         # Make a temp copy and undo any mp3gain
                         (fd,tmpmp3) = tempfile.mkstemp(suffix=".mp3")
-                        fd.close()
+                        os.close(fd)
                         shutil.copy(srcfilepath, tmpmp3)
                         os.spawnlp(os.P_WAIT, "mp3gain", "mp3gain", "-u", "-q", tmpmp3)
                         parsed_data = parsemp3.parsemp3(tmpmp3)
