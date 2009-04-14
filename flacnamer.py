@@ -427,9 +427,14 @@ def name_album(disc, release, srcpath, scheme, destprefix, imagemime=None, image
 
                 newpath = expand_scheme(scheme, disc, track, tracknum)
                 newpath += ext
+
+                if destprefix != "":
+                        newpath = os.path.join(destprefix, newpath)
+                else:
+                        newpath = os.path.join(srcpath, "../%s" % newpath)
+
                 newpath = os.path.normpath(newpath)
                 newfilename = os.path.basename(newpath)
-                newdir = os.path.dirname(newpath)
 
                 print "Tagging: " + newfilename
 
@@ -533,14 +538,6 @@ def name_album(disc, release, srcpath, scheme, destprefix, imagemime=None, image
         # Step 3: Overwrite/create files if appropriate
         for entry in tmpfiles:
                 newpath = entry["destfilepath"]
-                
-                if destprefix != "":
-                        newpath = os.path.join(destprefix, newpath)
-                else:
-                        newpath = os.path.join(srcpath, "../%s" % newpath)
-
-                newpath = os.path.normpath(newpath)
-
                 newdir = os.path.dirname(newpath)
                 newfile = os.path.basename(newpath)
 
