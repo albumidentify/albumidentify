@@ -272,6 +272,7 @@ def main():
 	# Check for manual image
         imagemime = None
         imagepath = None
+        image_needs_unlink = False
 	if os.path.exists(os.path.join(srcpath, "folder.jpg")):
 		print "Using existing image"
 		if not noact:
@@ -281,13 +282,16 @@ def main():
                 print "Downloading album art from %s" % imageurl
 		if not noact:
                         try:
-                                (f,h) = urllib.urlretrieve(imageurl, \
-                                        os.path.join("/tmp", "folder.jpg"))
+                                (fd,tmpfile) = tempfile.mkstemp(suffix = ".jpg")
+                                fd.close()
+                                (f,h) = urllib.urlretrieve(imageurl, tmpfile)
                                 if h.getmaintype() != "image":
                                         print "WARNING: image url returned unexpected mimetype: %s" % h.gettype()
+                                        os.unlink(tmpfile)
                                 else:
                                         imagemime = h.gettype()
-                                        imagepath = os.path.join("/tmp", "folder.jpg")
+                                        imagepath = tmpfile
+                                        image_needs_unlink = True
                         except:
                                 print "WARNING: Failed to retrieve coverart (%s)" % imageurl
 
@@ -308,6 +312,9 @@ def main():
 
         disc.is_single_artist = release.isSingleArtistRelease()
 	(srcfiles, destfiles, need_mp3_gain) = name_album(disc, release, srcpath, scheme, destprefix, imagemime, imagepath, embedcovers, noact)
+
+        if (image_needs_unlink):
+                os.unlink(imagepath)
 
         if (need_mp3_gain):
                 os.spawnlp(os.P_WAIT, "mp3gain", "mp3gain",
@@ -486,9 +493,11 @@ def name_album(disc, release, srcpath, scheme, destprefix, imagemime=None, image
                 # that here.
                 if ((not noact) and (ext == ".mp3")):
                         # Make a temp copy and undo any mp3gain
-                        shutil.copy(srcfilepath, "/tmp/tmp.mp3")
-                        os.spawnlp(os.P_WAIT, "mp3gain", "mp3gain", "-u", "-q", "/tmp/tmp.mp3")
-                        parsed_data = parsemp3.parsemp3("/tmp/tmp.mp3")
+                        (fd,tmpmp3) = tempfile.mkstemp(suffix=".mp3")
+                        fd.close()
+                        shutil.copy(srcfilepath, tmpmp3)
+                        os.spawnlp(os.P_WAIT, "mp3gain", "mp3gain", "-u", "-q", tmpmp3)
+                        parsed_data = parsemp3.parsemp3(tmpmp3)
                         outtags = tag.get_mp3_tags(tags)
                         outtags["bitstream"] = parsed_data["bitstream"]
                         if image:
@@ -498,6 +507,7 @@ def name_album(disc, release, srcpath, scheme, destprefix, imagemime=None, image
                                 outtags["APIC"] = (imagemime,"\x03","",imagedata)
                         serialisemp3.output(entry["tmpfilename"], outtags)
                         need_mp3_gain = True
+                        os.unlink(tmpmp3)
 
                 srcfiles.append(srcfilepath)
 
