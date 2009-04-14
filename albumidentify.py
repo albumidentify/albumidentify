@@ -16,6 +16,7 @@ import albumidentifyconfig
 import re
 import sets
 import time
+import tempfile
 
 # If set to True, this will force tracks to be found in order
 # if set to False, tracks can be found in any order (has false positives)
@@ -90,10 +91,7 @@ class FingerprintFailed(Exception):
 		return "Failed to fingerprint track %s" % repr(self.fname)
 
 def populate_fingerprint_cache(fname):
-	# Yes -- this is insecure.  I'd like to use tmpnam/tmpname(), I really
-	# would, but they produce annoying warnings, so I'm stuck doing
-	# something even more stupid.  Sigh.
-	toname=os.path.join("/tmp",`os.getpid()`+".wav")
+	(fd,toname)=tempfile.mkstemp(suffix=".wav")
 	update_progress("Decoding "+os.path.basename(fname))
 	decode(fname,toname)
 	update_progress("Generating fingerprint")
@@ -129,19 +127,23 @@ def get_file_info(fname):
 
 	print "***",`puid`,`artist`,`trackname`,`os.path.basename(fname)`
 	if puid is None:
-		genpuid_cmd="%s %s" % ( albumidentifyconfig.config.get("albumidentify","genpuid_command"), albumidentifyconfig.config.get("albumidentify","musicdnskey") )
-		if genpuid_cmd:
+                genpuid_cmd = albumidentifyconfig.config.get("albumidentify","genpuid_command")
+                musicdnskey = albumidentifyconfig.config.get("albumidentify","musicdnskey")
+
+                if not genpuid_cmd:
+			print "No genpuid command specified, can't submit fingerprint for %s" % fname
+                elif not musicdnskey:
+                        print "No musicdnskey specified, can't submit fingerprint for %s" % fname
+                else:
 			# Submit the PUID for consideration by MusicDNS
 			# We probably can't use it this time through (it takes MusicDNS up to
 			# a few days to index new PUID's), but next time we're run hopefully we'll
 			# figure it out.
-			toname = os.path.join("/tmp", repr(os.getpid())+".wav")
+                        (fd,toname) = tempfile.mkstemp(suffix = ".wav")
 			decode(fname,toname)
 			print "Submitting fingerprint to MusicDNS"
-			os.system(genpuid_cmd+" "+toname)
+			os.system(genpuid_cmd + musicdnskey + " " + toname)
 			os.unlink(toname)
-		else:
-			print "No genpuid command specified, can't submit fingerprint for %s" % fname
 		lookups.remove_from_cache("delayed_lookup_fingerprint",fp,dur,key)
 		return (fname,None,None,None,[],None)
 	update_progress("Looking up tracks by PUID")
