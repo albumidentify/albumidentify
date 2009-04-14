@@ -541,7 +541,7 @@ def name_album(disc, release, srcpath, scheme, destprefix, imagemime=None, image
                         try:
                                 os.rename(entry["tmpfilename"], newpath)
                         except OSError:
-                                shutil.copyfile(entry["tmpfilename"], newdir)
+                                shutil.copyfile(entry["tmpfilename"], newpath)
                                 os.remove(entry["tmpfilename"])
 
                 destfiles.append(newpath)
