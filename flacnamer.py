@@ -23,13 +23,14 @@ import submit #musicbrainz_submission_url()
 import musicdns
 import lookups
 import albumidentify
+import albumidentifyconfig
 import operator
 import tag
 import parsemp3
 import serialisemp3
 
-default_scheme = "%(albumartist)s - %(year)i - %(album)s/%(tracknumber)02i - %(trackartist)s - %(trackname)s"
-known_expandos = ["trackname", "trackartist", "tracknumber", "album", "year", "albumartist"]
+string_expandos = ["trackname", "trackartist", "album", "albumartist", "sortalbumartist", "sorttrackartist"]
+integer_expandos = ["tracknumber", "year"]
 
 def makedirs(path):
         """ Ensure all directories exist """
@@ -146,10 +147,12 @@ def get_musicbrainz_release(disc):
 def scheme_help():
         print "Naming scheme help:"
         print "Naming schemes are specified as a standard Python string expansion. The default scheme is:"
-        print default_scheme
+        print albumidentifyconfig.config.get("renamealbum", "naming_scheme")
         print "A custom scheme can be specified with --scheme. The list of expandos are:"
-        for i in known_expandos:
-                print i
+        for i in string_expandos:
+                print i + " (string)"
+        for i in integer_expandos:
+                print i + " (integer)"
 
 def main():
 	if len(sys.argv) < 2:
@@ -163,7 +166,7 @@ def main():
 	noact = False
 	totaldiscs = None
         destprefix = ""
-        scheme = default_scheme
+        scheme = albumidentifyconfig.config.get("renamealbum", "naming_scheme")
 
 	for option in sys.argv[2:]:
 		if option.startswith("--release-id="):
@@ -198,6 +201,12 @@ def main():
 		print_usage()
 		sys.exit(2)
 	
+        try:
+                check_scheme(scheme)
+        except Exception, e:
+                print "Naming scheme error: " + e.args[0]
+                sys.exit(1)
+
         print "Using naming scheme: " + scheme
 
 	if noact:
@@ -318,6 +327,22 @@ def get_file_list(disc):
                 files = [ x.filename for x in disc.tracks ]
         return files
 
+def check_scheme(scheme):
+        """ Tries a dummy expansion on the naming scheme, raises an exception
+            if the scheme contains expandos that we don't recognise.
+        """
+        dummyvalues = {}
+        for k in string_expandos:
+                dummyvalues[k] = "foo"
+        for k in integer_expandos:
+                dummyvalues[k] = 1
+        try:
+                scheme % dummyvalues
+        except KeyError, e:
+                raise Exception("Unknown expando in naming scheme: %s" % e.args)
+        except ValueError, e:
+                raise Exception("Failed to parse naming scheme: %s" % e.args)
+
 def expand_scheme(scheme, disc, track, tracknumber):
         albumartist = mp3names.FixArtist(disc.artist)
 	if musicbrainz2.model.Release.TYPE_SOUNDTRACK in disc.releasetypes:
@@ -330,7 +355,9 @@ def expand_scheme(scheme, disc, track, tracknumber):
         # We "fix" each component individually so that we can preserve forward
         # slashes in the naming scheme.
         expando_values = { "trackartist" : mp3names.FixFilename(trackartist),
-                    "albumartist" : mp3names.FixFilename(mp3names.FixArtist(disc.artist)),
+                    "albumartist" : mp3names.FixFilename(disc.artist),
+                    "sortalbumartist" : mp3names.FixFilename(mp3names.FixArtist(disc.artist)),
+                    "sorttrackartist" : mp3names.FixFilename(mp3names.FixArtist(trackartist)),
                     "album" : mp3names.FixFilename(disc.album),
                     "year" : int(disc.year),
                     "tracknumber" : int(tracknumber),

@@ -129,7 +129,7 @@ def get_file_info(fname):
 
 	print "***",`puid`,`artist`,`trackname`,`os.path.basename(fname)`
 	if puid is None:
-		genpuid_cmd=albumidentifyconfig.config.get("albumidentify","genpuid_command")
+		genpuid_cmd="%s %s" % ( albumidentifyconfig.config.get("albumidentify","genpuid_command"), albumidentifyconfig.config.get("albumidentify","musicdnskey") )
 		if genpuid_cmd:
 			# Submit the PUID for consideration by MusicDNS
 			# We probably can't use it this time through (it takes MusicDNS up to

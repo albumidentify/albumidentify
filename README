@@ -54,6 +54,12 @@ If you specify a scheme which results in directories being created per-track,
 the coverart and cd-toc will be placed in the last directory created. This
 might change in the future. 
 
+You can also specify the default naming scheme to use in the ~/.albumidentifyrc
+file, using the naming_scheme key in the renamealbum section:
+
+[renamealbum]
+naming_scheme=%(album)s - %(trackname)s
+
 Bug reports
 -----------
 To submit a bug report, fork the repository, add a file to issues/ and send us

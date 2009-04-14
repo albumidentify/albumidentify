@@ -496,9 +496,13 @@ def parsemp3(fname):
 			framelengthinbytes = 144 * bitrate / samplerate + padding
 
 		# Durations are in milliseconds
-		frameduration=framelengthinbytes*8.0*1000/bitrate
-		duration+=frameduration
-		frames+=1
+		if framelengthinbytes == 0 or bitrate == 0:
+			frameduration = 0
+			frames+=1
+		else:
+			frameduration=framelengthinbytes*8.0*1000/bitrate
+			duration+=frameduration
+			frames+=1
 
 		#print "duration:",frameduration
 		#print "skipping",framelengthinbytes
