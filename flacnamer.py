@@ -33,6 +33,8 @@ import tempfile
 string_expandos = ["trackname", "trackartist", "album", "albumartist", "sortalbumartist", "sorttrackartist"]
 integer_expandos = ["tracknumber", "year"]
 
+force_short_album = False
+
 def makedirs(path):
         """ Ensure all directories exist """
         if path == os.sep:
@@ -59,6 +61,8 @@ def print_usage():
 	print "  -n, --no-act        Don't actually tag and rename files"
         print "  --no-force-order    Don't require source files to be in order."
         print "                      May cause false positives."
+        print "  --force-short-album We won't try and rename albums via fingerprinting"
+        print "                      if they are less than 3 tracks long. Use this to override."
         print "  --dest-path=PATH    Use PATH instead of the current path for creating"
         print "                      output directories."
         print " --scheme=SCHEME      Specify a naming scheme, see --scheme-help"
@@ -70,6 +74,11 @@ def get_release_by_fingerprints(disc):
 
         """
         dirinfo = albumidentify.get_dir_info(disc.dirname)
+
+        if len(dirinfo) < 3 and not force_short_album:
+                report("Too few tracks to be reliable (%i), use --force-short-album" % len(dirinfo))
+                return None
+
         data = albumidentify.guess_album(dirinfo)
         try:
                 (directoryname, albumname, rid, events, asin, trackdata, albumartist, releaseid) = \
@@ -184,6 +193,8 @@ def main():
 			totaldiscs = option.split("=",1)[1].strip()
                 elif option.startswith("--no-force-order"):
                         albumidentify.FORCE_ORDER = False
+                elif option.startswith("--force-short-album"):
+                        force_short_album = True
                 elif option.startswith("--dest-path="):
                         destprefix = option.split("=")[1].strip()
                         destprefix = os.path.abspath(destprefix)
