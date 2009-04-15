@@ -29,9 +29,28 @@ import tag
 import parsemp3
 import serialisemp3
 import tempfile
+import traceback
+import datetime
 
 string_expandos = ["trackname", "trackartist", "album", "albumartist", "sortalbumartist", "sorttrackartist"]
 integer_expandos = ["tracknumber", "year"]
+
+report_entries = []
+
+def report(message):
+        ts = datetime.datetime.now().ctime()
+        if (type(message) == type([])):
+                for m in message:
+                        report(m)
+                return
+        report_entries.append("%s: %s" % (ts, message))
+        print message
+
+def write_report(reportpath):
+        f = open(reportpath, "w")
+        for r in report_entries:
+                f.write(r + "\n")
+        f.close()
 
 def makedirs(path):
         """ Ensure all directories exist """
@@ -75,15 +94,16 @@ def get_release_by_fingerprints(disc):
                 (directoryname, albumname, rid, events, asin, trackdata, albumartist, releaseid) = \
                         data.next()
         except StopIteration,si:
+                report("No matches from fingerprint search")
 		return None
 
         release = lookups.get_release_by_releaseid(releaseid)
         print "Got result via audio fingerprinting!"
 
         if disc.tocfilename:
-                print "Suggest submitting TOC and discID to musicbrainz:"
-                print "Release URL: " + release.id + ".html"
-                print "Submit URL : " + submit.musicbrainz_submission_url(disc)
+                report("Suggest submitting TOC and discID to musicbrainz:")
+                report("Release URL: " + release.id + ".html")
+                report("Submit URL : " + submit.musicbrainz_submission_url(disc))
 
         # When we id by fingerprints, the sorted original filenames may not
         # match the actual tracks (i.e. out of order, bad naming, etc). Here we
@@ -112,37 +132,38 @@ def get_musicbrainz_release(disc):
                 results = lookups.get_releases_by_discid(disc.discid)
                 if len(results) > 1:
                         for result in results:
-                                print result.release.id + ".html"
-                        print "Ambiguous DiscID, trying fingerprint matching"
+                                report(result.release.id + ".html")
+                        report("Ambiguous DiscID, trying fingerprint matching")
                         return get_release_by_fingerprints(disc)
 
                 # DiscID lookup gave us an exact match. Use this!
                 if len(results) == 1:
                         releaseid = results[0].release.id
+                        report("Got release via discID")
                         return lookups.get_release_by_releaseid(results[0].release.id)
 
 	# Otherwise, use CD-TEXT if present to guess the release
 	if disc.performer is not None and disc.title is not None:
-		print "Trying to look up release via CD-TEXT"
-		print "Performer: " + disc.performer
-		print "Title    : " + disc.title
+		report("Trying to look up release via CD-TEXT")
+		report("Performer: " + disc.performer)
+		report("Title    : " + disc.title)
 		results = lookups.get_releases_by_cdtext(performer=disc.performer, 
                                         title=disc.title, num_tracks=len(disc.tracks))
 		if len(results) == 1:
-			print "Got result via CD-TEXT lookup!"
-			print "Suggest submitting TOC and discID to musicbrainz:"
-			print "Release URL: " + results[0].release.id + ".html"
-			print "Submit URL : " + submit.musicbrainz_submission_url(disc)
+			report("Got result via CD-TEXT lookup!")
+			report("Suggest submitting TOC and discID to musicbrainz:")
+			report("Release URL: " + results[0].release.id + ".html")
+			report("Submit URL : " + submit.musicbrainz_submission_url(disc))
 			return lookups.get_release_by_releaseid(results[0].release.id)
 		elif len(results) > 1:
 			for result in results:
-				print result.release.id + ".html"
-			print "Ambiguous CD-TEXT"
+				report(result.release.id + ".html")
+			report("Ambiguous CD-TEXT")
 		else:
-			print "No results from CD-TEXT lookup."
+			report("No results from CD-TEXT lookup.")
 
         # Last resort, fingerprinting
-        print "Trying fingerprint search"
+        report("Trying fingerprint search")
         return get_release_by_fingerprints(disc)
 
 def scheme_help():
@@ -208,6 +229,8 @@ def main():
                 print "Naming scheme error: " + e.args[0]
                 sys.exit(1)
 
+        report("----renamealbum started----")
+
         print "Using naming scheme: " + scheme
 
 	if noact:
@@ -228,17 +251,19 @@ def main():
                                 disc.get_first_track_num(),
                                 disc.get_last_track_num(),
                                 disc.get_track_offsets())
-                print "discID: " + disc.discid
+                report("Found TOC, calculated discID: " + disc.discid)
 
 	if releaseid:
+                report("Forcing releaseid: " + releaseid)
 		disc.releaseid = releaseid
 	
 	release = get_musicbrainz_release(disc)
 
 	if release is None:
+                report("no releases found")
 		raise Exception("Couldn't find a matching release. Sorry, I tried.")
 
-	print "release id: %s.html" % (release.id)
+        report("release id: %s.html" % release.id)
 
 	disc.releasetypes = release.getTypes()
 
@@ -253,6 +278,7 @@ def main():
 	elif disc.releasedate is not None:
 		disc.year = disc.releasedate[0:4]
 	else:
+                report("couldn't determine year for %s - %s" % (`disc.artist`, `disc.album`))
 		raise Exception("Unknown year: %s %s " % (`disc.artist`,`disc.album`))
 
 	disc.compilation = 0
@@ -404,7 +430,7 @@ def name_album(disc, release, srcpath, scheme, destprefix, imagemime=None, image
         files = get_file_list(disc)
 
         if len(files) != len(disc.tracks):
-                print "Number of files to rename (%i) != number of tracks in release (%i)" % (len(files), len(disc.tracks))
+                report("Number of files to rename (%i) != number of tracks in release (%i)" % (len(files), len(disc.tracks)))
                 return
 
         tracknum = 0
@@ -525,13 +551,13 @@ def name_album(disc, release, srcpath, scheme, destprefix, imagemime=None, image
                 new_total_bitrate += calc_average_bitrate(entry["tmpfilename"])
 
         if old_total_bitrate == 0:
-                print "Destination files do not exist, creating"
+                report("Destination files do not exist, creating")
         elif old_total_bitrate == new_total_bitrate:
-                print "Bitrates are the same, compare bitstream hashes!"
+                report("Bitrates are the same, overwriting")
         elif old_total_bitrate < new_total_bitrate:
-                print "Old bitrate lower than new bitrate (%d / %d)" % (old_total_bitrate, new_total_bitrate)
+                report("Old bitrate lower than new bitrate (%d / %d)" % (old_total_bitrate, new_total_bitrate))
         elif old_total_bitrate > new_total_bitrate:
-                print "Not overwriting, old bitrate higher than new (%d / %d)" % (old_total_bitrate, new_total_bitrate)
+                report("Not overwriting, old bitrate higher than new (%d / %d)" % (old_total_bitrate, new_total_bitrate))
                 rmrf(tmpdir)
                 return (srcfiles, destfiles, False)
 
@@ -543,7 +569,7 @@ def name_album(disc, release, srcpath, scheme, destprefix, imagemime=None, image
 
                 if not noact:
                         makedirs(newdir)
-                        print entry["srcfilepath"] + " -> " + newpath
+                        report(entry["srcfilepath"] + " -> " + newpath)
                         # Try renaming first, then fall back to copy/rm
                         try:
                                 os.rename(entry["tmpfilename"], newpath)
@@ -555,13 +581,13 @@ def name_album(disc, release, srcpath, scheme, destprefix, imagemime=None, image
 
         # Move original TOC
         if disc.tocfilename:
-                print os.path.join(srcpath, disc.tocfilename) + " -> " +  os.path.join(newdir, disc.tocfilename)
+                report(os.path.join(srcpath, disc.tocfilename) + " -> " +  os.path.join(newdir, disc.tocfilename))
                 if not noact:
                         shutil.copyfile(os.path.join(srcpath, disc.tocfilename), os.path.join(newdir, disc.tocfilename))
 
         # Move coverart
         if imagepath and not noact:
-                print imagepath + " -> " + os.path.join(newdir, "folder.jpg")
+                report(imagepath + " -> " + os.path.join(newdir, "folder.jpg"))
                 shutil.copyfile(imagepath, os.path.join(newdir, "folder.jpg"))
 
 	#os.system("rm \"%s\" -rf" % srcpath)
@@ -571,6 +597,17 @@ def name_album(disc, release, srcpath, scheme, destprefix, imagemime=None, image
 	
 
 if __name__ == "__main__":
-	main()
-	print "Success"
+        try:
+                main()
+        except:
+                (t,v,tb) = sys.exc_info()
+                report(t)
+                report(v)
+                report(traceback.format_tb(tb))
+                del tb
+                report("fail!")
+        else:
+                report("success!")
+
+        write_report(os.path.join(sys.argv[1], "report.txt"))
 	sys.exit(0)
