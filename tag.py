@@ -110,7 +110,7 @@ def get_mp3_tags(tags):
                 "TYER" : tags[YEAR],
                 "TDAT" : tags[DATE],
                 "TRCK" : "%s/%s" % (tags[TRACK_NUMBER], tags[TRACK_TOTAL]),
-                "UFID" : ("http://musicbrainz.org",tags[TRACK_ID]),
+                "UFID" : ("http://musicbrainz.org",tags[TRACK_ID].encode("iso8859-1")),
                 "TXXX" : [("MusicBrainz Artist Id", tags[ARTIST_ID]),
                           ("MusicBrainz Album Id", tags[ALBUM_ID])],
                 # TCOM -- Composer
