@@ -555,9 +555,9 @@ def name_album(disc, release, srcpath, scheme, destprefix, imagemime=None, image
 
         # Move original TOC
         if disc.tocfilename:
-                print os.path.join(srcpath, disc.tocfilename) + " -> " +  os.path.join(newdir, disc.tocfilename)
+                print os.path.join(srcpath, disc.tocfilename) + " -> " +  os.path.join(newdir, os.path.basename(disc.tocfilename))
                 if not noact:
-                        shutil.copyfile(os.path.join(srcpath, disc.tocfilename), os.path.join(newdir, disc.tocfilename))
+                        shutil.copyfile(os.path.join(srcpath, disc.tocfilename), os.path.join(newdir, os.path.basename(disc.tocfilename)))
 
         # Move coverart
         if imagepath and not noact:
