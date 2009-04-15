@@ -45,11 +45,11 @@ flac_tag_map = {
 }
 
 def __gen_flac_tags(tags):
-        flactags = ""
+        flactags = u""
         # Simple tags
         for k in flac_tag_map.keys():
                 if tags.has_key(k):
-                        flactags += str(flac_tag_map[k]) + "=" + str(tags[k]) + "\n"
+                        flactags += flac_tag_map[k] + "=" + tags[k] + "\n"
         # More interesting tags
         if (tags.has_key(TRACK_TOTAL)):
                 flactags += "TRACKTOTAL=" + tags[TRACK_TOTAL] + "\n"
