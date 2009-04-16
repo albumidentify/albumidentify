@@ -609,6 +609,8 @@ def name_album(disc, release, srcpath, scheme, destprefix, imagemime=None, image
 if __name__ == "__main__":
         try:
                 main()
+	except SystemExit:
+		raise
         except:
                 (t,v,tb) = sys.exc_info()
                 report(t)
