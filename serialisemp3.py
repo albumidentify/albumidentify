@@ -55,8 +55,8 @@ def _id3v2(f,data):
 	outp+=_texttag("TRCK",data["TRCK"])
 	if "UFID" in data:
 		# UFID doesn't get encoded so uses tag not texttag
-		assert type(data["UTFID"][0]) == type("")
-		assert type(data["UTFID"][1]) == type("")
+		assert type(data["UFID"][0]) == type("")
+		assert type(data["UFID"][1]) == type("")
 		outp+=_tag("UFID",data["UFID"][0]+"\x00"+data["UFID"][1])
 	if "TXXX" in data:
 		for (k,v) in data["TXXX"]:
