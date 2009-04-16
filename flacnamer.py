@@ -31,12 +31,14 @@ import serialisemp3
 import tempfile
 import traceback
 import datetime
+import optparse
 
 string_expandos = ["trackname", "trackartist", "album", "albumartist", "sortalbumartist", "sorttrackartist"]
 integer_expandos = ["tracknumber", "year"]
 
 force_short_album = False
 report_entries = []
+srcpath=None
 
 def report(message):
         ts = datetime.datetime.now().ctime()
@@ -62,30 +64,6 @@ def makedirs(path):
                 os.mkdir(path)
         except:
                 pass
-
-def print_usage():
-	print "usage: " + sys.argv[0] + " <srcpath> [OPTIONS]"
-	print "  srcpath     A path containing flacs and a TOC to tag"
-	print " OPTIONS:"
-	print "  --release-id=ID     The Musicbrainz release id for this disc. Use this to"
-	print "                      specify the release when discid lookup fails."
-	print "  --no-embed-coverart Don't embed the cover-art in each flac file"
-	print "  --release-asin=ASIN Manually specify the Amazon ASIN number for discs that"
-	print "                      have more than one ASIN (useful to force the correct"
-	print "                      coverart image)."
-	print "  --year=YEAR         Overwrite the album release year.  Use to force a"
-	print "                      re-issue to the date of the original release or to"
-	print "                      provide a date where one is missing"
-	print "  -n, --no-act        Don't actually tag and rename files"
-        print "  --no-force-order    Don't require source files to be in order."
-        print "                      May cause false positives."
-        print "  --force-short-album We won't try and rename albums via fingerprinting"
-        print "                      if they are less than 3 tracks long. Use this to override."
-        print "  --dest-path=PATH    Use PATH instead of the current path for creating"
-        print "                      output directories."
-        print " --scheme=SCHEME      Specify a naming scheme, see --scheme-help"
-        print " --scheme-help        Help on naming schemes"
-
 
 def get_release_by_fingerprints(disc):
         """ Do a fingerprint based search for a matching release.
@@ -180,57 +158,122 @@ def scheme_help():
         print albumidentifyconfig.config.get("renamealbum", "naming_scheme")
         print "A custom scheme can be specified with --scheme. The list of expandos are:"
         for i in string_expandos:
-                print i + " (string)"
+                print " " + i + " (string)"
         for i in integer_expandos:
-                print i + " (integer)"
+                print " " + i + " (integer)"
+
+def path_arg_cb(option, opt_str, value, parser):
+        path = os.path.abspath(value)
+        if not os.path.isdir(path):
+		raise optparse.OptionValueError("to %s must be a directory that exists" % value)
+	setattr(parser.values, option.dest, path)
 
 def main():
-	if len(sys.argv) < 2:
-		print_usage()
+	opts = optparse.OptionParser()
+	opts.add_option(
+		"-r","--release-id",
+		dest="releaseid",
+		default=None,
+		metavar="MBRELEASEID",
+		help="The Musicbrainz release id for this disc. Use this to specify the release when discid lookup fails.")
+	opts.add_option(
+		"--no-embed-coverart",
+		dest="embedcovers",
+		action="store_false",
+		default=True,
+		help="Don't embed the cover-art in each flac file.")
+	opts.add_option(
+		"--release-asin",
+		dest="asin",
+		metavar="ASIN",
+		default=None,
+		help="Manually specify the Amazon ASIN number for discs that have more than one ASIN (useful to force the correct coverart image)."
+		)
+	opts.add_option(
+		"--year",
+		dest="year",
+		metavar="YEAR",
+		default=None,
+		help="Overwrite the album release year.  Use to force a re-issue to the date of the original release or to provide a date where one is missing"
+		)
+	opts.add_option(
+		"-n","--no-act",
+		dest="noact",
+		action="store_true",
+		default=False,
+		help="Don't actually tag and rename files."
+		)
+	opts.add_option(
+		"--total-discs",
+		dest="totaldiscs",
+		metavar="DISCS",
+		default = None
+		)
+	opts.add_option(
+		"--no-force-order",
+		dest="force_order",
+		action="store_false",
+		default=True,
+		help="Don't require source files to be in order. Note: May cause false positives."
+		)
+	opts.add_option(
+		"--force-short-album",
+		dest="force_short_album",
+		action="store_true",
+		default=False,
+		help="We won't try and rename albums via fingerprinting if they are less than 3 tracks long. Use this to override."
+		)
+	opts.add_option(
+		"--dest-path",
+		dest="destprefix",
+		type="str",
+		action="callback",
+		callback=path_arg_cb,
+		default=False,
+		metavar="PATH",
+		help="Use PATH instead of the current path for creating output directories."
+		)
+	opts.add_option(
+		"--scheme",
+		dest="scheme",
+		default= albumidentifyconfig.config.get("renamealbum", "naming_scheme"),
+		metavar="SCHEME",
+        	help="Specify a naming scheme, see --scheme-help"
+		)
+	opts.add_option(
+		"--scheme-help",
+		action="store_const",
+		dest="action",
+		const="scheme-help",
+        	help="Help on naming schemes.",
+		default="rename",
+		)
+
+	(options, args) = opts.parse_args()
+
+	releaseid 	= options.releaseid
+	embedcovers 	= options.embedcovers
+	asin 		= options.asin
+	year 		= options.year
+	noact 		= options.noact
+	totaldiscs 	= options.totaldiscs
+        destprefix 	= options.destprefix
+	scheme		= options.scheme
+	force_short_album=options.force_short_album
+	albumidentify.FORCE_ORDER = options.force_order
+	
+	if options.action=="scheme-help":
+		scheme_help()
+		sys.exit(1)
+		
+	if len(args) < 1:
+		opts.print_help()
 		sys.exit(1)
 
-	releaseid = None
-	embedcovers = True
-	asin = None
-	year = None
-	noact = False
-	totaldiscs = None
-        destprefix = ""
-        scheme = albumidentifyconfig.config.get("renamealbum", "naming_scheme")
-
-	for option in sys.argv[2:]:
-		if option.startswith("--release-id="):
-			releaseid = option.split("=")[1].strip()
-		elif option.startswith("--no-embed-coverart"):
-			embedcovers = False
-		elif option.startswith("--release-asin="):
-			asin = option.split("=",1)[1].strip()
-		elif option.startswith("--year="):
-			year = option.split("=")[1].strip()
-		elif option.startswith("-n") or option.startswith("--no-act"):
-			noact = True
-		elif option.startswith("--total-discs"):
-			totaldiscs = option.split("=",1)[1].strip()
-                elif option.startswith("--no-force-order"):
-                        albumidentify.FORCE_ORDER = False
-                elif option.startswith("--force-short-album"):
-                        force_short_album = True
-                elif option.startswith("--dest-path="):
-                        destprefix = option.split("=")[1].strip()
-                        destprefix = os.path.abspath(destprefix)
-                        if not os.path.isdir(destprefix):
-                                print "ERROR: PATH must be a directory"
-                                sys.exit(1)
-                elif option.startswith("--scheme="):
-                        scheme = option.split("=")[1].strip()
-                elif option.startswith("--scheme-help"):
-                        scheme_help()
-                        sys.exit(0)
-
-	srcpath = os.path.abspath(sys.argv[1])
+	srcpath = os.path.abspath(args[0])
 
 	if not os.path.exists(srcpath):
-		print_usage()
+		opts.print_help()
 		sys.exit(2)
 	
         try:
@@ -615,11 +658,12 @@ if __name__ == "__main__":
                 (t,v,tb) = sys.exc_info()
                 report(t)
                 report(v)
-                report(traceback.format_tb(tb))
+                report(traceback.format_exception(t,v,tb))
                 del tb
                 report("fail!")
         else:
                 report("success!")
 
-        write_report(os.path.join(sys.argv[1], "report.txt"))
+	if srcpath is not None:
+		write_report(os.path.join(sys.argv[1], "report.txt"))
 	sys.exit(0)
