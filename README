@@ -34,6 +34,7 @@ more quickly, create a file ~/.albumidentifyrc with contents:
 [albumidentify]
 push_shortcut_puids=True
 genpuid_command=</path/to/genpuid>
+musicdnskey=<music dns key>
 
 [musicbrainz]
 username=<your mb username>
@@ -67,7 +68,8 @@ a merge request on github.
 Patches welcome!
 
 Authors:
-Perry Lorrier
+Perry Lorier
 Scott Raynel
 Alastair Porter
 Matt Brown
+Nathan Overall

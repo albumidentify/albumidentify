@@ -142,7 +142,7 @@ def get_file_info(fname):
                         (fd,toname) = tempfile.mkstemp(suffix = ".wav")
 			decode(fname,toname)
 			print "Submitting fingerprint to MusicDNS"
-			os.system(genpuid_cmd + musicdnskey + " " + toname)
+			os.system(genpuid_cmd + " " + musicdnskey + " " + toname)
 			os.unlink(toname)
 		lookups.remove_from_cache("delayed_lookup_fingerprint",fp,dur,key)
 		return (fname,None,None,None,[],None)

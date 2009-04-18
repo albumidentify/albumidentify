@@ -17,6 +17,8 @@ def _id3v1(f,data):
 def _tag(name,data):
 	assert len(name)==4
 	assert len(data)<127*127*127
+	assert type(data) == type("") # Must be a (byte) string, not a unicode string!
+	assert type(name) == type("") # ditto
 	ret =(name)				# Tag Name
 	ret+=("\x00"+chr(len(data)/(128*128))+
 			chr(len(data)/128%128)+
@@ -53,7 +55,9 @@ def _id3v2(f,data):
 	outp+=_texttag("TRCK",data["TRCK"])
 	if "UFID" in data:
 		# UFID doesn't get encoded so uses tag not texttag
-		outp+=_tag("UFID",data["UFID"][0]+u"\x00"+data["UFID"][1])
+		assert type(data["UFID"][0]) == type("")
+		assert type(data["UFID"][1]) == type("")
+		outp+=_tag("UFID",data["UFID"][0]+"\x00"+data["UFID"][1])
 	if "TXXX" in data:
 		for (k,v) in data["TXXX"]:
 			outp+=_texttag("TXXX",k+u"\x00"+v)
