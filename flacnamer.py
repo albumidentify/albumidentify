@@ -40,6 +40,18 @@ force_short_album = False
 report_entries = []
 srcpath=None
 
+class IdentifyFailedException(Exception):
+	def __str__(self):
+		return "Couldn't find a matching release"
+
+class UnknownYearException(Exception):
+	def __init__(self,artist,album):
+		self.artist=artist
+		self.album=album
+
+	def __str__(self):
+		return "Unknown year for %s %s" % (repr(disc.artist),repr(disc.album))
+
 def report(message):
         ts = datetime.datetime.now().ctime()
         if (type(message) == type([])):
@@ -280,6 +292,7 @@ def main():
                 check_scheme(scheme)
         except Exception, e:
                 print "Naming scheme error: " + e.args[0]
+		print "Scheme:",repr(scheme)
                 sys.exit(1)
 
         report("----renamealbum started----")
@@ -314,7 +327,7 @@ def main():
 
 	if release is None:
                 report("no releases found")
-		raise Exception("Couldn't find a matching release. Sorry, I tried.")
+		raise IdentifyFailedException()
 
         report("release id: %s.html" % release.id)
 
@@ -332,7 +345,7 @@ def main():
 		disc.year = disc.releasedate[0:4]
 	else:
                 report("couldn't determine year for %s - %s" % (`disc.artist`, `disc.album`))
-		raise Exception("Unknown year: %s %s " % (`disc.artist`,`disc.album`))
+		raise UnknownYearException(disc,artist,disc,album)
 
 	disc.compilation = 0
 	disc.number = 0
@@ -654,6 +667,8 @@ if __name__ == "__main__":
                 main()
 	except SystemExit:
 		raise
+	except IdentifyFailedException:
+		report("fail!")
         except:
                 (t,v,tb) = sys.exc_info()
                 report(t)
