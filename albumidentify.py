@@ -486,7 +486,7 @@ def add_new_track(release, releaseid, possible_releases, fileid, track, trackinf
 					print " Also found track %02d: %s" % (trackind+1,release.tracks[trackind].title)
 					break
 		else:
-			print " Couldn't find track %02d" % (trackind +1 )
+			print " Couldn't find track %02d (%s)" % (trackind +1,release.tracks[trackind].title )
 	print " Found tracks: %s  Missing tracks: %s"% (
 		output_list(possible_releases[releaseid].keys()),
 		output_list(
