@@ -8,7 +8,7 @@ import parsemp3
 import musicbrainz2
 import itertools
 import pickle
-import md5
+import hashlib
 import random
 import shelve
 import puidsubmit
@@ -103,7 +103,7 @@ def populate_fingerprint_cache(fname):
 
 def hash_file(fname):
 	update_progress("Hashing file")
-	return md5.md5(open(fname,"r").read()).hexdigest()
+	return hashlib.md5(open(fname,"r").read()).hexdigest()
 
 def get_file_info(fname):
 	fp = None
