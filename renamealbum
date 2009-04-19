@@ -183,7 +183,7 @@ def path_arg_cb(option, opt_str, value, parser):
 	setattr(parser.values, option.dest, path)
 
 def main():
-	opts = optparse.OptionParser()
+	opts = optparse.OptionParser(usage="%s [options] <srcdir>" % sys.argv[0])
 	opts.add_option(
 		"-r","--release-id",
 		dest="releaseid",
