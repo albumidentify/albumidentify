@@ -98,13 +98,10 @@ computed discID with the actual release.
 
 ## Bug reports / Contribute ##
 
-Our project page is at [albumidentify]. Feel free to fork the repository and
-submit pull requests with new features, bug fixes, etc.
+Our project page is [here](http://github.com/scottr/albumidentify). Feel free to
+fork the repository and submit pull requests with new features, bug fixes, etc.
 
-Issues are tracked at [issues].
-
-[albumidentify]: http://www.github.com/scottr/albumidentify
-[issues]: http://www.github.com/scottr/albumidentify/issues
+Issues are tracked with [GitHub Issues](http://github.com/scottr/albumidentify/issues)
 
 ## Contributors ##
 
