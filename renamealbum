@@ -1,10 +1,12 @@
 #!/usr/bin/python2.5
 #
-# Script to automatically look up albums in the musicbrainz database and
-# rename/retag FLAC files.
-# Also gets album art via amazon web services
+# Identify, tag and sort music albums.
 #
-# (C) 2008 Scott Raynel <scottraynel@gmail.com>
+# (C) Copyright 2008, the albumidentify team
+# See the README for a list of contributors.
+#
+# The latest version can be found at
+# http://www.github.com/scottr/albumidentify
 #
 
 import sys
@@ -193,7 +195,7 @@ def main():
 		dest="embedcovers",
 		action="store_false",
 		default=True,
-		help="Don't embed the cover-art in each flac file.")
+		help="Don't embed the cover-art in each file.")
 	opts.add_option(
 		"--release-asin",
 		dest="asin",
