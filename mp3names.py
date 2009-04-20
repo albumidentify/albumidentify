@@ -14,6 +14,7 @@ _filename_rules = [
 
 def FixFilename(fname):
 	"Convert a string into a form usable in a filename"
+	assert type(fname)==type("") or type(fname)==type(u""),repr(fname)
 	for (src,rpl) in _filename_rules:
 		fname = re.sub(src,rpl,fname)
 			
