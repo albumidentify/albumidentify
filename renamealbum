@@ -244,7 +244,7 @@ def main():
 		type="str",
 		action="callback",
 		callback=path_arg_cb,
-		default=False,
+		default="",
 		metavar="PATH",
 		help="Use PATH instead of the current path for creating output directories."
 		)
