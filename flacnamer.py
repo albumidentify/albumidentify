@@ -488,8 +488,11 @@ def calc_average_bitrate(filename):
                 return 0
 
 def calc_average_bitrate_mp3(parsed_data):
+	# If we didn't find any frames, it's a dodgy mp3
+	if parsed_data["frames"]==0:
+		return -1
         return (reduce(lambda a,b:a+b,
-                [ (rate*count) for (rate,count) in parsed_data["bitrates"].items() ])/
+                [ (rate*count) for (rate,count) in parsed_data["bitrates"].items() ],0)/
                         parsed_data["frames"])
 
 def name_album(disc, release, srcpath, scheme, destprefix, imagemime=None, imagepath=None, embedcovers=False, noact=False, move=False):
