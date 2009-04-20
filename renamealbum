@@ -348,7 +348,7 @@ def main():
 		disc.year = disc.releasedate[0:4]
 	else:
                 report("couldn't determine year for %s - %s" % (`disc.artist`, `disc.album`))
-		raise UnknownYearException(disc,artist,disc,album)
+		raise UnknownYearException(disc.artist,disc.album)
 
 	disc.compilation = 0
 	disc.number = 0
@@ -500,6 +500,7 @@ def calc_average_bitrate_mp3(parsed_data):
 
 def name_album(disc, release, srcpath, scheme, destprefix, imagemime=None, imagepath=None, embedcovers=False, noact=False, move=False):
         files = get_file_list(disc)
+
 
         if len(files) != len(disc.tracks):
                 report("Number of files to rename (%i) != number of tracks in release (%i)" % (len(files), len(disc.tracks)))
