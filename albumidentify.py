@@ -348,6 +348,9 @@ def submit_shortcut_puids(releaseid,trackinfo,releaseinfo):
 		"push_shortcut_puids"):
 		print "Not submiting shortcut puids: not enabled in config"
 		return
+	if not FORCE_ORDER:
+		print "Not submitting: No order"
+		return
 	flag=0
 	release = lookups.get_release_by_releaseid(releaseid)
 	puid2trackid={}
