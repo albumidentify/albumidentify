@@ -450,7 +450,7 @@ def expand_scheme(scheme, disc, track, tracknumber):
 
         trackartist = disc.artist
         if not disc.is_single_artist:
-                trackartist = lookups.get_track_artist_for_track(track.mb_track)
+                trackartist = lookups.get_track_artist_for_track(track.mb_track).name
 
         # We "fix" each component individually so that we can preserve forward
         # slashes in the naming scheme.
