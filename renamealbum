@@ -183,6 +183,7 @@ def path_arg_cb(option, opt_str, value, parser):
 	setattr(parser.values, option.dest, path)
 
 def main():
+	global srcpath
 	opts = optparse.OptionParser(usage="%s [options] <srcdir>" % sys.argv[0])
 	opts.add_option(
 		"-r","--release-id",
@@ -685,5 +686,5 @@ if __name__ == "__main__":
                 report("success!")
 
 	if srcpath is not None:
-		write_report(os.path.join(sys.argv[1], "report.txt"))
+		write_report(os.path.join(srcpath, "report.txt"))
 	sys.exit(0)
