@@ -674,6 +674,9 @@ if __name__ == "__main__":
                 main()
 	except SystemExit:
 		raise
+	# Ignore keyboard interrupts
+	except KeyboardInterrupt:
+		raise
 	except IdentifyFailedException:
 		report("fail!")
         except:
