@@ -106,11 +106,13 @@ def open_fileinfo_cache():
 
 def populate_fingerprint_cache(fname):
 	(fd,toname)=tempfile.mkstemp(suffix=".wav")
-	update_progress("Decoding "+os.path.basename(fname))
-	decode(fname,toname)
-	update_progress("Generating fingerprint")
-	(fp, dur) = fingerprint.fingerprint(toname)
-	os.unlink(toname)
+	try:
+		update_progress("Decoding "+os.path.basename(fname))
+		decode(fname,toname)
+		update_progress("Generating fingerprint")
+		(fp, dur) = fingerprint.fingerprint(toname)
+	finally:
+		os.unlink(toname)
 
 	return fp, dur
 	
