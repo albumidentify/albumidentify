@@ -63,16 +63,37 @@ def list_difference(src,remove):
 
 key = 'a7f6063296c0f1c9b75c7f511861b89b'
 
+class FingerprintFailed(Exception):
+	def __init__(self,fname):
+		self.fname = fname
+
+	def __str__(self):
+		return "Failed to fingerprint track %s" % repr(self.fname)
+
+class DecodeFailed(FingerprintFailed):
+	def __init__(self,fname,reason):
+		self.fname = fname
+		self.reason = reason
+
+	def __str__(self):
+		return "Failed to decode file %s (%s)" % (repr(self.fname),self.reason)
+
+
 def decode(frommp3name, towavname):
         if frommp3name.lower().endswith(".mp3"):
-                os.spawnlp(os.P_WAIT,"mpg123","mpg123","--quiet","--wav",
+                ret=os.spawnlp(os.P_WAIT,"mpg123","mpg123","--quiet","--wav",
                         towavname,frommp3name)
         elif frommp3name.lower().endswith(".flac"):
-                os.spawnlp(os.P_WAIT,"flac","flac","-d", "--totally-silent", "-o", towavname,
+                ret=os.spawnlp(os.P_WAIT,"flac","flac","-d", "--totally-silent", "-f", "-o", towavname,
                         frommp3name)
 	elif frommp3name.lower().endswith(".ogg"):
-		os.spawnlp(os.P_WAIT,"oggdec","oggdec","--quiet","-o",
+		ret=os.spawnlp(os.P_WAIT,"oggdec","oggdec","--quiet","-o",
 			towavname,frommp3name)
+	else:
+		raise DecodeFailed(frommp3name, "Don't know how to decode filename")
+	
+	if ret != 0:
+		raise DecodeFailed(frommp3name, "Subprocess returned %d" % ret)
 
 fileinfocache = None
 
@@ -83,20 +104,15 @@ def open_fileinfo_cache():
 			os.path.expanduser("~/.albumidentifycachedb"),
 			"c")
 
-class FingerprintFailed(Exception):
-	def __init__(self,fname):
-		self.fname = fname
-
-	def __str__(self):
-		return "Failed to fingerprint track %s" % repr(self.fname)
-
 def populate_fingerprint_cache(fname):
 	(fd,toname)=tempfile.mkstemp(suffix=".wav")
-	update_progress("Decoding "+os.path.basename(fname))
-	decode(fname,toname)
-	update_progress("Generating fingerprint")
-	(fp, dur) = fingerprint.fingerprint(toname)
-	os.unlink(toname)
+	try:
+		update_progress("Decoding "+os.path.basename(fname))
+		decode(fname,toname)
+		update_progress("Generating fingerprint")
+		(fp, dur) = fingerprint.fingerprint(toname)
+	finally:
+		os.unlink(toname)
 
 	return fp, dur
 	
