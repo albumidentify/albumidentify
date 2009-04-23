@@ -84,7 +84,7 @@ def decode(frommp3name, towavname):
                 ret=os.spawnlp(os.P_WAIT,"mpg123","mpg123","--quiet","--wav",
                         towavname,frommp3name)
         elif frommp3name.lower().endswith(".flac"):
-                ret=os.spawnlp(os.P_WAIT,"flac","flac","-d", "--totally-silent", "-o", towavname,
+                ret=os.spawnlp(os.P_WAIT,"flac","flac","-d", "--totally-silent", "-f", "-o", towavname,
                         frommp3name)
 	elif frommp3name.lower().endswith(".ogg"):
 		ret=os.spawnlp(os.P_WAIT,"oggdec","oggdec","--quiet","-o",
