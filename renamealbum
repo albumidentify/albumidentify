@@ -1,10 +1,12 @@
 #!/usr/bin/python2.5
 #
-# Script to automatically look up albums in the musicbrainz database and
-# rename/retag FLAC files.
-# Also gets album art via amazon web services
+# Identify, tag and sort music albums.
 #
-# (C) 2008 Scott Raynel <scottraynel@gmail.com>
+# (C) Copyright 2008, the albumidentify team
+# See the README for a list of contributors.
+#
+# The latest version can be found at
+# http://www.github.com/scottr/albumidentify
 #
 
 import sys
@@ -39,6 +41,18 @@ integer_expandos = ["tracknumber", "year"]
 force_short_album = False
 report_entries = []
 srcpath=None
+
+class IdentifyFailedException(Exception):
+	def __str__(self):
+		return "Couldn't find a matching release"
+
+class UnknownYearException(Exception):
+	def __init__(self,artist,album):
+		self.artist=artist
+		self.album=album
+
+	def __str__(self):
+		return "Unknown year for %s %s" % (repr(disc.artist),repr(disc.album))
 
 def report(message):
         ts = datetime.datetime.now().ctime()
@@ -169,7 +183,8 @@ def path_arg_cb(option, opt_str, value, parser):
 	setattr(parser.values, option.dest, path)
 
 def main():
-	opts = optparse.OptionParser()
+	global srcpath
+	opts = optparse.OptionParser(usage="%s [options] <srcdir>" % sys.argv[0])
 	opts.add_option(
 		"-r","--release-id",
 		dest="releaseid",
@@ -181,7 +196,7 @@ def main():
 		dest="embedcovers",
 		action="store_false",
 		default=True,
-		help="Don't embed the cover-art in each flac file.")
+		help="Don't embed the cover-art in each file.")
 	opts.add_option(
 		"--release-asin",
 		dest="asin",
@@ -229,7 +244,7 @@ def main():
 		type="str",
 		action="callback",
 		callback=path_arg_cb,
-		default=False,
+		default="",
 		metavar="PATH",
 		help="Use PATH instead of the current path for creating output directories."
 		)
@@ -280,6 +295,7 @@ def main():
                 check_scheme(scheme)
         except Exception, e:
                 print "Naming scheme error: " + e.args[0]
+		print "Scheme:",repr(scheme)
                 sys.exit(1)
 
         report("----renamealbum started----")
@@ -314,7 +330,7 @@ def main():
 
 	if release is None:
                 report("no releases found")
-		raise Exception("Couldn't find a matching release. Sorry, I tried.")
+		raise IdentifyFailedException()
 
         report("release id: %s.html" % release.id)
 
@@ -332,7 +348,7 @@ def main():
 		disc.year = disc.releasedate[0:4]
 	else:
                 report("couldn't determine year for %s - %s" % (`disc.artist`, `disc.album`))
-		raise Exception("Unknown year: %s %s " % (`disc.artist`,`disc.album`))
+		raise UnknownYearException(disc.artist,disc.album)
 
 	disc.compilation = 0
 	disc.number = 0
@@ -437,7 +453,7 @@ def expand_scheme(scheme, disc, track, tracknumber):
 
         trackartist = disc.artist
         if not disc.is_single_artist:
-                trackartist = lookups.get_track_artist_for_track(track.mb_track)
+                trackartist = lookups.get_track_artist_for_track(track.mb_track).name
 
         # We "fix" each component individually so that we can preserve forward
         # slashes in the naming scheme.
@@ -475,12 +491,16 @@ def calc_average_bitrate(filename):
                 return 0
 
 def calc_average_bitrate_mp3(parsed_data):
+	# If we didn't find any frames, it's a dodgy mp3
+	if parsed_data["frames"]==0:
+		return -1
         return (reduce(lambda a,b:a+b,
-                [ (rate*count) for (rate,count) in parsed_data["bitrates"].items() ])/
+                [ (rate*count) for (rate,count) in parsed_data["bitrates"].items() ],0)/
                         parsed_data["frames"])
 
 def name_album(disc, release, srcpath, scheme, destprefix, imagemime=None, imagepath=None, embedcovers=False, noact=False, move=False):
         files = get_file_list(disc)
+
 
         if len(files) != len(disc.tracks):
                 report("Number of files to rename (%i) != number of tracks in release (%i)" % (len(files), len(disc.tracks)))
@@ -654,6 +674,11 @@ if __name__ == "__main__":
                 main()
 	except SystemExit:
 		raise
+	# Ignore keyboard interrupts
+	except KeyboardInterrupt:
+		raise
+	except IdentifyFailedException:
+		report("fail!")
         except:
                 (t,v,tb) = sys.exc_info()
                 report(t)
@@ -665,5 +690,5 @@ if __name__ == "__main__":
                 report("success!")
 
 	if srcpath is not None:
-		write_report(os.path.join(sys.argv[1], "report.txt"))
+		write_report(os.path.join(srcpath, "report.txt"))
 	sys.exit(0)

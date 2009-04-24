@@ -8,7 +8,7 @@ import parsemp3
 import musicbrainz2
 import itertools
 import pickle
-import md5
+import hashlib
 import random
 import shelve
 import puidsubmit
@@ -63,16 +63,37 @@ def list_difference(src,remove):
 
 key = 'a7f6063296c0f1c9b75c7f511861b89b'
 
+class FingerprintFailed(Exception):
+	def __init__(self,fname):
+		self.fname = fname
+
+	def __str__(self):
+		return "Failed to fingerprint track %s" % repr(self.fname)
+
+class DecodeFailed(FingerprintFailed):
+	def __init__(self,fname,reason):
+		self.fname = fname
+		self.reason = reason
+
+	def __str__(self):
+		return "Failed to decode file %s (%s)" % (repr(self.fname),self.reason)
+
+
 def decode(frommp3name, towavname):
         if frommp3name.lower().endswith(".mp3"):
-                os.spawnlp(os.P_WAIT,"mpg123","mpg123","--quiet","--wav",
+                ret=os.spawnlp(os.P_WAIT,"mpg123","mpg123","--quiet","--wav",
                         towavname,frommp3name)
         elif frommp3name.lower().endswith(".flac"):
-                os.spawnlp(os.P_WAIT,"flac","flac","-d", "--totally-silent", "-o", towavname,
+                ret=os.spawnlp(os.P_WAIT,"flac","flac","-d", "--totally-silent", "-f", "-o", towavname,
                         frommp3name)
 	elif frommp3name.lower().endswith(".ogg"):
-		os.spawnlp(os.P_WAIT,"oggdec","oggdec","--quiet","-o",
+		ret=os.spawnlp(os.P_WAIT,"oggdec","oggdec","--quiet","-o",
 			towavname,frommp3name)
+	else:
+		raise DecodeFailed(frommp3name, "Don't know how to decode filename")
+	
+	if ret != 0:
+		raise DecodeFailed(frommp3name, "Subprocess returned %d" % ret)
 
 fileinfocache = None
 
@@ -83,27 +104,22 @@ def open_fileinfo_cache():
 			os.path.expanduser("~/.albumidentifycachedb"),
 			"c")
 
-class FingerprintFailed(Exception):
-	def __init__(self,fname):
-		self.fname = fname
-
-	def __str__(self):
-		return "Failed to fingerprint track %s" % repr(self.fname)
-
 def populate_fingerprint_cache(fname):
 	(fd,toname)=tempfile.mkstemp(suffix=".wav")
-	update_progress("Decoding "+os.path.basename(fname))
-	decode(fname,toname)
-	update_progress("Generating fingerprint")
-	(fp, dur) = fingerprint.fingerprint(toname)
-	os.unlink(toname)
+	try:
+		update_progress("Decoding "+os.path.basename(fname))
+		decode(fname,toname)
+		update_progress("Generating fingerprint")
+		(fp, dur) = fingerprint.fingerprint(toname)
+	finally:
+		os.unlink(toname)
 
 	return fp, dur
 	
 
 def hash_file(fname):
 	update_progress("Hashing file")
-	return md5.md5(open(fname,"r").read()).hexdigest()
+	return hashlib.md5(open(fname,"r").read()).hexdigest()
 
 def get_file_info(fname):
 	fp = None
@@ -348,6 +364,9 @@ def submit_shortcut_puids(releaseid,trackinfo,releaseinfo):
 		"push_shortcut_puids"):
 		print "Not submiting shortcut puids: not enabled in config"
 		return
+	if not FORCE_ORDER:
+		print "Not submitting: No order"
+		return
 	flag=0
 	release = lookups.get_release_by_releaseid(releaseid)
 	puid2trackid={}
@@ -486,7 +505,7 @@ def add_new_track(release, releaseid, possible_releases, fileid, track, trackinf
 					print " Also found track %02d: %s" % (trackind+1,release.tracks[trackind].title)
 					break
 		else:
-			print " Couldn't find track %02d" % (trackind +1 )
+			print " Couldn't find track %02d (%s)" % (trackind +1,release.tracks[trackind].title )
 	print " Found tracks: %s  Missing tracks: %s"% (
 		output_list(possible_releases[releaseid].keys()),
 		output_list(

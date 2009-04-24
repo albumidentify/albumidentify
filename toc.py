@@ -117,7 +117,7 @@ class Track:
                 self.filename = None
 
 	def __repr__(self):
-		return ("<track %i, start %i, length %i, offset %i, end %i>" % (self.tracknum, self.track_start,
+		return ("<track %i, start %i, length %i, offset %i, end %i>" % (self.track_num, self.track_start,
 												self.track_length, self.track_offset, self.track_start + self.track_length))
 
 def timestamp_to_sectors(ts):
