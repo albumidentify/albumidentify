@@ -336,6 +336,23 @@ def main():
 
 	disc.releasetypes = release.getTypes()
 
+	# No tracks, need to load them.
+	if disc.tracks is None:
+		disc.clear_tracks()
+		tracknum=1
+		dir = os.listdir(srcpath)
+		dir.sort()
+		for i in dir:
+			if not (i.lower().endswith(".mp3") or i.lower().endswith(".flac") 
+					or i.lower().endswith(".ogg")):
+				print "Skipping non mp3/flac/ogg file",`i`
+				continue
+			fname=os.path.join(srcpath,i)
+			t = toc.Track(tracknum)
+			t.filename = fname
+			tracknum+=1
+			disc.tracks.append(t)
+
 	disc.set_musicbrainz_tracks(release.getTracks())
 	disc.releasedate = release.getEarliestReleaseDate()
 
