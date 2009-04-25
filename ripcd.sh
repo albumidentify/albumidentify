@@ -2,7 +2,7 @@
 
 dir=$(date +%Y%m%d%H%M%S)
 
-function start
+function begin
 {
 	mkdir cd-$dir
 	pushd cd-$dir
