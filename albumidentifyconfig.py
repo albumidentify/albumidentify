@@ -10,6 +10,7 @@ def readconfig():
 	config.set("albumidentify","genpuid_command","")
         config.set("albumidentify","musicdnskey", "")
         config.set("renamealbum", "naming_scheme", "%(sortalbumartist)s - %(year)i - %(album)s/%(tracknumber)02i - %(trackartist)s - %(trackname)s")
+        config.set("renamealbum", "dest_path", "")
 	config.read(os.path.expanduser("~/.albumidentifyrc"))
 	
 if __name__=="__main__":

@@ -244,7 +244,7 @@ def main():
 		type="str",
 		action="callback",
 		callback=path_arg_cb,
-		default="",
+		default=albumidentifyconfig.config.get("renamealbum", "dest_path"),
 		metavar="PATH",
 		help="Use PATH instead of the current path for creating output directories."
 		)
@@ -300,12 +300,14 @@ def main():
 
         report("----renamealbum started----")
 
-        print "Using naming scheme: " + scheme
+        report("Using naming scheme: " + scheme)
+        if destprefix:
+                report("Using dest prefix: " + destprefix)
 
 	if noact:
 		print "Performing dry-run"
 
-	print "Source path: " + srcpath
+	report("Source path: " + srcpath)
 
 	if os.path.exists(os.path.join(srcpath, "data.toc")):
                 disc = toc.Disc(cdrdaotocfile = os.path.join(srcpath, "data.toc"))
@@ -357,6 +359,14 @@ def main():
 	disc.releasedate = release.getEarliestReleaseDate()
 
 	disc.artist = release.artist.name
+        disc.sortartist = release.artist.sortName
+        if not disc.sortartist:
+                disc.sortartist = mp3names.FixArtist(disc.artist)
+
+	if musicbrainz2.model.Release.TYPE_SOUNDTRACK in disc.releasetypes:
+                disc.artist = "Soundtrack"
+                disc.sortartist = "Soundtrack"
+
 	disc.album = release.title
 	if year is not None:
 		disc.year = year
@@ -422,7 +432,6 @@ def main():
 
 	print "disc " + str(disc.number) + " of " + str(disc.totalnumber)
 
-        disc.is_single_artist = release.isSingleArtistRelease()
 	(srcfiles, destfiles, need_mp3_gain) = name_album(disc, release, srcpath, scheme, destprefix, imagemime, imagepath, embedcovers, noact)
 
         if (image_needs_unlink):
@@ -447,6 +456,28 @@ def get_file_list(disc):
                 files = [ x.filename for x in disc.tracks ]
         return files
 
+def get_track_artist_info(release, track):
+        """ Returns a tuple describing the track artist.
+
+            (track_artist, track_sort_artist, track_artist_id).
+        """
+        if release.isSingleArtistRelease():
+                track_artist = release.artist.name
+                track_artist_id = release.artist.id
+                track_sort_artist = release.artist.sortName
+        else:
+                ta = lookups.get_track_artist_for_track(track)
+                track_artist = ta.name
+                track_artist_id = ta.id
+                track_sort_artist = ta.sortName
+
+        # Fall back to trying to guess sortartist if musicbrainz doesn't have
+        # one.
+        if not track_sort_artist:
+                track_sort_artist = mp3names.FixArtist(track_artist)
+
+        return (track_artist, track_sort_artist, track_artist_id)
+
 def check_scheme(scheme):
         """ Tries a dummy expansion on the naming scheme, raises an exception
             if the scheme contains expandos that we don't recognise.
@@ -463,21 +494,15 @@ def check_scheme(scheme):
         except ValueError, e:
                 raise Exception("Failed to parse naming scheme: %s" % e.args)
 
-def expand_scheme(scheme, disc, track, tracknumber):
-        albumartist = mp3names.FixArtist(disc.artist)
-	if musicbrainz2.model.Release.TYPE_SOUNDTRACK in disc.releasetypes:
-                albumartist = "Soundtrack"
-
-        trackartist = disc.artist
-        if not disc.is_single_artist:
-                trackartist = lookups.get_track_artist_for_track(track.mb_track).name
+def expand_scheme(scheme, release, disc, track, tracknumber):
+        (track_artist, track_sort_artist, track_artist_id) = get_track_artist_info(release, track.mb_track)
 
         # We "fix" each component individually so that we can preserve forward
         # slashes in the naming scheme.
-        expando_values = { "trackartist" : mp3names.FixFilename(trackartist),
+        expando_values = { "trackartist" : mp3names.FixFilename(track_artist),
                     "albumartist" : mp3names.FixFilename(disc.artist),
-                    "sortalbumartist" : mp3names.FixFilename(mp3names.FixArtist(disc.artist)),
-                    "sorttrackartist" : mp3names.FixFilename(mp3names.FixArtist(trackartist)),
+                    "sortalbumartist" : mp3names.FixFilename(disc.sortartist),
+                    "sorttrackartist" : mp3names.FixFilename(track_sort_artist),
                     "album" : mp3names.FixFilename(disc.album),
                     "year" : int(disc.year),
                     "tracknumber" : int(tracknumber),
@@ -518,7 +543,6 @@ def calc_average_bitrate_mp3(parsed_data):
 def name_album(disc, release, srcpath, scheme, destprefix, imagemime=None, imagepath=None, embedcovers=False, noact=False, move=False):
         files = get_file_list(disc)
 
-
         if len(files) != len(disc.tracks):
                 report("Number of files to rename (%i) != number of tracks in release (%i)" % (len(files), len(disc.tracks)))
                 return
@@ -538,10 +562,10 @@ def name_album(disc, release, srcpath, scheme, destprefix, imagemime=None, image
 		track = disc.tracks[tracknum - 1]
 		mbtrack = track.mb_track
 
-                if mbtrack.title == "_silence_":
+                if mbtrack.title == "[silence]":
                         continue
 
-                newpath = expand_scheme(scheme, disc, track, tracknum)
+                newpath = expand_scheme(scheme, release, disc, track, tracknum)
                 newpath += ext
 
                 if destprefix != "":
@@ -565,27 +589,25 @@ def name_album(disc, release, srcpath, scheme, destprefix, imagemime=None, image
 		if not noact and ext != ".mp3":
                         shutil.copyfile(os.path.join(srcpath, file), entry["tmpfilename"])
 
-                track_artist = release.artist
-                if not disc.is_single_artist:
-                        track_artist = lookups.get_track_artist_for_track(track.mb_track)
+                (track_artist, track_sort_artist, track_artist_id) = get_track_artist_info(release, track.mb_track)
 
                 # Set up the tag list so that we can pass it off to the
                 # container-specific tagger function later.
                 tags = {}
                 tags[tag.TITLE] = mbtrack.title
-                tags[tag.ARTIST] = track_artist.name
+                tags[tag.ARTIST] = track_artist
                 tags[tag.ALBUM_ARTIST] = disc.artist
                 tags[tag.TRACK_NUMBER] = str(tracknum)
                 tags[tag.TRACK_TOTAL] = str(len(disc.tracks))
                 tags[tag.ALBUM] = disc.album
                 tags[tag.ALBUM_ID] = os.path.basename(release.id)
                 tags[tag.ALBUM_ARTIST_ID] = os.path.basename(release.artist.id)
-                tags[tag.ARTIST_ID] = os.path.basename(track_artist.id)
+                tags[tag.ARTIST_ID] = os.path.basename(track_artist_id)
                 tags[tag.TRACK_ID] = os.path.basename(mbtrack.id)
                 tags[tag.DATE] = disc.releasedate
                 tags[tag.YEAR] = disc.year
-                tags[tag.SORT_ARTIST] = mp3names.FixArtist(track_artist.name)
-                tags[tag.SORT_ALBUM_ARTIST] = mp3names.FixArtist(disc.artist)
+                tags[tag.SORT_ARTIST] = track_sort_artist
+                tags[tag.SORT_ALBUM_ARTIST] = disc.sortartist
 
                 if disc.discid:
                         tags[tag.DISC_ID] = disc.discid
