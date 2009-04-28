@@ -400,7 +400,6 @@ def submit_shortcut_puids(releaseid,trackinfo,releaseinfo):
 		print "No shortcut puids need submitting"
 
 def giving_up(removed_releases,fileid):
-	print "No possible releases left"
 	if removed_releases:
 		print "Possible releases:"
 		for releaseid in removed_releases:
@@ -421,6 +420,8 @@ def giving_up(removed_releases,fileid):
 				#release.tracks[tracknum-1].title
 			#print "",release.tracks[tracknum-1].id
 			print "",output_list(removed_releases[releaseid].keys())
+	else:
+		print "No possible releases left"
 
 def end_of_track(possible_releases,impossible_releases,track_generator,trackinfo,fileid):
 	# If there are no more tracks for this
