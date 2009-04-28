@@ -244,7 +244,7 @@ def main():
 		type="str",
 		action="callback",
 		callback=path_arg_cb,
-		default="",
+		default=albumidentifyconfig.config.get("renamealbum", "dest_path"),
 		metavar="PATH",
 		help="Use PATH instead of the current path for creating output directories."
 		)
@@ -300,12 +300,14 @@ def main():
 
         report("----renamealbum started----")
 
-        print "Using naming scheme: " + scheme
+        report("Using naming scheme: " + scheme)
+        if destprefix:
+                report("Using dest prefix: " + destprefix)
 
 	if noact:
 		print "Performing dry-run"
 
-	print "Source path: " + srcpath
+	report("Source path: " + srcpath)
 
 	if os.path.exists(os.path.join(srcpath, "data.toc")):
                 disc = toc.Disc(cdrdaotocfile = os.path.join(srcpath, "data.toc"))
