@@ -521,7 +521,7 @@ def name_album(disc, release, srcpath, scheme, destprefix, imagemime=None, image
 		track = disc.tracks[tracknum - 1]
 		mbtrack = track.mb_track
 
-                if mbtrack.title == "_silence_":
+                if mbtrack.title == "[silence]":
                         continue
 
                 newpath = expand_scheme(scheme, disc, track, tracknum)
