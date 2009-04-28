@@ -414,7 +414,7 @@ def giving_up(removed_releases,fileid):
 					continue
 			release = lookups.get_release_by_releaseid(releaseid)
 			print release.artist.name,"-",\
-				release.title
+				release.title,"(%s)" % releaseid
 			for trackind in range(len(release.tracks)):
 				if (trackind+1) not in removed_releases[releaseid]:
 					print "",trackind+1,release.tracks[trackind].id,release.tracks[trackind].title
