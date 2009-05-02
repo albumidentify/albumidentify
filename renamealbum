@@ -52,7 +52,7 @@ class UnknownYearException(Exception):
 		self.album=album
 
 	def __str__(self):
-		return "Unknown year for %s %s" % (repr(disc.artist),repr(disc.album))
+		return "Unknown year for %s %s" % (repr(self.artist),repr(self.album))
 
 def report(message):
         ts = datetime.datetime.now().ctime()
