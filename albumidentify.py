@@ -255,6 +255,27 @@ def clean_name(name):
 	name = re.sub(r"[^A-Za-z0-9]","",name)
 	return name.lower()
 
+def _combinations(func,doneargs,todoargs):
+	if todoargs==():
+		for ret in func(*doneargs):
+			yield ret
+		return
+	if type(todoargs[0]) not in [type(()),type([])]:
+		for ret in _combinations(func,doneargs+(todoargs[0],),todoargs[1:]):
+			yield ret
+		return
+	for arg in todoargs[0]:
+		for ret in _combinations(func,doneargs+(arg,),todoargs[1:]):
+			yield ret
+	return
+		
+
+def combinations(func,*args):
+	"""This function takes a function, and some arguments, some of which may be
+collections.  For each sequence, the function is call combinatorially"""
+	for ret in _combinations(func,(),args):
+		yield ret
+
 def generate_from_metadata(fname, num_tracks):
 	"""Return track id's by looking up the name on music brainz
 
@@ -282,7 +303,7 @@ def generate_from_metadata(fname, num_tracks):
 		return # Can't get the title/artist
 	
 	update_progress("Searching by text lookup: "+`album`+" "+`artist`)
-	for i in lookups.get_releases_by_cdtext(album, artist, num_tracks):
+	for i in combinations(lookups.get_releases_by_cdtext,album, artist, num_tracks):
 		release = lookups.get_release_by_releaseid(i.release.id)
 		update_progress("Trying "+release.title+" by text lookup")
 		for trackind in range(len(release.tracks)):
@@ -292,6 +313,8 @@ def generate_from_metadata(fname, num_tracks):
 				print "Using album based text comparison for",artist,album,"'s track",trackind+1,`rtrackname`
 				yield lookups.get_track_by_id(release.tracks[trackind].id)
 	
+def comp_name(n1,n2):
+	return cleanname(n1) == clean_name(n2)
 
 def generate_track_name_possibilities(fname, fileid, possible_releases):
 	"""Return all track ids matching the tracks.
@@ -329,7 +352,7 @@ def generate_track_name_possibilities(fname, fileid, possible_releases):
 			if trackind+1 in v:
 				continue
 
-			if clean_name(rtrackname) == clean_name(ftrackname):
+			if combinations(comp_name, rtrackname, ftrackname):
 				print "Using text based comparison for track",trackind+1,`rtrackname`
 				yield lookups.get_track_by_id(release.tracks[trackind].id)
 
@@ -402,7 +425,6 @@ def submit_shortcut_puids(releaseid,trackinfo,releaseinfo):
 		print "No shortcut puids need submitting"
 
 def giving_up(removed_releases,fileid):
-	print "No possible releases left"
 	if removed_releases:
 		print "Possible releases:"
 		for releaseid in removed_releases:
@@ -416,13 +438,15 @@ def giving_up(removed_releases,fileid):
 					continue
 			release = lookups.get_release_by_releaseid(releaseid)
 			print release.artist.name,"-",\
-				release.title
+				release.title,"(%s)" % releaseid
 			for trackind in range(len(release.tracks)):
 				if (trackind+1) not in removed_releases[releaseid]:
 					print "",trackind+1,release.tracks[trackind].id,release.tracks[trackind].title
 				#release.tracks[tracknum-1].title
 			#print "",release.tracks[tracknum-1].id
 			print "",output_list(removed_releases[releaseid].keys())
+	else:
+		print "No possible releases left"
 
 def end_of_track(possible_releases,impossible_releases,track_generator,trackinfo,fileid):
 	# If there are no more tracks for this

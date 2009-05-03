@@ -289,7 +289,7 @@ def v2_3_0(tag):
 				raise "Unknown Encoding",`tagdata[0]`
 		if tagid in data and type(data[tagid]) == type([]):
 			data[tagid].append(tagdata)
-		elif tagid in data:
+		elif tagid in data and data[tagid] != tagdata:
 			data[tagid] = [data[tagid], tagdata]
 		else:
 			data[tagid]=tagdata

@@ -92,11 +92,11 @@ def __tag_ogg(filename, tags, noact=False, image=None):
                 p.wait()
 
 def tag(filename, tags, noact=False, image=None):
-        if filename.endswith(".flac"):
+        if filename.lower().endswith(".flac"):
                 return __tag_flac(filename, tags, noact, image)
-        elif filename.endswith(".ogg"):
+        elif filename.lower().endswith(".ogg"):
                 return __tag_ogg(filename, tags, noact, image)
-        elif filename.endswith(".mp3"):
+        elif filename.lower().endswith(".mp3"):
                 # Don't bother doing anything with mp3 at the moment.
                 return
 

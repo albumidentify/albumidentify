@@ -95,6 +95,9 @@ class Disc:
 		""" Attach musicbrainz Track descriptions to each Track in this
 			Disc
 		"""
+		if mb_tracks is None:
+			raise Exception("Musicbrainz has no matching tracks")
+		assert self.tracks is not None
 		if len(self.tracks) != len(mb_tracks):
 			raise Exception("len(self.tracks) != len(mb_tracks)")
 		for i in range(len(self.tracks)):
