@@ -3,6 +3,7 @@ import sys
 import fingerprint
 import musicdns
 import os
+import subprocess
 import lookups
 import parsemp3
 import musicbrainz2
@@ -79,21 +80,22 @@ class DecodeFailed(FingerprintFailed):
 		return "Failed to decode file %s (%s)" % (repr(self.fname),self.reason)
 
 
-def decode(frommp3name, towavname):
-        if frommp3name.lower().endswith(".mp3"):
-                ret=os.spawnlp(os.P_WAIT,"mpg123","mpg123","--quiet","--wav",
-                        towavname,frommp3name)
-        elif frommp3name.lower().endswith(".flac"):
-                ret=os.spawnlp(os.P_WAIT,"flac","flac","-d", "--totally-silent", "-f", "-o", towavname,
-                        frommp3name)
-	elif frommp3name.lower().endswith(".ogg"):
-		ret=os.spawnlp(os.P_WAIT,"oggdec","oggdec","--quiet","-o",
-			towavname,frommp3name)
+def decode(fromname, towavname):
+        if fromname.lower().endswith(".mp3"):
+		args = ["mpg123","--quiet","--wav",towavname,fromname]
+        elif fromname.lower().endswith(".flac"):
+		args = ["flac","-d", "--totally-silent", "-f", "-o", towavname,fromname]
+	elif fromname.lower().endswith(".ogg"):
+		args = ["oggdec","--quiet","-o",towavname,fromname]
 	else:
-		raise DecodeFailed(frommp3name, "Don't know how to decode filename")
+		raise DecodeFailed(fromname, "Don't know how to decode filename")
 	
+	try:
+		ret = subprocess.call(args)
+	except OSError,e:
+		raise DecodeFailed(fromname, "Cannot find decoder %s" % args[0])
 	if ret != 0:
-		raise DecodeFailed(frommp3name, "Subprocess returned %d" % ret)
+		raise DecodeFailed(fromname, "Subprocess returned %d" % ret)
 
 fileinfocache = None
 
