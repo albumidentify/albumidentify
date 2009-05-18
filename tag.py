@@ -125,14 +125,27 @@ def get_mp3_tags(tags):
                 }
 
 def read_tags(filename):
-        #if filename.endswith(".flac"):
-	#        return __read_tags_flac(filename)
+        if filename.endswith(".flac"):
+	        return __read_tags_flac(filename)
+        elif filename.endswith(".mp3"):
+		return __read_tags_mp3(filename)
 	#elif filename.endswith(".ogg"):
 	#        return __read_tags_ogg(filename)
-        if filename.endswith(".mp3"):
-		return __read_tags_mp3(filename)
-
+ 
         raise Exception("Don't know how to read tags for this file type!")
+
+def __read_tags_flac(filename):
+	args = ["metaflac", "--export-tags-to=-", filename]
+	flactags = subprocess.Popen(args, stdout=subprocess.PIPE).communicate()[0]
+	inverse_flac_map = dict([(v, k) for k, v in flac_tag_map.iteritems()])
+	tags = {}
+	for line in flactags.split("\n"):
+		if line == "": break
+		k = line.split("=")[0]
+		v = line.split("=")[1]
+		if k in inverse_flac_map.keys():
+			tags[inverse_flac_map[k]] = v
+	return tags
 
 def __read_tags_mp3(filename):
 	data = parsemp3.parsemp3(filename)
