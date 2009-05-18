@@ -24,8 +24,6 @@ if [ "$#" -eq "1" ]; then
 	finish
 elif [ "$#" -eq "0" ]; then
 	begin
-	mkdir cd-$dir
-	pushd cd-$dir
 	cdrdao read-cd --with-cddb data.toc
 	cdrecord -toc > cdrecord.toc
 	eject
