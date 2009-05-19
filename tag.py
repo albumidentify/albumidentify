@@ -169,5 +169,14 @@ def __read_tags_mp3(filename):
 				tags[ARTIST_ID] = v
 			elif k == "MusicBrainz Album Id":
 				tags[ALBUM_ID] = v
-	print tags
+	if "UFID" in mp3tags:
+		if type(mp3tags["UFID"]) == type([]):
+			parts = mp3tags["UFID"]
+		else:
+			parts = [mp3tags["UFID"]]
+		for i in parts:
+			(k,v) = tuple(i.split("\0"))
+			if k == "http://musicbrainz.org":
+				tags[TRACK_ID] = v
+
 	return tags
