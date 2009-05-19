@@ -162,6 +162,32 @@ def get_musicbrainz_release(disc):
 		else:
 			report("No results from CD-TEXT lookup.")
 
+	if disc.dirname is not None:
+		report("Trying to look up release via already tagged release-id")
+		releases = {}
+                files = os.listdir(disc.dirname)
+                files.sort()
+
+                numfiles = 0
+
+                for i in files:
+                        if i[i.rfind("."):].lower() not in supported_extensions:
+                                print "Skipping non mp3/flac/ogg file",`i`
+                                continue
+                        file = os.path.join(disc.dirname, i)
+                        tags = tag.read_tags(file)
+                        if tag.ALBUM_ID in tags:
+                                relid = tags[tag.ALBUM_ID]
+                                releases[relid] = releases.get(relid, 0)+1
+                        numfiles += 1
+                if len(releases) == 1 and releases[releases.keys()[0]] == numfiles:
+                        # Every file has the same musicbrainz release id.  See if this release
+                        # has as many tracks as we have files
+                        release = lookups.get_release_by_releaseid(releases.keys()[0])
+                        if len(release.tracks) == numfiles:
+                                report("Success! - %s.html" % release.id)
+				return release
+	
         # Last resort, fingerprinting
         report("Trying fingerprint search")
         return get_release_by_fingerprints(disc)
