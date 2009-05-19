@@ -125,9 +125,9 @@ def get_mp3_tags(tags):
                 }
 
 def read_tags(filename):
-        if filename.endswith(".flac"):
+        if filename.lower().endswith(".flac"):
 	        return __read_tags_flac(filename)
-        elif filename.endswith(".mp3"):
+        elif filename.lower().endswith(".mp3"):
 		return __read_tags_mp3(filename)
 	#elif filename.endswith(".ogg"):
 	#        return __read_tags_ogg(filename)
