@@ -618,6 +618,7 @@ def name_album(disc, release, srcpath, scheme, destprefix, imagemime=None, image
 
 		if not noact and ext != ".mp3":
                         shutil.copyfile(os.path.join(srcpath, file), entry["tmpfilename"])
+                        tag.remove_tags(entry["tmpfilename"])
 
                 (track_artist, track_sort_artist, track_artist_id) = get_track_artist_info(release, track.mb_track)
 
@@ -659,7 +660,7 @@ def name_album(disc, release, srcpath, scheme, destprefix, imagemime=None, image
                 if embedcovers and imagepath:
                         image = imagepath
 
-                tag.tag(entry["tmpfilename"], tags, noact, image)
+		tag.tag(entry["tmpfilename"], tags, noact, image)
 
                 # Special case mp3.. tag.tag() won't do anything with mp3 files
                 # as we write out the tags + bitstream in one operation, so do

@@ -102,6 +102,23 @@ def tag(filename, tags, noact=False, image=None):
 
         raise Exception("Don't know how to tag this file type!")
 
+def __remove_tags_flac(filename, noact):
+	proclist = ["metaflac", "--remove", "--block-type=VORBIS_COMMENT,PICTURE", filename]
+	if not noact:
+		ret = subprocess.call(proclist)
+
+def remove_tags(filename, noact=False):
+	if filename.lower().endswith(".flac"):
+		return __remove_tags_flac(filename, noact)
+	elif filename.lower().endswith(".ogg"):
+		# Tagging Oggs uses -w (replace) so don't remove
+		return
+	elif filename.lower().endswith(".mp3"):
+		# Don't bother doing anything with mp3 at the moment.
+		return
+
+	raise Exception("Don't know how to remove tags for this file (%s)!" % filename)
+
 def get_mp3_tags(tags):
         return {
                 "TIT2" : tags[TITLE],
