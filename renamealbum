@@ -46,6 +46,10 @@ class IdentifyFailedException(Exception):
 	def __str__(self):
 		return "Couldn't find a matching release"
 
+class GainFailedException(Exception):
+	def __str__(self):
+		return "Couldn't find mp3gain"
+
 class UnknownYearException(Exception):
 	def __init__(self,artist,album):
 		self.artist=artist
@@ -464,10 +468,12 @@ def main():
                 os.unlink(imagepath)
 
         if (need_mp3_gain):
-                os.spawnlp(os.P_WAIT, "mp3gain", "mp3gain",
-                        "-a", # album gain
-                        "-c", # ignore clipping warning
-                        *destfiles)
+		args = ["mp3gain", "-a", "-c"]
+		args.extend(destfiles)
+		try:
+			ret = subprocess.call(args)
+		except OSError,e:
+			raise GainFailedException()
 
 supported_extensions = [".flac", ".ogg", ".mp3"]
 
@@ -670,7 +676,11 @@ def name_album(disc, release, srcpath, scheme, destprefix, imagemime=None, image
                         (fd,tmpmp3) = tempfile.mkstemp(suffix=".mp3")
                         os.close(fd)
                         shutil.copy(srcfilepath, tmpmp3)
-                        os.spawnlp(os.P_WAIT, "mp3gain", "mp3gain", "-u", "-q", tmpmp3)
+			args = ["mp3gain", "-u", "-q", tmpmp3]
+			try:
+				ret = subprocess.call(args)
+			except OSError,e:
+				raise GainFailedException()
                         parsed_data = parsemp3.parsemp3(tmpmp3)
                         outtags = tag.get_mp3_tags(tags)
                         outtags["bitstream"] = parsed_data["bitstream"]
