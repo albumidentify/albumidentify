@@ -30,6 +30,7 @@ import operator
 import tag
 import parsemp3
 import serialisemp3
+import replaygain
 import tempfile
 import traceback
 import datetime
@@ -45,10 +46,6 @@ srcpath=None
 class IdentifyFailedException(Exception):
 	def __str__(self):
 		return "Couldn't find a matching release"
-
-class GainFailedException(Exception):
-	def __str__(self):
-		return "Couldn't find mp3gain"
 
 class UnknownYearException(Exception):
 	def __init__(self,artist,album):
@@ -462,18 +459,14 @@ def main():
 
 	print "disc " + str(disc.number) + " of " + str(disc.totalnumber)
 
-	(srcfiles, destfiles, need_mp3_gain) = name_album(disc, release, srcpath, scheme, destprefix, imagemime, imagepath, embedcovers, noact)
+	(srcfiles, destfiles) = name_album(disc, release, srcpath, scheme, destprefix, imagemime, imagepath, embedcovers, noact)
 
         if (image_needs_unlink):
                 os.unlink(imagepath)
 
-        if (need_mp3_gain):
-		args = ["mp3gain", "-a", "-c"]
-		args.extend(destfiles)
-		try:
-			ret = subprocess.call(args)
-		except OSError,e:
-			raise GainFailedException()
+	print "Adding replaygain"
+	if not noact:
+		replaygain.add_gain(destfiles)
 
 supported_extensions = [".flac", ".ogg", ".mp3"]
 
@@ -624,6 +617,7 @@ def name_album(disc, release, srcpath, scheme, destprefix, imagemime=None, image
 
 		if not noact and ext != ".mp3":
                         shutil.copyfile(os.path.join(srcpath, file), entry["tmpfilename"])
+			replaygain.remove_gain(entry["tmpfilename"])
                         tag.remove_tags(entry["tmpfilename"])
 
                 (track_artist, track_sort_artist, track_artist_id) = get_track_artist_info(release, track.mb_track)
@@ -676,11 +670,8 @@ def name_album(disc, release, srcpath, scheme, destprefix, imagemime=None, image
                         (fd,tmpmp3) = tempfile.mkstemp(suffix=".mp3")
                         os.close(fd)
                         shutil.copy(srcfilepath, tmpmp3)
-			args = ["mp3gain", "-u", "-q", tmpmp3]
-			try:
-				ret = subprocess.call(args)
-			except OSError,e:
-				raise GainFailedException()
+			replaygain.remove_gain(tmpmp3)
+
                         parsed_data = parsemp3.parsemp3(tmpmp3)
                         outtags = tag.get_mp3_tags(tags)
                         outtags["bitstream"] = parsed_data["bitstream"]
@@ -690,7 +681,6 @@ def name_album(disc, release, srcpath, scheme, destprefix, imagemime=None, image
                                 imagefp.close()
                                 outtags["APIC"] = (imagemime,"\x03","",imagedata)
                         serialisemp3.output(entry["tmpfilename"], outtags)
-                        need_mp3_gain = True
                         os.unlink(tmpmp3)
 
                 srcfiles.append(srcfilepath)
@@ -708,13 +698,13 @@ def name_album(disc, release, srcpath, scheme, destprefix, imagemime=None, image
         elif old_total_bitrate == new_total_bitrate:
                 report("Bitrates are the same, ignoring")
                 rmrf(tmpdir)
-                return (srcfiles, destfiles, False)
+                return (srcfiles, destfiles)
         elif old_total_bitrate < new_total_bitrate:
                 report("Old bitrate lower than new bitrate, overwriting (%d / %d)" % (old_total_bitrate, new_total_bitrate))
         elif old_total_bitrate > new_total_bitrate:
                 report("Not overwriting, old bitrate higher than new (%d / %d)" % (old_total_bitrate, new_total_bitrate))
                 rmrf(tmpdir)
-                return (srcfiles, destfiles, False)
+                return (srcfiles, destfiles)
 
         # Step 3: Overwrite/create files if appropriate
         for entry in tmpfiles:
@@ -748,7 +738,7 @@ def name_album(disc, release, srcpath, scheme, destprefix, imagemime=None, image
 	#os.system("rm \"%s\" -rf" % srcpath)
 
         rmrf(tmpdir)
-        return (srcfiles, destfiles, need_mp3_gain)
+        return (srcfiles, destfiles)
 	
 
 if __name__ == "__main__":
