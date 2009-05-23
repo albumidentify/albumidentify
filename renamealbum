@@ -727,26 +727,29 @@ def name_album(disc, release, srcpath, scheme, destprefix, imagemime=None, image
 
                 srcfiles.append(srcfilepath)
 
-        # Step 2: Compare old and new bitrates
-        old_total_bitrate = 0
-        new_total_bitrate = 0
-        for entry in tmpfiles:
-                if os.path.exists(entry["destfilepath"]):
-                        old_total_bitrate += calc_average_bitrate(entry["destfilepath"])
-                new_total_bitrate += calc_average_bitrate(entry["tmpfilename"])
+	if noact:
+		print "Not calculating bitrates - in -n mode"
+	else:
+		# Step 2: Compare old and new bitrates
+		old_total_bitrate = 0
+		new_total_bitrate = 0
+		for entry in tmpfiles:
+			if os.path.exists(entry["destfilepath"]):
+				old_total_bitrate += calc_average_bitrate(entry["destfilepath"])
+			new_total_bitrate += calc_average_bitrate(entry["tmpfilename"])
 
-        if old_total_bitrate == 0:
-                report("Destination files do not exist, creating")
-        elif old_total_bitrate == new_total_bitrate:
-                report("Bitrates are the same, ignoring")
-                rmrf(tmpdir)
-                return (srcfiles, destfiles)
-        elif old_total_bitrate < new_total_bitrate:
-                report("Old bitrate lower than new bitrate, overwriting (%d / %d)" % (old_total_bitrate, new_total_bitrate))
-        elif old_total_bitrate > new_total_bitrate:
-                report("Not overwriting, old bitrate higher than new (%d / %d)" % (old_total_bitrate, new_total_bitrate))
-                rmrf(tmpdir)
-                return (srcfiles, destfiles)
+		if old_total_bitrate == 0:
+			report("Destination files do not exist, creating")
+		elif old_total_bitrate == new_total_bitrate:
+			report("Bitrates are the same, ignoring")
+			rmrf(tmpdir)
+			return (srcfiles, destfiles)
+		elif old_total_bitrate < new_total_bitrate:
+			report("Old bitrate lower than new bitrate, overwriting (%d / %d)" % (old_total_bitrate, new_total_bitrate))
+		elif old_total_bitrate > new_total_bitrate:
+			report("Not overwriting, old bitrate higher than new (%d / %d)" % (old_total_bitrate, new_total_bitrate))
+			rmrf(tmpdir)
+			return (srcfiles, destfiles)
 
         # Step 3: Overwrite/create files if appropriate
         for entry in tmpfiles:
@@ -768,16 +771,14 @@ def name_album(disc, release, srcpath, scheme, destprefix, imagemime=None, image
 
         # Move original TOC
         if disc.tocfilename:
-                report(os.path.join(srcpath, disc.tocfilename) + " -> " +  os.path.join(newdir, os.path.basename(disc.tocfilename)))
                 if not noact:
+			report(os.path.join(srcpath, disc.tocfilename) + " -> " +  os.path.join(newdir, os.path.basename(disc.tocfilename)))
                         shutil.copyfile(os.path.join(srcpath, disc.tocfilename), os.path.join(newdir, os.path.basename(disc.tocfilename)))
 
         # Move coverart
         if imagepath and not noact:
                 report(imagepath + " -> " + os.path.join(newdir, "folder.jpg"))
                 shutil.copyfile(imagepath, os.path.join(newdir, "folder.jpg"))
-
-	#os.system("rm \"%s\" -rf" % srcpath)
 
         rmrf(tmpdir)
         return (srcfiles, destfiles)
