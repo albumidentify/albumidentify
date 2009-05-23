@@ -167,12 +167,15 @@ def __read_tags_flac(filename):
 def __read_tags_mp3(filename):
 	data = parsemp3.parsemp3(filename)
 	mp3tags = data["v2"]
-	tags = {
-		TITLE: mp3tags["TIT2"],
-		ARTIST: mp3tags["TPE1"],
-		ALBUM: mp3tags["TALB"],
-		YEAR: mp3tags["TYER"]
-		}
+	tags = {}
+	if "TIT2" in mp3tags:
+		tags[TITLE] = mp3tags["TIT2"]
+	if "TPE1" in mp3tags:
+		tags[ARTIST] = mp3tags["TPE1"]
+	if "TALB" in mp3tags:
+		tags[ALBUM] = mp3tags["TALB"]
+	if "TYER" in mp3tags:
+		tags[YEAR] = mp3tags["TYER"]
 	if "TDAT" in mp3tags:
 		tags[DATE] = mp3tags["TDAT"]
 	if "TXXX" in mp3tags:
