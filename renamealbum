@@ -506,8 +506,8 @@ def renamealbum(srcpath, options):
         if (image_needs_unlink):
                 os.unlink(imagepath)
 
-	print "Adding replaygain"
-	if not options.noact:
+	if not options.noact and len(destfiles) > 0:
+		print "Adding replaygain"
 		replaygain.add_gain(destfiles)
 
 supported_extensions = [".flac", ".ogg", ".mp3"]
