@@ -29,6 +29,7 @@ unknown = 0
 too_short = 0
 webfail=0
 notdir=0
+warnings = 0
 
 for d in sys.argv[1:]:
 	total = total + 1
@@ -86,6 +87,9 @@ for d in sys.argv[1:]:
 		unknown = unknown + 1
 		failure = 1
 		log("Unknown:",d)
+	elif s.find("WARNING:") != -1:
+		warnings += 1
+		log(s, d)
 
 	if failure == 1:
 		fails = fails + 1
@@ -103,6 +107,7 @@ print "  Multi disc   : %3d" % (multi)
 print "  Lookup Fail  : %3d" % (webfail)
 print "  Unknown Fails: %3d" % (unknown)
 print "  Too short    : %3d" % (too_short)
+print "Warnings       : %3d" % (warnings)
 print "Successful     : %3d (%.02f%%)" % (success,success*100.0/total)
 print "  No ASIN      : %3d" % (no_asin)
 print "  Ambig. ASIN  : %3d" % (amb_asin)

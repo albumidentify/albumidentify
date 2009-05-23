@@ -65,9 +65,11 @@ def report(message):
         print message
 
 def write_report(reportpath):
+	global report_entries
         f = open(reportpath, "w")
         for r in report_entries:
                 f.write(r + "\n")
+	report_entries = []
         f.close()
 
 def makedirs(path):
@@ -211,7 +213,7 @@ def path_arg_cb(option, opt_str, value, parser):
 
 def main():
 	global srcpath,force_short_album
-	opts = optparse.OptionParser(usage="%s [options] <srcdir>" % sys.argv[0])
+	opts = optparse.OptionParser(usage="%s [options] <srcdir> [...]" % sys.argv[0])
 	opts.add_option(
 		"-r","--release-id",
 		dest="releaseid",
@@ -293,6 +295,7 @@ def main():
 
 	(options, args) = opts.parse_args()
 
+	"""
 	releaseid 	= options.releaseid
 	embedcovers 	= options.embedcovers
 	asin 		= options.asin
@@ -302,6 +305,7 @@ def main():
         destprefix 	= options.destprefix
 	scheme		= options.scheme
 	force_short_album=options.force_short_album
+	"""
 	albumidentify.FORCE_ORDER = options.force_order
 
 	if options.action=="scheme-help":
@@ -312,26 +316,64 @@ def main():
 		opts.print_help()
 		sys.exit(1)
 
-	srcpath = os.path.abspath(args[0])
-
-	if not os.path.exists(srcpath):
-		opts.print_help()
+	if len(args) > 1 and options.releaseid is not None:
+		print "Cannot specify a release id and more than 1 source"
 		sys.exit(2)
-	
+
         try:
-                check_scheme(scheme)
+                check_scheme(options.scheme)
         except Exception, e:
                 print "Naming scheme error: " + e.args[0]
-		print "Scheme:",repr(scheme)
+		print "Scheme:",repr(options.scheme)
                 sys.exit(1)
 
-        report("----renamealbum started----")
+	print "processing args",args
 
-        report("Using naming scheme: " + scheme)
-        if destprefix:
-                report("Using dest prefix: " + destprefix)
+	# Check all paths first
+	for path in args:
+		if not os.path.exists(os.path.abspath(path)):
+			print "%s doesn't exist!" % path
+			opts.print_help()
+			sys.exit(2)
+	
+	numargs = len(args)
+	for path in args:
+	        report("----renamealbum started----")
+		# Do this here so it gets written to all reports
+		if numargs > 1 and options.asin is not None:
+			report("WARNING: renaming more than 1 folder and specifying an ASIN")
+		if numargs > 1 and options.year is not None:
+			report("WARNING: renaming more than 1 folder and specifying a year")
+		if numargs > 1 and options.totaldiscs is not None:
+			report("WARNING: renaming more than 1 folder and specifying total discs")
+		srcpath = os.path.abspath(path)
+		try:
+			renamealbum(srcpath, options)
+		except SystemExit:
+			raise
+		# Ignore keyboard interrupts
+		except KeyboardInterrupt:
+			raise
+		except IdentifyFailedException:
+			report("fail!")
+		except:
+			(t,v,tb) = sys.exc_info()
+			report(t)
+			report(v)
+			report(traceback.format_exception(t,v,tb))
+			del tb
+			report("fail!")
+		else:
+			report("success!")
 
-	if noact:
+		write_report(os.path.join(srcpath, "report.txt"))
+
+def renamealbum(srcpath, options):
+        report("Using naming scheme: " + options.scheme)
+        if options.destprefix:
+                report("Using dest prefix: " + options.destprefix)
+
+	if options.noact:
 		print "Performing dry-run"
 
 	report("Source path: " + srcpath)
@@ -351,9 +393,9 @@ def main():
                                 disc.get_track_offsets())
                 report("Found TOC, calculated discID: " + disc.discid)
 
-	if releaseid:
-                report("Forcing releaseid: " + releaseid)
-		disc.releaseid = releaseid
+	if options.releaseid:
+                report("Forcing releaseid: " + options.releaseid)
+		disc.releaseid = options.releaseid
 	
 	release = get_musicbrainz_release(disc)
 
@@ -395,9 +437,9 @@ def main():
                 disc.sortartist = "Soundtrack"
 
 	disc.album = release.title
-	if year is not None:
-		disc.year = year
-		disc.releasedate = year
+	if options.year is not None:
+		disc.year = options.year
+		disc.releasedate = options.year
 	elif disc.releasedate is not None:
 		disc.year = disc.releasedate[0:4]
 	else:
@@ -407,8 +449,8 @@ def main():
 	disc.compilation = 0
 	disc.number = 0
 	disc.totalnumber = 0
-	if asin is not None:
-		disc.asin = asin
+	if options.asin is not None:
+		disc.asin = options.asin
 	else:
 		disc.asin = lookups.get_asin_from_release(release, prefer=".co.uk")
 			
@@ -424,12 +466,12 @@ def main():
         image_needs_unlink = False
 	if os.path.exists(os.path.join(srcpath, "folder.jpg")):
 		print "Using existing image"
-		if not noact:
+		if not options.noact:
                         imagemime="image/jpeg"
                         imagepath = os.path.join(srcpath, "folder.jpg")
 	elif imageurl is not None:
                 print "Downloading album art from %s" % imageurl
-		if not noact:
+		if not options.noact:
                         try:
                                 (fd,tmpfile) = tempfile.mkstemp(suffix = ".jpg")
                                 os.close(fd)
@@ -459,13 +501,13 @@ def main():
 
 	print "disc " + str(disc.number) + " of " + str(disc.totalnumber)
 
-	(srcfiles, destfiles) = name_album(disc, release, srcpath, scheme, destprefix, imagemime, imagepath, embedcovers, noact)
+	(srcfiles, destfiles) = name_album(disc, release, srcpath, options.scheme, options.destprefix, imagemime, imagepath, options.embedcovers, options.noact)
 
         if (image_needs_unlink):
                 os.unlink(imagepath)
 
 	print "Adding replaygain"
-	if not noact:
+	if not options.noact:
 		replaygain.add_gain(destfiles)
 
 supported_extensions = [".flac", ".ogg", ".mp3"]
@@ -742,25 +784,5 @@ def name_album(disc, release, srcpath, scheme, destprefix, imagemime=None, image
 	
 
 if __name__ == "__main__":
-        try:
-                main()
-	except SystemExit:
-		raise
-	# Ignore keyboard interrupts
-	except KeyboardInterrupt:
-		raise
-	except IdentifyFailedException:
-		report("fail!")
-        except:
-                (t,v,tb) = sys.exc_info()
-                report(t)
-                report(v)
-                report(traceback.format_exception(t,v,tb))
-                del tb
-                report("fail!")
-        else:
-                report("success!")
-
-	if srcpath is not None:
-		write_report(os.path.join(srcpath, "report.txt"))
+	main()
 	sys.exit(0)
