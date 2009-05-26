@@ -102,6 +102,23 @@ def tag(filename, tags, noact=False, image=None):
 
         raise Exception("Don't know how to tag this file type!")
 
+def __remove_tags_flac(filename, noact):
+	proclist = ["metaflac", "--remove", "--block-type=VORBIS_COMMENT,PICTURE", filename]
+	if not noact:
+		ret = subprocess.call(proclist)
+
+def remove_tags(filename, noact=False):
+	if filename.lower().endswith(".flac"):
+		return __remove_tags_flac(filename, noact)
+	elif filename.lower().endswith(".ogg"):
+		# Tagging Oggs uses -w (replace) so don't remove
+		return
+	elif filename.lower().endswith(".mp3"):
+		# Don't bother doing anything with mp3 at the moment.
+		return
+
+	raise Exception("Don't know how to remove tags for this file (%s)!" % filename)
+
 def get_mp3_tags(tags):
         return {
                 "TIT2" : tags[TITLE],
@@ -125,24 +142,40 @@ def get_mp3_tags(tags):
                 }
 
 def read_tags(filename):
-        #if filename.endswith(".flac"):
-	#        return __read_tags_flac(filename)
+        if filename.lower().endswith(".flac"):
+	        return __read_tags_flac(filename)
+        elif filename.lower().endswith(".mp3"):
+		return __read_tags_mp3(filename)
 	#elif filename.endswith(".ogg"):
 	#        return __read_tags_ogg(filename)
-        if filename.endswith(".mp3"):
-		return __read_tags_mp3(filename)
-
+ 
         raise Exception("Don't know how to read tags for this file type!")
+
+def __read_tags_flac(filename):
+	args = ["metaflac", "--export-tags-to=-", filename]
+	flactags = subprocess.Popen(args, stdout=subprocess.PIPE).communicate()[0]
+	inverse_flac_map = dict([(v, k) for k, v in flac_tag_map.iteritems()])
+	tags = {}
+	for line in flactags.split("\n"):
+		if line == "": break
+		k = line.split("=")[0]
+		v = line.split("=")[1]
+		if k in inverse_flac_map.keys():
+			tags[inverse_flac_map[k]] = v
+	return tags
 
 def __read_tags_mp3(filename):
 	data = parsemp3.parsemp3(filename)
 	mp3tags = data["v2"]
-	tags = {
-		TITLE: mp3tags["TIT2"],
-		ARTIST: mp3tags["TPE1"],
-		ALBUM: mp3tags["TALB"],
-		YEAR: mp3tags["TYER"]
-		}
+	tags = {}
+	if "TIT2" in mp3tags:
+		tags[TITLE] = mp3tags["TIT2"]
+	if "TPE1" in mp3tags:
+		tags[ARTIST] = mp3tags["TPE1"]
+	if "TALB" in mp3tags:
+		tags[ALBUM] = mp3tags["TALB"]
+	if "TYER" in mp3tags:
+		tags[YEAR] = mp3tags["TYER"]
 	if "TDAT" in mp3tags:
 		tags[DATE] = mp3tags["TDAT"]
 	if "TXXX" in mp3tags:
@@ -156,5 +189,14 @@ def __read_tags_mp3(filename):
 				tags[ARTIST_ID] = v
 			elif k == "MusicBrainz Album Id":
 				tags[ALBUM_ID] = v
-	print tags
+	if "UFID" in mp3tags:
+		if type(mp3tags["UFID"]) == type([]):
+			parts = mp3tags["UFID"]
+		else:
+			parts = [mp3tags["UFID"]]
+		for i in parts:
+			(k,v) = tuple(i.split("\0"))
+			if k == "http://musicbrainz.org":
+				tags[TRACK_ID] = v
+
 	return tags
