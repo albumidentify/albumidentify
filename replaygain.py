@@ -21,7 +21,7 @@ def remove_gain(filename):
 	try:
 		ret = subprocess.call(args)
 	except OSError,e:
-		raise GainFailedExcepion(filename, "Cannot find gain tool %s" % args[0])
+		raise GainFailedException(filename, "Cannot find gain tool %s" % args[0])
 	if ret != 0:
 		raise GainFailedException(filename, "Subprocess returned %d" % ret)
 
