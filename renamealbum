@@ -121,6 +121,29 @@ def get_release_by_fingerprints(disc):
 
         return release
 
+def submit_puids(disc, release):
+	if not albumidentifyconfig.config.getboolean("albumidentify", "push_shortcut_puids"):
+		print "Submit puids not enabled. skipping"
+		return
+	print "Looking up puids to submit..."
+	tracknames = {}
+	dirinfo = albumidentify.get_dir_info(disc.dirname)
+	dir = os.listdir(disc.dirname)
+	dir.sort()
+	tracknum = 1
+	# Assumes tracks are named in a sorted order
+	for i in dir:
+		if not (i.lower().endswith(".mp3") or i.lower().endswith(".flac") 
+				or i.lower().endswith(".ogg")):
+			print "Skipping non mp3/flac/ogg file",`i`
+			continue
+		fname=os.path.join(srcpath,i)
+		tracknames[tracknum] = fname
+		tracknum+=1
+
+	albumidentify.submit_shortcut_puids(release.id, dirinfo, tracknames)
+
+
 def get_musicbrainz_release(disc):
 	""" Given a Disc object, try a bunch of methods to look up the release in
 	musicbrainz.  If a releaseid is specified, use this, otherwise search by
@@ -128,7 +151,10 @@ def get_musicbrainz_release(disc):
 	"""
 	# If a release id has been specified, that takes precedence
 	if disc.releaseid is not None:
-		return lookups.get_release_by_releaseid(disc.releaseid)
+		release = lookups.get_release_by_releaseid(disc.releaseid)
+		# While we're at it, let's submit any puids we can
+		submit_puids(disc, release)
+		return release
 
 	# Otherwise, lookup the releaseid using the discid as a key
         if disc.discid is not None:
@@ -143,7 +169,9 @@ def get_musicbrainz_release(disc):
                 if len(results) == 1:
                         releaseid = results[0].release.id
                         report("Got release via discID")
-                        return lookups.get_release_by_releaseid(results[0].release.id)
+                        release = lookups.get_release_by_releaseid(results[0].release.id)
+			submit_puids(disc, release)
+			return release
 
 	# Otherwise, use CD-TEXT if present to guess the release
 	if disc.performer is not None and disc.title is not None:
@@ -326,8 +354,6 @@ def main():
                 print "Naming scheme error: " + e.args[0]
 		print "Scheme:",repr(options.scheme)
                 sys.exit(1)
-
-	print "processing args",args
 
 	# Check all paths first
 	for path in args:

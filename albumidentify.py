@@ -412,7 +412,7 @@ def submit_shortcut_puids(releaseid,trackinfo,releaseinfo):
 				flag=1
 			print "%02d:" % (trackind+1),puid,"->",release.tracks[trackind].title
 			puid2trackid[puid]=trackid
-		elif trackinfo[releaseinfo[trackind+1]][5] not in lookups.get_track_by_id(trackid).puids:
+		elif puid not in lookups.get_track_by_id(trackid).puids:
 			# There is a mapping of puid -> trackid, but not of trackid->puid,
 			# this almost certainly means our cache is out of date, so delete it.
 			# This just meant that searching was slower, so next time we can find this
