@@ -506,7 +506,7 @@ def parsemp3(fname):
 
 		#print "duration:",frameduration
 		#print "skipping",framelengthinbytes
-		skip=f.read(framelengthinbytes-4)
+		skip=f.read(min(framelengthinbytes-4,flength-f.tell()))
 		bitstream+=skip
 		if len(skip) != framelengthinbytes-4:
 			#errors.append("Truncated frame, missing %d bytes" % (
