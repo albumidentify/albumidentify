@@ -82,7 +82,7 @@ for d in sys.argv[1:]:
 	elif s.find("UnicodeDecodeError") != -1:
 		unknown += 1
 		failure = 1
-		log("Unicode failure")
+		log("Unknown Unicode failure")
 	elif s.find("exception") != -1 or s.find("fail!") != -1 or s.find("Traceback") != -1:
 		unknown = unknown + 1
 		failure = 1

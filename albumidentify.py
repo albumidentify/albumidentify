@@ -29,7 +29,7 @@ FORCE_ORDER=True
 def update_progress(msg):
 	if type(msg) == type(''):
 		msg = msg.decode('utf8','ignore')
-	sys.stdout.write(time.strftime("%H:%M:%S ")+msg.encode("ascii","ignore")+"\x1b[K\r")
+	sys.stdout.write(time.strftime("%H:%M:%S ")+msg.encode("ascii","ignore")+"\x1b[K\r\n")
 	sys.stdout.flush()
 
 def output_list(l):
@@ -384,16 +384,25 @@ def choose_track(possible_releases, track_generator, trackinfo):
 			return fileid
 	return fileid
 
+def all_tracks_in_order(release,trackinfo,trackmap):
+	file_ids = trackinfo.keys()
+	file_ids.sort()
+	for fileid in trackinfo:
+		found_tracknumber=lookups.track_number(release.tracks, track)
+		if found_tracknumber != file_ids.index(fileid)+1:
+			return False
+	return True
+
 def submit_shortcut_puids(releaseid,trackinfo,releaseinfo):
 	if not albumidentifyconfig.config.getboolean("albumidentify",
 		"push_shortcut_puids"):
 		print "Not submiting shortcut puids: not enabled in config"
 		return
+	release = lookups.get_release_by_releaseid(releaseid)
 	if not FORCE_ORDER:
 		print "Not submitting: No order"
 		return
 	flag=0
-	release = lookups.get_release_by_releaseid(releaseid)
 	puid2trackid={}
 	for trackind in range(len(releaseinfo)):
 		trackid = release.tracks[trackind].id
@@ -512,7 +521,6 @@ def add_new_track(release, releaseid, possible_releases, fileid, track, trackinf
 	for trackind in range(len(release.tracks)):
 		# Don't waste time on things we've already found
 		if (trackind+1) in possible_releases[releaseid]:
-			print " Already found    %02d: %s" % (trackind+1,release.tracks[trackind].title)
 			continue
 		track = lookups.get_track_by_id(release.tracks[trackind].id)
 		for fileid in trackinfo:
@@ -530,8 +538,6 @@ def add_new_track(release, releaseid, possible_releases, fileid, track, trackinf
 					possible_releases[releaseid][trackind+1]=fileid
 					print " Also found track %02d: %s" % (trackind+1,release.tracks[trackind].title)
 					break
-		else:
-			print " Couldn't find track %02d (%s)" % (trackind +1,release.tracks[trackind].title )
 	print " Found tracks: %s  Missing tracks: %s"% (
 		output_list(possible_releases[releaseid].keys()),
 		output_list(
@@ -595,7 +601,6 @@ def guess_album2(trackinfo):
 			update_progress("Considering %s" %releaseid)
 			release = lookups.get_release_by_releaseid(releaseid)
 
-			update_progress("Considering %s" %release.title)
 			# Is the track usable?
 			if not verify_track(releaseid, 
 					release, 
