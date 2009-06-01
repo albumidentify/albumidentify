@@ -491,7 +491,7 @@ def renamealbum(srcpath, options):
 	if discnumber is None:
 		disc.number = 1
 		disc.totalnumber = 1
-	elif totaldiscs is not None:
+	elif options.totaldiscs is not None:
 		disc.totalnumber = totaldiscs
 		disc.number = int(discnumber)
 	else:
