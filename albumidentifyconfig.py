@@ -12,10 +12,13 @@ def readconfig():
         config.set("renamealbum", "naming_scheme", "%(sortalbumartist)s - %(year)i - %(album)s/%(tracknumber)02i - %(trackartist)s - %(trackname)s")
         config.set("renamealbum", "dest_path", "")
 	config.read(os.path.expanduser("~/.albumidentifyrc"))
-	
+
 if __name__=="__main__":
 	readconfig()
 	for section in config.sections():
 		print "Section",section
 		for option in config.options(section):
 			print "",option,config.get(section,option)
+else:
+	# Read config if we have been imported
+	readconfig()

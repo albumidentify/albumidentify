@@ -8,11 +8,11 @@ import os
 import re
 import albumidentifyconfig
 import lookups
+import musicbrainz2.webservice as ws
+import musicbrainz2.model as model
 
 #url="http://musicbrainz.homeip.net/ws/1/track/"
 url="http://musicbrainz.org/ws/1/track/"
-
-albumidentifyconfig.readconfig()
 
 opener = None
 
@@ -98,6 +98,21 @@ def submit_puids(puid2trackid):
 	while len(puid2trackid)>0:
 		_submit_puids(dict(puid2trackid[:20]))
 		puid2trackid=puid2trackid[20:]
+
+@lookups.delayed()
+def submit_puids_mb(track2puid):
+	service = ws.WebService(
+		username=albumidentifyconfig.config.get("musicbrainz","username"),
+		password=albumidentifyconfig.config.get("musicbrainz","password"))
+	q = ws.Query(service, clientId='albumrenamer-1')
+	try:
+		q.submitPuids(track2puid)
+	except Exception, e:
+		print e
+		raise e
+	for (track,puid) in track2puid.iteritems():
+		lookups.remove_from_cache("delayed_get_tracks_by_puid",puid)
+		lookups.remove_from_cache("delayed_get_track_by_id",track)
 
 
 if __name__=="__main__":
