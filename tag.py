@@ -146,8 +146,8 @@ def read_tags(filename):
 	        return __read_tags_flac(filename)
         elif filename.lower().endswith(".mp3"):
 		return __read_tags_mp3(filename)
-	#elif filename.endswith(".ogg"):
-	#        return __read_tags_ogg(filename)
+	elif filename.endswith(".ogg"):
+	        return __read_tags_ogg(filename)
  
         raise Exception("Don't know how to read tags for this file type!")
 
@@ -163,6 +163,20 @@ def __read_tags_flac(filename):
 		if k in inverse_flac_map.keys():
 			tags[inverse_flac_map[k]] = v
 	return tags
+
+def __read_tags_ogg(filename):
+	args = ["vorbiscomment", "-l", filename]
+	oggtags = subprocess.Popen(args, stdout=subprocess.PIPE).communicate()[0]
+	inverse_flac_map = dict([(v, k) for k, v in flac_tag_map.iteritems()])
+	tags = {}
+	for line in oggtags.split("\n"):
+		if line == "": break
+		k = line.split("=")[0]
+		v = line.split("=")[1]
+		if k in inverse_flac_map.keys():
+			tags[inverse_flac_map[k]] = v
+	return tags
+
 
 def __read_tags_mp3(filename):
 	data = parsemp3.parsemp3(filename)
