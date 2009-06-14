@@ -11,6 +11,7 @@
 
 import sys
 import os
+sys.path.insert(0, os.path.expanduser("~/Projects/python-musicbrainz2-svn/src"))
 from datetime import timedelta
 import musicbrainz2.model
 import toc
@@ -727,17 +728,17 @@ def name_album(disc, release, srcpath, scheme, destprefix, imagemime=None, image
         tmpdir = tempfile.mkdtemp()
         tmpfiles = [] 
 
-	for file in files:
+        for file in files:
                 (root,ext) = os.path.splitext(file)
                 tracknum = tracknum + 1
-		track = disc.tracks[tracknum - 1]
-		mbtrack = track.mb_track
+                track = disc.tracks[tracknum - 1]
+                mbtrack = track.mb_track
 
                 if mbtrack.title == "[silence]":
                         continue
 
                 newpath = expand_scheme(scheme, release, disc, track, tracknum)
-                newpath += ext
+                newpath += ext.lower()
 
                 if destprefix != "":
                         newpath = os.path.join(destprefix, newpath)
@@ -757,9 +758,9 @@ def name_album(disc, release, srcpath, scheme, destprefix, imagemime=None, image
 
                 srcfilepath = os.path.join(srcpath, file)
 
-		if not noact and ext != ".mp3":
+                if not noact and ext != ".mp3":
                         shutil.copyfile(os.path.join(srcpath, file), entry["tmpfilename"])
-			replaygain.remove_gain(entry["tmpfilename"])
+                        replaygain.remove_gain(entry["tmpfilename"])
                         tag.remove_tags(entry["tmpfilename"])
 
                 (track_artist, track_sort_artist, track_artist_id) = get_track_artist_info(release, track.mb_track)
@@ -802,7 +803,7 @@ def name_album(disc, release, srcpath, scheme, destprefix, imagemime=None, image
                 if embedcovers and imagepath:
                         image = imagepath
 
-		tag.tag(entry["tmpfilename"], tags, noact, image)
+                tag.tag(entry["tmpfilename"], tags, noact, image)
 
                 # Special case mp3.. tag.tag() won't do anything with mp3 files
                 # as we write out the tags + bitstream in one operation, so do
@@ -812,7 +813,7 @@ def name_album(disc, release, srcpath, scheme, destprefix, imagemime=None, image
                         (fd,tmpmp3) = tempfile.mkstemp(suffix=".mp3")
                         os.close(fd)
                         shutil.copy(srcfilepath, tmpmp3)
-			replaygain.remove_gain(tmpmp3)
+                        replaygain.remove_gain(tmpmp3)
 
                         parsed_data = parsemp3.parsemp3(tmpmp3)
                         outtags = tag.get_mp3_tags(tags)
