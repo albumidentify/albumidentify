@@ -212,6 +212,7 @@ def submit_isrcs(disc, release):
 	if flag:
 		print "Submitting ISRCs to Musicbrainz"
 		puidsubmit.submit_isrcs_mb(track2isrc)
+		lookups.remove_from_cache("delayed_get_release_by_releaseid", release.id)
 	else:
 		print "No ISRCs need submitting"
 		
