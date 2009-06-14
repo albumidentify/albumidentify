@@ -114,6 +114,19 @@ def submit_puids_mb(track2puid):
 		lookups.remove_from_cache("delayed_get_tracks_by_puid",puid)
 		lookups.remove_from_cache("delayed_get_track_by_id",track)
 
+@lookups.delayed()
+def submit_isrcs_mb(track2isrc):
+	service = ws.WebService(
+		username=albumidentifyconfig.config.get("musicbrainz","username"),
+		password=albumidentifyconfig.config.get("musicbrainz","password"))
+	q = ws.Query(service, clientId='albumrenamer-1')
+	try:
+		q.submitISRCs(track2isrc)
+	except Exception, e:
+		print e
+		raise e
+	for (track,isrc) in track2isrc.iteritems():
+		lookups.remove_from_cache("delayed_get_track_by_id",track)
 
 if __name__=="__main__":
 	puid2track={}

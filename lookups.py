@@ -1,3 +1,4 @@
+import musicbrainz2 as mb
 import musicbrainz2.webservice as ws
 import musicbrainz2.model as model
 import time
@@ -14,6 +15,8 @@ startup = time.time()
 lastwsquery = {}
 
 memocache={}
+
+assert mb.__version__ == '0.6.1', "Need python-musicbrainz2 v0.6.1"
 
 # Make sure we write it out every so often
 
@@ -86,7 +89,7 @@ def get_tracks_by_puid(puid):
 def get_track_by_id(id):
 	q = ws.Query()
 	results = []
-	includes = ws.TrackIncludes(artist=True, releases=True, puids=True)
+	includes = ws.TrackIncludes(artist=True, releases=True, puids=True, isrcs=True)
 	t = q.getTrackById(id_ = id, include = includes)
 	return t
 
@@ -95,7 +98,7 @@ def get_track_by_id(id):
 def get_release_by_releaseid(releaseid):
 	""" Given a musicbrainz release-id, fetch the release from musicbrainz. """
 	q = ws.Query()
-	includes = ws.ReleaseIncludes(artist=True, counts=True, tracks=True, releaseEvents=True, urlRelations=True, releaseRelations=True)
+	includes = ws.ReleaseIncludes(artist=True, counts=True, tracks=True, releaseEvents=True, urlRelations=True, releaseRelations=True, isrcs=True)
 	return q.getReleaseById(id_ = releaseid, include=includes)
 
 @memoify

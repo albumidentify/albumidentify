@@ -131,6 +131,22 @@ def all_tracks_in_order(release,trackinfo,trackmap):
 			return False
 	return True
 
+def get_sorted_directory(dirname):
+	dir = os.listdir(dirname)
+	dir.sort()
+	tracknum = 1
+	# Assumes tracks are named in a sorted order
+	tracknames = {}
+	for i in dir:
+		if not (i.lower().endswith(".mp3") or i.lower().endswith(".flac") 
+				or i.lower().endswith(".ogg")):
+			print "Skipping non mp3/flac/ogg file",`i`
+			continue
+		fname=os.path.join(srcpath,i)
+		tracknames[tracknum] = fname
+		tracknum+=1
+	return tracknames
+
 def submit_puids(disc, release):
 	if not albumidentifyconfig.config.getboolean("albumidentify",
 		"push_shortcut_puids"):
@@ -140,20 +156,9 @@ def submit_puids(disc, release):
 		print "Not submitting: No order"
 		return
 	print "Looking up puids to submit..."
-	tracknames = {}
 	dirinfo = albumidentify.get_dir_info(disc.dirname)
-	dir = os.listdir(disc.dirname)
-	dir.sort()
-	tracknum = 1
-	# Assumes tracks are named in a sorted order
-	for i in dir:
-		if not (i.lower().endswith(".mp3") or i.lower().endswith(".flac") 
-				or i.lower().endswith(".ogg")):
-			print "Skipping non mp3/flac/ogg file",`i`
-			continue
-		fname=os.path.join(srcpath,i)
-		tracknames[tracknum] = fname
-		tracknum+=1
+
+	tracknames = get_sorted_directory(disc.dirname)
 
 	flag=False
 	track2puid={}
@@ -179,6 +184,37 @@ def submit_puids(disc, release):
 		puidsubmit.submit_puids_mb(track2puid)
 	else:
 		print "No shortcut puids need submitting"
+
+def submit_isrcs(disc, release):
+	if not albumidentifyconfig.config.getboolean("albumidentify",
+		"push_shortcut_puids"):
+		print "Not submiting shortcut isrcs: not enabled in config"
+		return
+	if not albumidentify.FORCE_ORDER:
+		print "Not submitting: No order"
+		return
+	
+	print "Looking up ISRCs to submit..."
+	tracknames = get_sorted_directory(disc.dirname)
+	track2isrc = {}
+	flag = False
+	for trackind in range(len(release.tracks)):
+		track = release.tracks[trackind]
+		trackid = track.id
+		isrc = disc.tracks[trackind].isrc
+		# These seem to be some dummy ISRCs - let's not submit them
+		if isrc is None or isrc == 'P00000000000' or isrc == '000000000000':
+			continue
+		if isrc not in track.isrcs:
+			flag = True
+			track2isrc[trackid] = isrc
+	
+	if flag:
+		print "Submitting ISRCs to Musicbrainz"
+		puidsubmit.submit_isrcs_mb(track2isrc)
+	else:
+		print "No ISRCs need submitting"
+		
 
 def get_musicbrainz_release(disc):
 	""" Given a Disc object, try a bunch of methods to look up the release in
@@ -462,8 +498,11 @@ def renamealbum(srcpath, options):
 	else:
 		# Got a release, submit puids
 		submit_puids(disc, release)
+		
+	if disc.tocfilename:
+		submit_isrcs(disc, release)
 
-        report("release id: %s.html" % release.id)
+	report("release id: %s.html" % release.id)
 
 	disc.releasetypes = release.getTypes()
 
