@@ -758,7 +758,7 @@ def name_album(disc, release, srcpath, scheme, destprefix, imagemime=None, image
 
                 srcfilepath = os.path.join(srcpath, file)
 
-                if not noact and ext != ".mp3":
+                if not noact and ext.lower() != ".mp3":
                         shutil.copyfile(os.path.join(srcpath, file), entry["tmpfilename"])
                         replaygain.remove_gain(entry["tmpfilename"])
                         tag.remove_tags(entry["tmpfilename"])
@@ -808,7 +808,7 @@ def name_album(disc, release, srcpath, scheme, destprefix, imagemime=None, image
                 # Special case mp3.. tag.tag() won't do anything with mp3 files
                 # as we write out the tags + bitstream in one operation, so do
                 # that here.
-                if ((not noact) and (ext == ".mp3")):
+                if ((not noact) and (ext.lower() == ".mp3")):
                         # Make a temp copy and undo any mp3gain
                         (fd,tmpmp3) = tempfile.mkstemp(suffix=".mp3")
                         os.close(fd)
