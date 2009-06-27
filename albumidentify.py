@@ -17,6 +17,7 @@ import re
 import sets
 import time
 import tempfile
+import sort
 
 # If set to True, this will force tracks to be found in order
 # if set to False, tracks can be found in any order (has false positives)
@@ -177,18 +178,13 @@ def score_track(albumfreq,track):
 
 def get_dir_info(dirname):
 	global fileinfocache
-	files=os.listdir(dirname)
-	files.sort()
+	files=sort.sorted_dir(dirname)
 	trackinfo={}
 	lastpuid=None
 	lastfile=None
 	albumfreq={}
 	print "Examining",dirname
 	for i in files:
-		if not (i.lower().endswith(".mp3") or i.lower().endswith(".flac") 
-				or i.lower().endswith(".ogg")):
-			print "Skipping non mp3/flac/ogg file",`i`
-			continue
 		fname=os.path.join(dirname,i)
 		trackinfo[fname]=get_file_info(fname)
 		# If this is a duplicate of the previous track, ignore it.
@@ -447,7 +443,7 @@ def verify_track(releaseid, release, possible_releases, impossible_releases,
 	if FORCE_ORDER:
 		found_tracknumber=lookups.track_number(release.tracks, track)
 		file_ids = trackinfo.keys()
-		file_ids.sort()
+		file_ids = sort.sorted_list(file_ids)
 		if found_tracknumber != file_ids.index(fileid)+1:
 			update_progress(release.title[:40]+": track at wrong position")
 			return False

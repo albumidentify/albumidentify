@@ -2,6 +2,8 @@
 import subprocess
 import parsemp3
 
+supported_extensions = [".mp3", ".ogg", ".flac"]
+
 TITLE = "TITLE"
 ARTIST = "ARTIST"
 ALBUM_ARTIST = "ALBUM_ARTIST"

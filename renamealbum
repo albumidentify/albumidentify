@@ -36,6 +36,7 @@ import traceback
 import datetime
 import optparse
 import puidsubmit
+import sort
 
 string_expandos = ["trackname", "trackartist", "album", "albumartist", "sortalbumartist", "sorttrackartist"]
 integer_expandos = ["tracknumber", "year"]
@@ -132,16 +133,11 @@ def all_tracks_in_order(release,trackinfo,trackmap):
 	return True
 
 def get_sorted_directory(dirname):
-	dir = os.listdir(dirname)
-	dir.sort()
+	files = sort.sorted_dir(dirname)
 	tracknum = 1
 	# Assumes tracks are named in a sorted order
 	tracknames = {}
-	for i in dir:
-		if not (i.lower().endswith(".mp3") or i.lower().endswith(".flac") 
-				or i.lower().endswith(".ogg")):
-			print "Skipping non mp3/flac/ogg file",`i`
-			continue
+	for i in files:
 		fname=os.path.join(srcpath,i)
 		tracknames[tracknum] = fname
 		tracknum+=1
@@ -264,15 +260,11 @@ def get_musicbrainz_release(disc):
 	if disc.dirname is not None:
 		report("Trying to look up release via already tagged release-id")
 		releases = {}
-                files = os.listdir(disc.dirname)
-                files.sort()
+                files = sort.sorted_dir(disc.dirname)
 
                 numfiles = 0
 
                 for i in files:
-                        if i[i.rfind("."):].lower() not in supported_extensions:
-                                print "Skipping non mp3/flac/ogg file",`i`
-                                continue
                         file = os.path.join(disc.dirname, i)
                         tags = tag.read_tags(file)
                         if tag.ALBUM_ID in tags:
@@ -511,13 +503,9 @@ def renamealbum(srcpath, options):
 	if disc.tracks is None:
 		disc.clear_tracks()
 		tracknum=1
-		dir = os.listdir(srcpath)
-		dir.sort()
+		
+		dir = sort.sorted_dir(dirname)
 		for i in dir:
-			if not (i.lower().endswith(".mp3") or i.lower().endswith(".flac") 
-					or i.lower().endswith(".ogg")):
-				print "Skipping non mp3/flac/ogg file",`i`
-				continue
 			fname=os.path.join(srcpath,i)
 			t = toc.Track(tracknum)
 			t.filename = fname
@@ -610,15 +598,13 @@ def renamealbum(srcpath, options):
 		print "Adding replaygain"
 		replaygain.add_gain(destfiles)
 
-supported_extensions = [".flac", ".ogg", ".mp3"]
 
 def get_file_list(disc):
         # If the tracks don't have filenames attached, just use the files in
         # the directory as if they are already in order
         files = []
         if (disc.tracks[0].filename is None):
-                files = [ x for x in os.listdir(disc.dirname) if x[x.rfind("."):] in supported_extensions ]
-                files.sort()
+		files = sort.sorted_dir(disc.dirname)
         else:
                 files = [ x.filename for x in disc.tracks ]
         return files
