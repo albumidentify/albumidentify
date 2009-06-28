@@ -47,6 +47,12 @@ class SortTest(unittest.TestCase):
 		expected = ["Artist 01 - One", "Artist 03 - Something", "Artist 12 - Else"]
 		self.assertEqual(sort.sorted_list(start), expected)
 
+	def testDirectoryWithCommonNumber(self):
+		""" Part of a directory with a common year in it """
+		start = ["/artist 2005 album/Artist 3 - Something", "/artist 2005 album/Artist 12 - Else", "/artist 2005 album/Artist 1 - One"]
+		expected = ["/artist 2005 album/Artist 1 - One", "/artist 2005 album/Artist 3 - Something", "/artist 2005 album/Artist 12 - Else"]
+		self.assertEqual(sort.sorted_list(start), expected)
+
 	def testLeadingZeroNonLeadingMix(self):
 		""" Mix of nice numbers and normal numbers """
 		start = ["12 twelve", "3 three", "02 two"]
