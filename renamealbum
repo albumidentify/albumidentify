@@ -532,6 +532,7 @@ def renamealbum(srcpath, options):
 		disc.year = disc.releasedate[0:4]
 	else:
                 report("couldn't determine year for %s - %s" % (`disc.artist`, `disc.album`))
+		lookups.remove_from_cache("delayed_get_release_by_releaseid", release.id)
 		raise UnknownYearException(disc.artist,disc.album)
 
 	disc.compilation = 0
