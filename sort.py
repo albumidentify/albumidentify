@@ -3,8 +3,11 @@
 import sys
 import os
 import operator
+import re
 
 import tag
+
+pattern = re.compile("(\D*?)(\d+)\D*")
 
 def sorted_dir(dirname):
 	dir = os.listdir(dirname)
@@ -52,20 +55,11 @@ def get_key(item):
 	""" Find the first number in a string and return it, along with
 	any non-numeric prefix in the string.
 	"""
-	key = ""
-	prefix = ""
-	number = ""
-	started = False
-	for i in item:
-		if i.isdigit():
-			started = True
-			key += i
-		elif not i.isdigit() and started:
-			break
-		elif not started:
-			prefix += i
-
-	return (prefix, key)
+	m = pattern.match(item)
+	if m is not None:
+		return m.group(1,2)
+	else:
+		return (item, "")
 
 def comparitor(a,b):
 	""" Compare 2 numbers.  Asumes both numbers are integers """
