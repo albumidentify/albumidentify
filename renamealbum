@@ -553,12 +553,7 @@ def renamealbum(srcpath, options):
         imagemime = None
         imagepath = None
         image_needs_unlink = False
-	if os.path.exists(os.path.join(srcpath, "folder.jpg")):
-		print "Using existing image"
-		if not options.noact:
-                        imagemime="image/jpeg"
-                        imagepath = os.path.join(srcpath, "folder.jpg")
-	elif imageurl is not None:
+	if imageurl is not None:
                 print "Downloading album art from %s" % imageurl
 		if not options.noact:
                         try:
@@ -574,6 +569,12 @@ def renamealbum(srcpath, options):
                                         image_needs_unlink = True
                         except:
                                 print "WARNING: Failed to retrieve coverart (%s)" % imageurl
+	elif os.path.exists(os.path.join(srcpath, "folder.jpg")):
+		print "Using existing image"
+		if not options.noact:
+                        imagemime="image/jpeg"
+                        imagepath = os.path.join(srcpath, "folder.jpg")
+
 
 	# Deal with disc x of y numbering
 	(albumname, discnumber, disctitle) = lookups.parse_album_name(disc.album)
