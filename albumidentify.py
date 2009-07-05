@@ -108,6 +108,7 @@ def open_fileinfo_cache():
 
 def populate_fingerprint_cache(fname):
 	(fd,toname)=tempfile.mkstemp(suffix=".wav")
+	os.close(fd)
 	try:
 		update_progress("Decoding "+os.path.basename(fname))
 		decode(fname,toname)
@@ -161,6 +162,7 @@ def get_file_info(fname):
 			# a few days to index new PUID's), but next time we're run hopefully we'll
 			# figure it out.
                         (fd,toname) = tempfile.mkstemp(suffix = ".wav")
+			os.close(fd)
 			decode(fname,toname)
 			print "Submitting fingerprint to MusicDNS"
 			os.system(genpuid_cmd + " " + musicdnskey + " " + toname)
