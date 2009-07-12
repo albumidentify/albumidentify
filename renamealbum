@@ -504,7 +504,7 @@ def renamealbum(srcpath, options):
 		disc.clear_tracks()
 		tracknum=1
 		
-		dir = sort.sorted_dir(dirname)
+		dir = sort.sorted_dir(disc.dirname)
 		for i in dir:
 			fname=os.path.join(srcpath,i)
 			t = toc.Track(tracknum)
