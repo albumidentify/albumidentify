@@ -395,6 +395,7 @@ def main():
 	force_short_album=options.force_short_album
 	"""
 	albumidentify.FORCE_ORDER = options.force_order
+	force_short_album = options.force_short_album
 
 	if options.action=="scheme-help":
 		scheme_help()
