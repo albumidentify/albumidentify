@@ -5,8 +5,7 @@ class GainFailedException(Exception):
 		self.reason = reason
 		self.args = args
 	def __str__(self):
-		return "%s" % (self.reason, repr(self.args))
-
+		return "%s %s" % (self.reason, repr(self.args))
 
 def remove_gain(filename):
 	if filename.lower().endswith(".mp3"):
