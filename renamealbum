@@ -520,10 +520,6 @@ def renamealbum(srcpath, options):
         if not disc.sortartist:
                 disc.sortartist = mp3names.FixArtist(disc.artist)
 
-	if musicbrainz2.model.Release.TYPE_SOUNDTRACK in disc.releasetypes:
-                disc.artist = "Soundtrack"
-                disc.sortartist = "Soundtrack"
-
 	disc.album = release.title
 	if options.year is not None:
 		disc.year = options.year
