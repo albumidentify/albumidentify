@@ -63,7 +63,6 @@ def _id3v2(f,data):
 	if "TXXX" in data:
 		for (k,v) in data["TXXX"]:
 			outp+=_texttag("TXXX",k+u"\x00"+v)
-			"""
 	if "APIC" in data:
 		# encoding, mimetype, \x00, pic type (\x03 = front cover), desc, \x00, data
 		(mimetype, pictype, desc, stream) = data["APIC"]
@@ -75,7 +74,6 @@ def _id3v2(f,data):
                 d+=desc.encode("utf8")+"\x00"
                 d+=stream
 		outp+=_tag("APIC",d)
-		"""
 	#outp+=_tag("TLEN",data["TLEN"])
 	#outp+=_tag("TLEN",str(data["TLEN"]))
 	f.write(chr(len(outp)>>21)+
