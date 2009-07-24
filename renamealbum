@@ -379,6 +379,13 @@ def main():
         	help="Help on naming schemes.",
 		default="rename",
 		)
+	opts.add_option(
+		"--override-soundtrack-name",
+		action="store_true",
+		dest="override_soundtrack_name",
+		default=albumidentifyconfig.config.getboolean("renamealbum", "override_soundtrack_name"),
+		help="If an album is classified as a Soundtrack use \"Soundtrack\" an the albumname"
+		)
 
 	(options, args) = opts.parse_args()
 
@@ -462,6 +469,9 @@ def renamealbum(srcpath, options):
 	if options.noact:
 		print "Performing dry-run"
 
+	if options.override_soundtrack_name:
+		print "Overiding Sountracks"
+
 	report("Source path: " + srcpath)
 
 	if os.path.exists(os.path.join(srcpath, "data.toc")):
@@ -519,6 +529,11 @@ def renamealbum(srcpath, options):
         disc.sortartist = release.artist.sortName
         if not disc.sortartist:
                 disc.sortartist = mp3names.FixArtist(disc.artist)
+
+	if options.override_soundtrack_name:
+		if musicbrainz2.model.Release.TYPE_SOUNDTRACK in disc.releasetypes:
+			disc.artist = "Soundtrack"
+			disc.sortartist = "Soundtrack"
 
 	disc.album = release.title
 	if options.year is not None:
