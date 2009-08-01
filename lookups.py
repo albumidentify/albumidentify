@@ -16,7 +16,7 @@ lastwsquery = {}
 
 memocache={}
 
-assert mb.__version__ == '0.7.0', "Need python-musicbrainz2 v0.7.0"
+assert map(int,mb.__version__.split(".")) >= [0,7,0], "Need python-musicbrainz2 >= v0.7.0"
 
 # Make sure we write it out every so often
 
