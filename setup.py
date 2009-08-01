@@ -9,7 +9,7 @@ setup(name="albumidentify",
         py_modules = ['albumidentify', 'albumidentifyconfig', 'amazon4', \
                       'discid', 'fingerprint', 'libofa', 'lookups', \
                       'mp3names', 'musicbrainz', 'musicdns', 'parsemp3', \
-                      'puidsubmit', 'serialisemp3', 'submit', 'tag', 'toc'],
+                      'puidsubmit', 'submit', 'tag', 'toc', 'sort'],
         scripts = ['renamealbum']
         )
         
