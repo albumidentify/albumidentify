@@ -11,7 +11,7 @@ def readconfig():
         config.set("albumidentify","musicdnskey", "")
         config.set("renamealbum", "naming_scheme", "%(sortalbumartist)s - %(year)i - %(album)s/%(tracknumber)02i - %(trackartist)s - %(trackname)s")
         config.set("renamealbum", "dest_path", "")
-        config.set("renamealbum", "override_soundtrack_name", "False")
+        config.set("renamealbum", "leave_soundtrack_artist", "False")
 	config.read(os.path.expanduser("~/.albumidentifyrc"))
 
 if __name__=="__main__":
