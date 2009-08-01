@@ -36,6 +36,10 @@ import datetime
 import optparse
 import puidsubmit
 import sort
+import socket
+
+# Catch connections timing out
+socket.setdefaulttimeout(10)
 
 string_expandos = ["trackname", "trackartist", "album", "albumartist", "sortalbumartist", "sorttrackartist"]
 integer_expandos = ["tracknumber", "year"]
