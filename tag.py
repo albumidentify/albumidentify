@@ -105,6 +105,7 @@ def __tag_mp3(filename, tags, noact=False, image=None):
 	tag.do_tdtg = False
 	tag.link(filename)
 	tag.header.setVersion(eyeD3.ID3_V2_3)
+	tag.setTextEncoding(eyeD3.frames.UTF_16_ENCODING)
 	tag.setArtist(tags[ARTIST])
 	tag.setAlbum(tags[ALBUM])
 	tag.setTitle(tags[TITLE])
@@ -127,10 +128,21 @@ def __tag_mp3(filename, tags, noact=False, image=None):
 		tag.addImage(0x03, image)
 
 	if not noact:
-		# Write 2.3 and 1.1
+		# Write 2.3
 		tag.update()
+		# Write 1.1
+		# eyed3 won't ignore encoding errors by default, so we'll re-encode them
+		#  here, and ignore any errors.
 		tag.header.setVersion(eyeD3.ID3_V1_1)
+		tag.setTextEncoding(eyeD3.frames.LATIN1_ENCODING)
+		# ouch
+		old_encoding = eyeD3.LOCAL_ENCODING
+		eyeD3.LOCAL_ENCODING="latin1"
+		tag.setArtist(tags[ARTIST].encode("latin1", "replace"))
+		tag.setAlbum(tags[ALBUM].encode("latin1", "replace"))
+		tag.setTitle(tags[TITLE].encode("latin1", "replace"))
 		tag.update()
+		eyeD3.LOCAL_ENCODING=old_encoding
 
 def tag(filename, tags, noact=False, image=None):
         if filename.lower().endswith(".flac"):
