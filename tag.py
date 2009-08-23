@@ -237,9 +237,9 @@ def __read_tags_mp3(filename):
 			if len(i.split("\0")) == 2:
 				(k,v) = tuple(i.split("\0"))
 				if k == "MusicBrainz Artist Id":
-					tags[ARTIST_ID] = v
+					tags[ARTIST_ID] = v.encode("ascii", "ignore")
 				elif k == "MusicBrainz Album Id":
-					tags[ALBUM_ID] = v
+					tags[ALBUM_ID] = v.encode("ascii", "ignore")
 	if "UFID" in mp3tags:
 		if type(mp3tags["UFID"]) == type([]):
 			parts = mp3tags["UFID"]
@@ -249,6 +249,6 @@ def __read_tags_mp3(filename):
 			if len(i.split("\0")) == 2:
 				(k,v) = tuple(i.split("\0"))
 				if k == "http://musicbrainz.org":
-					tags[TRACK_ID] = v
+					tags[TRACK_ID] = v.encode("ascii", "ignore")
 
 	return tags
