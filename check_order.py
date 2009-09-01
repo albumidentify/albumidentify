@@ -4,7 +4,8 @@ import sys
 import os
 import math
 import time
-sys.path.insert(0, os.path.expanduser("~/Projects/python-musicbrainz2-svn/src"))
+import codecs
+sys.path.insert(0, os.path.expanduser("~/Projects/python-musicbrainz2/src"))
 import tag
 import albumidentify
 import sort
@@ -13,78 +14,112 @@ import musicdns
 from musicbrainz2.webservice import WebServiceError
 
 class Logger:
-	def __init__(self, releaseid):
-		self.fp = open(os.path.expanduser("~/musicproblems"), "a")
+	def __init__(self, dirname, releaseid):
+		self.fp = codecs.open(os.path.expanduser("~/musicproblems"), "a", "utf-8")
+		self.dirname = dirname
 		self.releaseid = releaseid
 		self.written = False
 
 	def write(self, msg):
 		if not self.written:
-			print "%s.html" % self.releaseid
-			self.fp.write("\n\n%s.html\n" % self.releaseid)
+			print "%s %s.html" % (self.dirname, self.releaseid)
+			self.fp.write("\n\n%s %s.html\n" % (self.dirname, self.releaseid))
 			self.written = True
 		print msg
 		if not msg.endswith("\n"):
 			msg+= "\n"
-		self.fp.write(msg)
+			self.fp.write(msg.encode("utf-8"))
 
 	def close(self):
 		self.fp.close()
 
 
-def test(release, file, track, tracknum, l):
-	#print "file",file
-	fp, dur = albumidentify.populate_fingerprint_cache(file)
-	(trackname, artist, puid) = musicdns.lookup_fingerprint(fp, dur, albumidentify.key)
-	#print "puid",puid,"trackname",trackname,"dur",(dur/1000)
-	track = lookups.get_track_by_id(track.id)
-	#print "track len",(track.duration/1000)
-	#print "puids",track.puids
+class Check:
+	def __init__(self, dirname):
+		self.dirname = unicode(dirname, "utf-8")
 
-	puidtracks = lookups.get_tracks_by_puid(puid)
-	releaseToTrack = {}
-	for pt in puidtracks:
-		relId = pt.releases[0].id
-		if relId not in releaseToTrack:
-			releaseToTrack[relId] = [pt.id]
-		else:
-			releaseToTrack[relId].append(pt.id)
-	if release not in releaseToTrack:
-		l.write("puid http://musicbrainz.org/show/puid/?puid=%s is not on track %s.html Might just have not been submitted" % (puid, track.id))
-	elif len(releaseToTrack[release]) > 1:
-		l.write("Track %d (%s.html)" % (tracknum, track.id))
-		l.write("Puid http://musicbrainz.org/show/puid/?puid=%s" % puid)
-		l.write("    This puid links to more than 1 track on the same release")
+	def process(self):
+		print "dir",self.dirname
+		self.files = sort.sorted_dir(self.dirname)
+
+		i = 1
+		for file in self.files:
+			tags = tag.read_tags(os.path.join(self.dirname,file))
+			trck = tags[tag.TRACK_NUMBER]
+			if "/" in trck:
+				trck = trck.split("/")[0]
+			if int(trck) != i:
+				print "{0} Missing an expected track. Expected {1} but got {2}".format(dir, i, trck)
+				fp = open(os.path.expanduser("~/musicproblems"), "a")
+				fp.write("{0} Missing an expected track. Expected {1} but got {2}".format(dir, i, trck))
+				fp.close()
+				return
+			releaseid = u"http://musicbrainz.org/release/"+tags[tag.ALBUM_ID]
+			i+=1
 	
-	if track.duration is not None and math.fabs(dur/1000-track.duration/1000) > 3:
-		l.write("    Track duration and puid duration differ by >3s (track %d, puid %d)" % (track.duration/1000, dur/1000))
-		l.write("    http://musicbrainz.org/show/puid/?puid=%s" % puid)
-		l.write("    you may want to remove track %d" % tracknum)
+		self.l = Logger(self.dirname, releaseid)
 
-def process(dirname):
-	print "dir",dirname
-	files = sort.sorted_dir(dirname)
+		self.release = lookups.get_release_by_releaseid(releaseid)
+		if len(self.files) != len(self.release.tracks):
+			self.l.write("Fewer files than the release says (release: {0} files {1})".format(len(self.release.tracks), len(self.files)))
+			self.l.close()
+			return
+		
+		i=0
+		for file in self.files:
+			self.test(i, os.path.join(self.dirname, file))
+			i+=1
 
-	tags = tag.read_tags(os.path.join(dirname,files[0]))
-	releaseid = tags[tag.ALBUM_ID]
-	r = u"http://musicbrainz.org/release/"+releaseid
-	l = Logger(dirname + " " + r)
+		self.l.close()
 
-	release = lookups.get_release_by_releaseid(releaseid[0:])
-	for i in range(len(release.tracks)):
-		track = release.tracks[i]
-		file = os.path.join(dirname, files[i])
-		test(r, file, track, i+1, l)
-	l.close()
+	def test(self, tracknum, file):
+		#print "file",file
+		(trackname, artist, puid) = self.calcpuid(file)
+		self.puid = puid
+		#print "puid",puid,"trackname",trackname,"dur",(dur/1000)
+		track = lookups.get_track_by_id(self.release.tracks[tracknum].id)
+		#print "track len",(track.duration/1000)
+		#print "puids",track.puids
 
+		puidtracks = lookups.get_tracks_by_puid(puid)
+		releaseToTrack = {}
+		for pt in puidtracks:
+			relId = pt.releases[0].id
+			if relId not in releaseToTrack:
+				releaseToTrack[relId] = [pt.id]
+			else:
+				releaseToTrack[relId].append(pt.id)
+		if self.release.id not in releaseToTrack:
+			self.l.write("puid http://musicbrainz.org/show/puid/?puid=%s is not on track %s.html Might just have not been submitted" % (puid, track.id))
+		elif len(releaseToTrack[self.release.id]) > 1:
+			self.l.write("Track %d (%s.html)" % (tracknum+1, track.id))
+			self.l.write("Puid http://musicbrainz.org/show/puid/?puid=%s" % puid)
+			self.l.write("    This puid links to more than 1 track on the same release")
+			for t in releaseToTrack[self.release.id]:
+				if t != track.id:
+					self.crossref(t)
+
+	def crossref(self, trackid):
+		i=0
+		for track in self.release.tracks:
+			if trackid == track.id:
+				self.l.write("    * also on track {0} ({1})".format(i+1, track.title))
+				(trackname, artist, thispuid) = self.calcpuid(os.path.join(self.dirname, self.files[i]))
+				if self.puid != thispuid:
+					self.l.write("      - but I don't think the puid is correct - remove this track")
+					thistrack = lookups.get_track_by_id(trackid)
+					if thispuid in thistrack.puids:
+						self.l.write("        (I'm doubly sure, because the puid of this file is also in mb for the correct track)")
+			i+=1
+
+	def calcpuid(self, file):
+		fp, dur = albumidentify.populate_fingerprint_cache(file)
+		return musicdns.lookup_fingerprint(fp, dur, albumidentify.key)
+	
 if __name__ == '__main__':
 	if len(sys.argv) < 2:
 		print "usage:",sys.argv[0],"<dirs>"
 		sys.exit(1)
 	
-	for i in sys.argv[1:]:
-		try:
-			process(i)
-		except WebServiceError, e:
-			time.sleep(10)
-			process(i)
+	for dir in sys.argv[1:]:
+		Check(dir).process()
