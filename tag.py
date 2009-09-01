@@ -228,6 +228,8 @@ def __read_tags_mp3(filename):
 		tags[YEAR] = mp3tags["TYER"]
 	if "TDAT" in mp3tags:
 		tags[DATE] = mp3tags["TDAT"]
+	if "TRCK" in mp3tags:
+		tags[TRACK_NUMBER] = mp3tags["TRCK"]
 	if "TXXX" in mp3tags:
 		if type(mp3tags["TXXX"]) == type([]):
 			parts = mp3tags["TXXX"]
