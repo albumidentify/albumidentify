@@ -147,6 +147,9 @@ def get_sorted_directory(dirname):
 	return tracknames
 
 def submit_puids(disc, release):
+        if not lookups.SUBMIT_SUPPORT:
+                print "Not submitting shortcut puids: need pymusicbrainz2 > 0.7.0"
+                return
 	if not albumidentifyconfig.config.getboolean("albumidentify",
 		"push_shortcut_puids"):
 		print "Not submiting shortcut puids: not enabled in config"
@@ -185,6 +188,9 @@ def submit_puids(disc, release):
 		print "No shortcut puids need submitting"
 
 def submit_isrcs(disc, release):
+        if not lookups.SUBMIT_SUPPORT:
+                print "Not submitting shortcut isrcs: need pymusicbrainz2 > 0.7.0"
+                return
 	if not albumidentifyconfig.config.getboolean("albumidentify",
 		"push_shortcut_puids"):
 		print "Not submiting shortcut isrcs: not enabled in config"

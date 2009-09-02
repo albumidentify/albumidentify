@@ -16,7 +16,13 @@ lastwsquery = {}
 
 memocache={}
 
-assert map(int,mb.__version__.split(".")) >= [0,7,0], "Need python-musicbrainz2 >= v0.7.0"
+assert map(int,mb.__version__.split(".")) >= [0,6,0], "Need python-musicbrainz2 >= v0.6.0"
+
+SUBMIT_SUPPORT = map(int, mb.__version__.split(".")) >= [0,7,0]
+
+if SUBMIT_SUPPORT == False:
+        print "To submit PUIDs or ISRCs to the musicbrainz database you need"
+        print " python-musicbrainz2 >= v 0.7.0"
 
 # Make sure we write it out every so often
 
@@ -89,7 +95,11 @@ def get_tracks_by_puid(puid):
 def get_track_by_id(id):
 	q = ws.Query()
 	results = []
-	includes = ws.TrackIncludes(artist=True, releases=True, puids=True, isrcs=True)
+        if SUBMIT_SUPPORT:
+                includes = ws.TrackIncludes(artist=True, releases=True, puids=True, isrcs=True)
+        else:
+                includes = ws.TrackIncludes(artist=True, releases=True, puids=True)
+
 	t = q.getTrackById(id_ = id, include = includes)
 	return t
 
@@ -98,7 +108,10 @@ def get_track_by_id(id):
 def get_release_by_releaseid(releaseid):
 	""" Given a musicbrainz release-id, fetch the release from musicbrainz. """
 	q = ws.Query()
-	includes = ws.ReleaseIncludes(artist=True, counts=True, tracks=True, releaseEvents=True, urlRelations=True, releaseRelations=True, isrcs=True)
+        if SUBMIT_SUPPORT:
+                includes = ws.ReleaseIncludes(artist=True, counts=True, tracks=True, releaseEvents=True, urlRelations=True, releaseRelations=True, isrcs=True)
+        else:
+                includes = ws.ReleaseIncludes(artist=True, counts=True, tracks=True, releaseEvents=True, urlRelations=True, releaseRelations=True)
 	return q.getReleaseById(id_ = releaseid, include=includes)
 
 @memoify
