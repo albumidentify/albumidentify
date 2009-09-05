@@ -31,6 +31,7 @@ TRACK_TOTAL = "TRACKTOTAL"
 DISC_NUMBER = "DISC"
 DISC_TOTAL_NUMBER = "DISCC"
 RELEASE_TYPES = "MUSICBRAINZ_RELEASE_ATTRIBUTE"
+DISC_NAME = "DISCNAME"
 
 flac_tag_map = {
         TITLE : "TITLE",
@@ -50,6 +51,7 @@ flac_tag_map = {
         COMPILATION : "COMPILATION",
         ISRC : "ISRC",
         MCN : "MCN",
+        DISC_NAME : "DISCNAME",
 }
 
 def __gen_flac_tags(tags):

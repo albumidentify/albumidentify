@@ -732,6 +732,8 @@ def name_album(disc, release, srcpath, scheme, destprefix, imagemime=None, image
         tmpdir = tempfile.mkdtemp()
         tmpfiles = [] 
 
+        (albumname, discnumber, discname) = lookups.parse_album_name(disc.album)
+
         for file in files:
                 (root,ext) = os.path.splitext(file)
                 tracknum = tracknum + 1
@@ -788,7 +790,7 @@ def name_album(disc, release, srcpath, scheme, destprefix, imagemime=None, image
                 tags[tag.ALBUM_ARTIST] = disc.artist
                 tags[tag.TRACK_NUMBER] = str(tracknum)
                 tags[tag.TRACK_TOTAL] = str(len(disc.tracks))
-                tags[tag.ALBUM] = disc.album
+                tags[tag.ALBUM] = albumname # does not contain "(disc 1: foo)"
                 tags[tag.ALBUM_ID] = os.path.basename(release.id)
                 tags[tag.ALBUM_ARTIST_ID] = os.path.basename(release.artist.id)
                 tags[tag.ARTIST_ID] = os.path.basename(track_artist_id)
@@ -813,6 +815,8 @@ def name_album(disc, release, srcpath, scheme, destprefix, imagemime=None, image
                 if disc.totalnumber > 1:
                         tags[tag.DISC_NUMBER] = str(disc.number)
                         tags[tag.DISC_TOTAL_NUMBER] = str(disc.totalnumber)
+                if discname is not None:
+                        tags[tag.DISC_NAME] = discname
 
                 image = None
                 if embedcovers and imagepath:
