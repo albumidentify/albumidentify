@@ -28,7 +28,7 @@ class Logger:
 		print msg
 		if not msg.endswith("\n"):
 			msg+= "\n"
-			self.fp.write(msg.encode("utf-8"))
+			self.fp.write(msg)
 
 	def close(self):
 		self.fp.close()
@@ -37,6 +37,7 @@ class Logger:
 class Check:
 	def __init__(self, dirname):
 		self.dirname = unicode(dirname, "utf-8")
+		self.fileTags = []
 
 	def process(self):
 		print "dir",self.dirname
@@ -45,13 +46,15 @@ class Check:
 		i = 1
 		for file in self.files:
 			tags = tag.read_tags(os.path.join(self.dirname,file))
+			self.fileTags.append(tags)
 			trck = tags[tag.TRACK_NUMBER]
 			if "/" in trck:
 				trck = trck.split("/")[0]
-			if int(trck) != i:
-				print "{0} Missing an expected track. Expected {1} but got {2}".format(dir, i, trck)
+			trck = int(trck)
+			if trck != i:
+				print "%s Missing an expected track. Expected %d but got %d" % (dir, i, trck)
 				fp = open(os.path.expanduser("~/musicproblems"), "a")
-				fp.write("{0} Missing an expected track. Expected {1} but got {2}".format(dir, i, trck))
+				fp.write("%s Missing an expected track. Expected %d but got %d" % (dir, i, trck))
 				fp.close()
 				return
 			releaseid = u"http://musicbrainz.org/release/"+tags[tag.ALBUM_ID]
@@ -61,7 +64,7 @@ class Check:
 
 		self.release = lookups.get_release_by_releaseid(releaseid)
 		if len(self.files) != len(self.release.tracks):
-			self.l.write("Fewer files than the release says (release: {0} files {1})".format(len(self.release.tracks), len(self.files)))
+			self.l.write("Fewer files than the release says (release: %d files %d)" % (len(self.release.tracks), len(self.files)))
 			self.l.close()
 			return
 		
@@ -75,6 +78,8 @@ class Check:
 	def test(self, tracknum, file):
 		#print "file",file
 		(trackname, artist, puid) = self.calcpuid(file)
+		if puid is None:
+			return
 		self.puid = puid
 		#print "puid",puid,"trackname",trackname,"dur",(dur/1000)
 		track = lookups.get_track_by_id(self.release.tracks[tracknum].id)
@@ -98,12 +103,18 @@ class Check:
 			for t in releaseToTrack[self.release.id]:
 				if t != track.id:
 					self.crossref(t)
+		elif len(releaseToTrack[self.release.id]) == 1:
+			relTrack = os.path.basename(releaseToTrack[self.release.id][0])
+			tagTrack = self.fileTags[tracknum][tag.TRACK_ID]
+			if relTrack != tagTrack:
+				self.l.write("Track %d (%s.html)" % (tracknum+1, track.id))
+				self.l.write("    Based on the puid, this should be track %s, but it's %s" % (relTrack, tagTrack))
 
 	def crossref(self, trackid):
 		i=0
 		for track in self.release.tracks:
 			if trackid == track.id:
-				self.l.write("    * also on track {0} ({1})".format(i+1, track.title))
+				self.l.write("    * also on track %d (%s)" % (i+1, track.title))
 				(trackname, artist, thispuid) = self.calcpuid(os.path.join(self.dirname, self.files[i]))
 				if self.puid != thispuid:
 					self.l.write("      - but I don't think the puid is correct - remove this track")
