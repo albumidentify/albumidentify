@@ -200,6 +200,10 @@ def __read_tags_flac(filename):
 		v = line.split("=")[1]
 		if k in inverse_flac_map.keys():
 			tags[inverse_flac_map[k]] = v
+		elif k == "DISC":
+			tags[DISC_NUMBER] = v
+		elif k == "DISCC":
+			tags[DISC_TOTAL_NUMBER] = v
 	return tags
 
 def __read_tags_ogg(filename):
@@ -213,6 +217,10 @@ def __read_tags_ogg(filename):
 		v = line.split("=")[1]
 		if k in inverse_flac_map.keys():
 			tags[inverse_flac_map[k]] = v
+		elif k == "DISC":
+			tags[DISC_NUMBER] = v
+		elif k == "DISCC":
+			tags[DISC_TOTAL_NUMBER] = v
 	return tags
 
 
@@ -232,6 +240,13 @@ def __read_tags_mp3(filename):
 		tags[DATE] = mp3tags["TDAT"]
 	if "TRCK" in mp3tags:
 		tags[TRACK_NUMBER] = mp3tags["TRCK"]
+	if "TPOS" in mp3tags:
+		parts = mp3tags["TPOS"].split("/")
+		if len(parts) == 2:
+			tags[DISC_NUMBER] = int(parts[0])
+			tags[DISC_TOTAL_NUMBER] = int(parts[1])
+		else:
+			tags[DISC_NUMBER] = parts
 	if "TXXX" in mp3tags:
 		if type(mp3tags["TXXX"]) == type([]):
 			parts = mp3tags["TXXX"]
