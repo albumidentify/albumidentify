@@ -204,6 +204,12 @@ def get_all_releases_in_set(releaseid):
 def get_album_art_url_for_asin(asin):
 	if asin is None:
 		return None
+
+	asin = amazon4.__get_asin(asin)
+	url = "http://images.amazon.com/images/P/%s.01._SCLZZZZZZZ_.jpg" % asin
+	return url
+
+	"""
 	print "Doing an Amazon Web Services lookup for ASIN " + asin
 	try:
 		item = amazon4.search_by_asin(asin, license_key=AMAZON_LICENSE_KEY, response_group="Images")
@@ -213,6 +219,7 @@ def get_album_art_url_for_asin(asin):
 	if hasattr(item,"LargeImage"):
 		return item.LargeImage.URL
 	return None
+	"""
 
 @memoify
 def get_asin_from_release(release, prefer=None):
@@ -239,8 +246,8 @@ def get_asin_from_release(release, prefer=None):
                                 print "WARNING: Mulitple ASINs exist, but we are forcing " + prefer
                                 return asin
 	
-        print "WARNING: Ambiguous ASIN. Select an ASIN and specify it using --release-asin"
-        return None
+        print "WARNING: > 1 ASIN. I'm just going to use the first one. Use --release-asin to overwrite"
+        return asins[0]
 
 def parse_album_name(albumname):
 	""" Pull apart an album name of the form 
