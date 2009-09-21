@@ -267,7 +267,8 @@ def v2_3_0(tag):
 				pass
 			break
 		tagid=tag[:4]
-		taglen=ord(tag[4])*128*128*128+ord(tag[5])*128*128+ord(tag[6])*128+ord(tag[7])
+		#taglen=ord(tag[4])*128*128*128+ord(tag[5])*128*128+ord(tag[6])*128+ord(tag[7])
+		taglen=ord(tag[4])*256*256*256+ord(tag[5])*256*256+ord(tag[6])*256+ord(tag[7])
 		tagflag=ord(tag[8])*256+ord(tag[9])
 		tagdata=tag[10:10+taglen]
 		#print "got tagid %s, taglen is %d" % (tagid, taglen)
@@ -605,6 +606,11 @@ def validate(song):
 					
 	return errors
 
+
+def encode_keyvalue(k,v):
+	n=u"\t%s: %s" % (k.decode("ascii","replace"),v.decode("ascii","replace"))
+	return n.encode("ascii","replace")
+
 if __name__=="__main__":
 	import sys
 	try:
@@ -633,7 +639,7 @@ if __name__=="__main__":
 				print "TAG: ID3v2:"
 				for i in data["v2"]:
 					if i == "APIC":
-						print "\t%s: Picture attached" % i
+						print "\t%s: Picture attached (%d bytes)" % (i,len(data["v2"][i]))
 					elif i == "TXXX" or i == "UFID" or i == "TMCL" or i == "TIPL":
 						print "\t%s:" % i
 						infos = data["v2"][i]
@@ -647,7 +653,7 @@ if __name__=="__main__":
 					elif type(data["v2"][i])==type(u""):
 						print (u"\t%s: %s" % (i,data["v2"][i])).encode("ascii","replace")
 					else:
-						print (u"\t%s: %s" % (i,`data["v2"][i]`)).encode("ascii","replace")
+						print ("\t%s: %s" % (repr(i),repr(data["v2"][i])))
 			if data["lyrics"]!={}:
 				print "TAG: Lyrics v2:"
 				for i in data["lyrics"]:
@@ -655,7 +661,7 @@ if __name__=="__main__":
 			if data["ape"]!={}:
 				print "TAG: APEv2:"
 				for i in data["ape"]:
-					print (u"\t%s: %s" % (i,data["ape"][i])).encode("ascii","replace")
+					print encode_keyvalue(i,data["ape"][i])
 			if data["unknown"]!=[]:
 				print "Unknown data:"
 				for (offset,raw) in data["unknown"]:
