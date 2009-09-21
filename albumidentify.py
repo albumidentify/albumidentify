@@ -12,12 +12,12 @@ import pickle
 import hashlib
 import random
 import shelve
-import puidsubmit
 import albumidentifyconfig
 import re
 import sets
 import time
 import tempfile
+import sort
 
 # If set to True, this will force tracks to be found in order
 # if set to False, tracks can be found in any order (has false positives)
@@ -108,16 +108,20 @@ def open_fileinfo_cache():
 
 def populate_fingerprint_cache(fname):
 	(fd,toname)=tempfile.mkstemp(suffix=".wav")
+	os.close(fd)
 	try:
 		update_progress("Decoding "+os.path.basename(fname))
 		decode(fname,toname)
 		update_progress("Generating fingerprint")
 		(fp, dur) = fingerprint.fingerprint(toname)
+	except Exception, e:
+		print "Error creating fingerprint:",e
+		raise e
 	finally:
-		os.unlink(toname)
+		if os.path.exists(toname):
+			os.unlink(toname)
 
 	return fp, dur
-	
 
 def hash_file(fname):
 	update_progress("Hashing file")
@@ -158,6 +162,7 @@ def get_file_info(fname):
 			# a few days to index new PUID's), but next time we're run hopefully we'll
 			# figure it out.
                         (fd,toname) = tempfile.mkstemp(suffix = ".wav")
+			os.close(fd)
 			decode(fname,toname)
 			print "Submitting fingerprint to MusicDNS"
 			os.system(genpuid_cmd + " " + musicdnskey + " " + toname)
@@ -175,18 +180,13 @@ def score_track(albumfreq,track):
 
 def get_dir_info(dirname):
 	global fileinfocache
-	files=os.listdir(dirname)
-	files.sort()
+	files=sort.sorted_dir(dirname)
 	trackinfo={}
 	lastpuid=None
 	lastfile=None
 	albumfreq={}
 	print "Examining",dirname
 	for i in files:
-		if not (i.lower().endswith(".mp3") or i.lower().endswith(".flac") 
-				or i.lower().endswith(".ogg")):
-			print "Skipping non mp3/flac/ogg file",`i`
-			continue
 		fname=os.path.join(dirname,i)
 		trackinfo[fname]=get_file_info(fname)
 		# If this is a duplicate of the previous track, ignore it.
@@ -384,55 +384,6 @@ def choose_track(possible_releases, track_generator, trackinfo):
 			return fileid
 	return fileid
 
-def all_tracks_in_order(release,trackinfo,trackmap):
-	file_ids = trackinfo.keys()
-	file_ids.sort()
-	for fileid in trackinfo:
-		found_tracknumber=lookups.track_number(release.tracks, track)
-		if found_tracknumber != file_ids.index(fileid)+1:
-			return False
-	return True
-
-def submit_shortcut_puids(releaseid,trackinfo,releaseinfo):
-	if not albumidentifyconfig.config.getboolean("albumidentify",
-		"push_shortcut_puids"):
-		print "Not submiting shortcut puids: not enabled in config"
-		return
-	release = lookups.get_release_by_releaseid(releaseid)
-	if not FORCE_ORDER:
-		print "Not submitting: No order"
-		return
-	flag=0
-	puid2trackid={}
-	for trackind in range(len(releaseinfo)):
-		trackid = release.tracks[trackind].id
-		puid = trackinfo[releaseinfo[trackind+1]][5]
-		if puid == None:
-			if not flag:
-				print "Submitting shortcut puids to musicbrainz"
-				print release.artist.name,"-",release.title,":"
-				flag=1
-			print "%02d" % (trackind+1),": No PUID"
-			continue
-		elif trackid not in [t.id for t in lookups.get_tracks_by_puid(puid)]:
-			if not flag:
-				print "Submitting shortcut puids to musicbrainz"
-				print release.artist.name,"-",release.title,":"
-				flag=1
-			print "%02d:" % (trackind+1),puid,"->",release.tracks[trackind].title
-			puid2trackid[puid]=trackid
-		elif puid not in lookups.get_track_by_id(trackid).puids:
-			# There is a mapping of puid -> trackid, but not of trackid->puid,
-			# this almost certainly means our cache is out of date, so delete it.
-			# This just meant that searching was slower, so next time we can find this
-			# faster
-			lookups.remove_from_cache("delayed_get_track_by_id",trackid)
-	if flag:
-		print
-		puidsubmit.submit_puids(puid2trackid)
-	else:
-		print "No shortcut puids need submitting"
-
 def giving_up(removed_releases,fileid):
 	if removed_releases:
 		print "Possible releases:"
@@ -494,7 +445,7 @@ def verify_track(releaseid, release, possible_releases, impossible_releases,
 	if FORCE_ORDER:
 		found_tracknumber=lookups.track_number(release.tracks, track)
 		file_ids = trackinfo.keys()
-		file_ids.sort()
+		file_ids = sort.sorted_list(file_ids)
 		if found_tracknumber != file_ids.index(fileid)+1:
 			update_progress(release.title[:40]+": track at wrong position")
 			return False
@@ -623,9 +574,6 @@ def guess_album2(trackinfo):
 					and releaseid not in completed_releases:
 				print release.title,"seems ok\x1b[K"
 				print "Musicbrainz Release Id:",release.id
-				submit_shortcut_puids(releaseid,
-					trackinfo,
-					possible_releases[releaseid])
 				yield releaseid, possible_releases[releaseid]
 				completed_releases.append(releaseid)
 			

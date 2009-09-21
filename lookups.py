@@ -1,3 +1,4 @@
+import musicbrainz2 as mb
 import musicbrainz2.webservice as ws
 import musicbrainz2.model as model
 import time
@@ -14,6 +15,14 @@ startup = time.time()
 lastwsquery = {}
 
 memocache={}
+
+assert map(int,mb.__version__.split(".")) >= [0,6,0], "Need python-musicbrainz2 >= v0.6.0"
+
+SUBMIT_SUPPORT = map(int, mb.__version__.split(".")) >= [0,7,0]
+
+if SUBMIT_SUPPORT == False:
+        print "To submit PUIDs or ISRCs to the musicbrainz database you need"
+        print " python-musicbrainz2 >= v 0.7.0"
 
 # Make sure we write it out every so often
 
@@ -86,7 +95,11 @@ def get_tracks_by_puid(puid):
 def get_track_by_id(id):
 	q = ws.Query()
 	results = []
-	includes = ws.TrackIncludes(artist=True, releases=True, puids=True)
+        if SUBMIT_SUPPORT:
+                includes = ws.TrackIncludes(artist=True, releases=True, puids=True, isrcs=True)
+        else:
+                includes = ws.TrackIncludes(artist=True, releases=True, puids=True)
+
 	t = q.getTrackById(id_ = id, include = includes)
 	return t
 
@@ -95,7 +108,10 @@ def get_track_by_id(id):
 def get_release_by_releaseid(releaseid):
 	""" Given a musicbrainz release-id, fetch the release from musicbrainz. """
 	q = ws.Query()
-	includes = ws.ReleaseIncludes(artist=True, counts=True, tracks=True, releaseEvents=True, urlRelations=True, releaseRelations=True)
+        if SUBMIT_SUPPORT:
+                includes = ws.ReleaseIncludes(artist=True, counts=True, tracks=True, releaseEvents=True, urlRelations=True, releaseRelations=True, isrcs=True)
+        else:
+                includes = ws.ReleaseIncludes(artist=True, counts=True, tracks=True, releaseEvents=True, urlRelations=True, releaseRelations=True)
 	return q.getReleaseById(id_ = releaseid, include=includes)
 
 @memoify
@@ -188,6 +204,12 @@ def get_all_releases_in_set(releaseid):
 def get_album_art_url_for_asin(asin):
 	if asin is None:
 		return None
+
+	asin = amazon4.__get_asin(asin)
+	url = "http://images.amazon.com/images/P/%s.01._SCLZZZZZZZ_.jpg" % asin
+	return url
+
+	"""
 	print "Doing an Amazon Web Services lookup for ASIN " + asin
 	try:
 		item = amazon4.search_by_asin(asin, license_key=AMAZON_LICENSE_KEY, response_group="Images")
@@ -197,6 +219,7 @@ def get_album_art_url_for_asin(asin):
 	if hasattr(item,"LargeImage"):
 		return item.LargeImage.URL
 	return None
+	"""
 
 @memoify
 def get_asin_from_release(release, prefer=None):
@@ -223,8 +246,8 @@ def get_asin_from_release(release, prefer=None):
                                 print "WARNING: Mulitple ASINs exist, but we are forcing " + prefer
                                 return asin
 	
-        print "WARNING: Ambiguous ASIN. Select an ASIN and specify it using --release-asin"
-        return None
+        print "WARNING: > 1 ASIN. I'm just going to use the first one. Use --release-asin to overwrite"
+        return asins[0]
 
 def parse_album_name(albumname):
 	""" Pull apart an album name of the form 

@@ -29,12 +29,17 @@ import albumidentifyconfig
 import operator
 import tag
 import parsemp3
-import serialisemp3
 import replaygain
 import tempfile
 import traceback
 import datetime
 import optparse
+import puidsubmit
+import sort
+import socket
+
+# Catch connections timing out
+socket.setdefaulttimeout(10)
 
 string_expandos = ["trackname", "trackartist", "album", "albumartist", "sortalbumartist", "sorttrackartist"]
 integer_expandos = ["tracknumber", "year"]
@@ -121,28 +126,98 @@ def get_release_by_fingerprints(disc):
 
         return release
 
-def submit_puids(disc, release):
-	if not albumidentifyconfig.config.getboolean("albumidentify", "push_shortcut_puids"):
-		print "Submit puids not enabled. skipping"
-		return
-	print "Looking up puids to submit..."
-	tracknames = {}
-	dirinfo = albumidentify.get_dir_info(disc.dirname)
-	dir = os.listdir(disc.dirname)
-	dir.sort()
+def all_tracks_in_order(release,trackinfo,trackmap):
+	file_ids = trackinfo.keys()
+	file_ids.sort()
+	for fileid in trackinfo:
+		found_tracknumber=lookups.track_number(release.tracks, track)
+		if found_tracknumber != file_ids.index(fileid)+1:
+			return False
+	return True
+
+def get_sorted_directory(dirname):
+	files = sort.sorted_dir(dirname)
 	tracknum = 1
 	# Assumes tracks are named in a sorted order
-	for i in dir:
-		if not (i.lower().endswith(".mp3") or i.lower().endswith(".flac") 
-				or i.lower().endswith(".ogg")):
-			print "Skipping non mp3/flac/ogg file",`i`
-			continue
+	tracknames = {}
+	for i in files:
 		fname=os.path.join(srcpath,i)
 		tracknames[tracknum] = fname
 		tracknum+=1
+	return tracknames
 
-	albumidentify.submit_shortcut_puids(release.id, dirinfo, tracknames)
+def submit_puids(disc, release):
+	if not albumidentifyconfig.config.getboolean("albumidentify",
+		"push_shortcut_puids"):
+		print "Not submiting shortcut puids: not enabled in config"
+		return
+	if not albumidentify.FORCE_ORDER:
+		print "Not submitting: No order"
+		return
+	print "Looking up puids to submit..."
+	dirinfo = albumidentify.get_dir_info(disc.dirname)
 
+	tracknames = get_sorted_directory(disc.dirname)
+
+	flag=False
+	track2puid={}
+	print release.artist.name,"-",release.title,":"
+	for trackind in range(len(tracknames)):
+		trackid = release.tracks[trackind].id
+		puid = dirinfo[tracknames[trackind+1]][5]
+		if puid == None:
+			print "%02d: No PUID" % (trackind+1)
+			continue
+		elif trackid not in [t.id for t in lookups.get_tracks_by_puid(puid)]:
+			flag=True
+			print "%02d:" % (trackind+1),puid,"->",release.tracks[trackind].title
+			track2puid[trackid]=puid
+		elif puid not in lookups.get_track_by_id(trackid).puids:
+			# There is a mapping of puid -> trackid, but not of trackid->puid,
+			# this almost certainly means our cache is out of date, so delete it.
+			# This just meant that searching was slower, so next time we can find this
+			# faster
+			lookups.remove_from_cache("delayed_get_track_by_id",trackid)
+	if flag:
+		print "Submitting PUIDs to Musicbrainz"
+		puidsubmit.submit_puids_mb(track2puid)
+	else:
+		print "No shortcut puids need submitting"
+
+def submit_isrcs(disc, release):
+        if not lookups.SUBMIT_SUPPORT:
+                print "Not submitting shortcut isrcs: need pymusicbrainz2 > 0.7.0"
+                return
+	if not albumidentifyconfig.config.getboolean("albumidentify",
+		"push_shortcut_puids"):
+		print "Not submiting shortcut isrcs: not enabled in config"
+		return
+	if not albumidentify.FORCE_ORDER:
+		print "Not submitting: No order"
+		return
+	
+	print "Looking up ISRCs to submit..."
+	tracknames = get_sorted_directory(disc.dirname)
+	track2isrc = {}
+	flag = False
+	for trackind in range(len(release.tracks)):
+		track = release.tracks[trackind]
+		trackid = track.id
+		isrc = disc.tracks[trackind].isrc
+		# These seem to be some dummy ISRCs - let's not submit them
+		if isrc is None or isrc == 'P00000000000' or isrc == '000000000000':
+			continue
+		if isrc not in track.isrcs:
+			flag = True
+			track2isrc[trackid] = isrc
+	
+	if flag:
+		print "Submitting ISRCs to Musicbrainz"
+		puidsubmit.submit_isrcs_mb(track2isrc)
+		lookups.remove_from_cache("delayed_get_release_by_releaseid", release.id)
+	else:
+		print "No ISRCs need submitting"
+		
 
 def get_musicbrainz_release(disc):
 	""" Given a Disc object, try a bunch of methods to look up the release in
@@ -151,10 +226,7 @@ def get_musicbrainz_release(disc):
 	"""
 	# If a release id has been specified, that takes precedence
 	if disc.releaseid is not None:
-		release = lookups.get_release_by_releaseid(disc.releaseid)
-		# While we're at it, let's submit any puids we can
-		submit_puids(disc, release)
-		return release
+		return lookups.get_release_by_releaseid(disc.releaseid)
 
 	# Otherwise, lookup the releaseid using the discid as a key
         if disc.discid is not None:
@@ -169,9 +241,7 @@ def get_musicbrainz_release(disc):
                 if len(results) == 1:
                         releaseid = results[0].release.id
                         report("Got release via discID")
-                        release = lookups.get_release_by_releaseid(results[0].release.id)
-			submit_puids(disc, release)
-			return release
+                        return lookups.get_release_by_releaseid(results[0].release.id)
 
 	# Otherwise, use CD-TEXT if present to guess the release
 	if disc.performer is not None and disc.title is not None:
@@ -196,15 +266,11 @@ def get_musicbrainz_release(disc):
 	if disc.dirname is not None:
 		report("Trying to look up release via already tagged release-id")
 		releases = {}
-                files = os.listdir(disc.dirname)
-                files.sort()
+                files = sort.sorted_dir(disc.dirname)
 
                 numfiles = 0
 
                 for i in files:
-                        if i[i.rfind("."):].lower() not in supported_extensions:
-                                print "Skipping non mp3/flac/ogg file",`i`
-                                continue
                         file = os.path.join(disc.dirname, i)
                         tags = tag.read_tags(file)
                         if tag.ALBUM_ID in tags:
@@ -221,7 +287,7 @@ def get_musicbrainz_release(disc):
 	
         # Last resort, fingerprinting
         report("Trying fingerprint search")
-        return get_release_by_fingerprints(disc)
+	return get_release_by_fingerprints(disc)
 
 def scheme_help():
         print "Naming scheme help:"
@@ -320,6 +386,13 @@ def main():
         	help="Help on naming schemes.",
 		default="rename",
 		)
+	opts.add_option(
+		"--leave-soundtrack-artist",
+		action="store_true",
+		dest="leave_soundtrack_artist",
+		default=albumidentifyconfig.config.getboolean("renamealbum", "leave_soundtrack_artist"),
+		help="Even if an album is classified as a Soundtrack, don't use \"Soundtrack\" as the artist name."
+		)
 
 	(options, args) = opts.parse_args()
 
@@ -335,6 +408,7 @@ def main():
 	force_short_album=options.force_short_album
 	"""
 	albumidentify.FORCE_ORDER = options.force_order
+	force_short_album = options.force_short_album
 
 	if options.action=="scheme-help":
 		scheme_help()
@@ -428,8 +502,14 @@ def renamealbum(srcpath, options):
 	if release is None:
                 report("no releases found")
 		raise IdentifyFailedException()
+	else:
+		# Got a release, submit puids
+		submit_puids(disc, release)
+		
+	if disc.tocfilename:
+		submit_isrcs(disc, release)
 
-        report("release id: %s.html" % release.id)
+	report("release id: %s.html" % release.id)
 
 	disc.releasetypes = release.getTypes()
 
@@ -437,13 +517,9 @@ def renamealbum(srcpath, options):
 	if disc.tracks is None:
 		disc.clear_tracks()
 		tracknum=1
-		dir = os.listdir(srcpath)
-		dir.sort()
+		
+		dir = sort.sorted_dir(disc.dirname)
 		for i in dir:
-			if not (i.lower().endswith(".mp3") or i.lower().endswith(".flac") 
-					or i.lower().endswith(".ogg")):
-				print "Skipping non mp3/flac/ogg file",`i`
-				continue
 			fname=os.path.join(srcpath,i)
 			t = toc.Track(tracknum)
 			t.filename = fname
@@ -458,9 +534,9 @@ def renamealbum(srcpath, options):
         if not disc.sortartist:
                 disc.sortartist = mp3names.FixArtist(disc.artist)
 
-	if musicbrainz2.model.Release.TYPE_SOUNDTRACK in disc.releasetypes:
-                disc.artist = "Soundtrack"
-                disc.sortartist = "Soundtrack"
+	if musicbrainz2.model.Release.TYPE_SOUNDTRACK in disc.releasetypes and not options.leave_soundtrack_artist:
+		disc.artist = "Soundtrack"
+		disc.sortartist = "Soundtrack"
 
 	disc.album = release.title
 	if options.year is not None:
@@ -470,6 +546,7 @@ def renamealbum(srcpath, options):
 		disc.year = disc.releasedate[0:4]
 	else:
                 report("couldn't determine year for %s - %s" % (`disc.artist`, `disc.album`))
+		lookups.remove_from_cache("delayed_get_release_by_releaseid", release.id)
 		raise UnknownYearException(disc.artist,disc.album)
 
 	disc.compilation = 0
@@ -490,12 +567,7 @@ def renamealbum(srcpath, options):
         imagemime = None
         imagepath = None
         image_needs_unlink = False
-	if os.path.exists(os.path.join(srcpath, "folder.jpg")):
-		print "Using existing image"
-		if not options.noact:
-                        imagemime="image/jpeg"
-                        imagepath = os.path.join(srcpath, "folder.jpg")
-	elif imageurl is not None:
+	if imageurl is not None:
                 print "Downloading album art from %s" % imageurl
 		if not options.noact:
                         try:
@@ -511,6 +583,12 @@ def renamealbum(srcpath, options):
                                         image_needs_unlink = True
                         except:
                                 print "WARNING: Failed to retrieve coverart (%s)" % imageurl
+	elif os.path.exists(os.path.join(srcpath, "folder.jpg")):
+		print "Using existing image"
+		if not options.noact:
+                        imagemime="image/jpeg"
+                        imagepath = os.path.join(srcpath, "folder.jpg")
+
 
 	# Deal with disc x of y numbering
 	(albumname, discnumber, disctitle) = lookups.parse_album_name(disc.album)
@@ -536,15 +614,13 @@ def renamealbum(srcpath, options):
 		print "Adding replaygain"
 		replaygain.add_gain(destfiles)
 
-supported_extensions = [".flac", ".ogg", ".mp3"]
 
 def get_file_list(disc):
         # If the tracks don't have filenames attached, just use the files in
         # the directory as if they are already in order
         files = []
         if (disc.tracks[0].filename is None):
-                files = [ x for x in os.listdir(disc.dirname) if x[x.rfind("."):] in supported_extensions ]
-                files.sort()
+		files = sort.sorted_dir(disc.dirname)
         else:
                 files = [ x.filename for x in disc.tracks ]
         return files
@@ -653,17 +729,19 @@ def name_album(disc, release, srcpath, scheme, destprefix, imagemime=None, image
         tmpdir = tempfile.mkdtemp()
         tmpfiles = [] 
 
-	for file in files:
+        (albumname, discnumber, discname) = lookups.parse_album_name(disc.album)
+
+        for file in files:
                 (root,ext) = os.path.splitext(file)
                 tracknum = tracknum + 1
-		track = disc.tracks[tracknum - 1]
-		mbtrack = track.mb_track
+                track = disc.tracks[tracknum - 1]
+                mbtrack = track.mb_track
 
                 if mbtrack.title == "[silence]":
                         continue
 
                 newpath = expand_scheme(scheme, release, disc, track, tracknum)
-                newpath += ext
+                newpath += ext.lower()
 
                 if destprefix != "":
                         newpath = os.path.join(destprefix, newpath)
@@ -683,10 +761,21 @@ def name_album(disc, release, srcpath, scheme, destprefix, imagemime=None, image
 
                 srcfilepath = os.path.join(srcpath, file)
 
-		if not noact and ext != ".mp3":
+                if not noact and ext.lower() != ".mp3":
                         shutil.copyfile(os.path.join(srcpath, file), entry["tmpfilename"])
-			replaygain.remove_gain(entry["tmpfilename"])
+                        replaygain.remove_gain(entry["tmpfilename"])
                         tag.remove_tags(entry["tmpfilename"])
+                if not noact and ext.lower() == ".mp3":
+                        # Make a temp copy and undo any mp3gain
+                        (fd,tmpmp3) = tempfile.mkstemp(suffix=".mp3")
+                        os.close(fd)
+                        shutil.copy(srcfilepath, tmpmp3)
+                        replaygain.remove_gain(tmpmp3)
+                        parsed_data = parsemp3.parsemp3(tmpmp3)
+		        f=open(entry["tmpfilename"],"wb")
+			f.write(parsed_data["bitstream"])
+		        f.close()
+                        os.unlink(tmpmp3)
 
                 (track_artist, track_sort_artist, track_artist_id) = get_track_artist_info(release, track.mb_track)
 
@@ -698,7 +787,7 @@ def name_album(disc, release, srcpath, scheme, destprefix, imagemime=None, image
                 tags[tag.ALBUM_ARTIST] = disc.artist
                 tags[tag.TRACK_NUMBER] = str(tracknum)
                 tags[tag.TRACK_TOTAL] = str(len(disc.tracks))
-                tags[tag.ALBUM] = disc.album
+                tags[tag.ALBUM] = albumname # does not contain "(disc 1: foo)"
                 tags[tag.ALBUM_ID] = os.path.basename(release.id)
                 tags[tag.ALBUM_ARTIST_ID] = os.path.basename(release.artist.id)
                 tags[tag.ARTIST_ID] = os.path.basename(track_artist_id)
@@ -723,33 +812,14 @@ def name_album(disc, release, srcpath, scheme, destprefix, imagemime=None, image
                 if disc.totalnumber > 1:
                         tags[tag.DISC_NUMBER] = str(disc.number)
                         tags[tag.DISC_TOTAL_NUMBER] = str(disc.totalnumber)
+                if discname is not None:
+                        tags[tag.DISC_NAME] = discname
 
                 image = None
                 if embedcovers and imagepath:
                         image = imagepath
 
-		tag.tag(entry["tmpfilename"], tags, noact, image)
-
-                # Special case mp3.. tag.tag() won't do anything with mp3 files
-                # as we write out the tags + bitstream in one operation, so do
-                # that here.
-                if ((not noact) and (ext == ".mp3")):
-                        # Make a temp copy and undo any mp3gain
-                        (fd,tmpmp3) = tempfile.mkstemp(suffix=".mp3")
-                        os.close(fd)
-                        shutil.copy(srcfilepath, tmpmp3)
-			replaygain.remove_gain(tmpmp3)
-
-                        parsed_data = parsemp3.parsemp3(tmpmp3)
-                        outtags = tag.get_mp3_tags(tags)
-                        outtags["bitstream"] = parsed_data["bitstream"]
-                        if image:
-                                imagefp=open(image, "rb")
-                                imagedata=imagefp.read()
-                                imagefp.close()
-                                outtags["APIC"] = (imagemime,"\x03","",imagedata)
-                        serialisemp3.output(entry["tmpfilename"], outtags)
-                        os.unlink(tmpmp3)
+                tag.tag(entry["tmpfilename"], tags, noact, image)
 
                 srcfiles.append(srcfilepath)
 

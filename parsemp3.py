@@ -255,7 +255,7 @@ def v2_2_0(tag):
 			data[v2_2_0_to_v2_4_0[tagid]]=tagdata
 	return data
 
-def v2_3_0(tag):
+def v2_3_0(tag, version):
 	data={}
 	while tag:
 		if tag[0]=="\x00":
@@ -267,11 +267,13 @@ def v2_3_0(tag):
 				pass
 			break
 		tagid=tag[:4]
-		#taglen=ord(tag[4])*128*128*128+ord(tag[5])*128*128+ord(tag[6])*128+ord(tag[7])
-		taglen=ord(tag[4])*256*256*256+ord(tag[5])*256*256+ord(tag[6])*256+ord(tag[7])
+		if version == 3:
+			taglen=ord(tag[4])*256*256*256+ord(tag[5])*256*256+ord(tag[6])*256+ord(tag[7])
+		elif version == 4:
+			taglen=ord(tag[4])*128*128*128+ord(tag[5])*128*128+ord(tag[6])*128+ord(tag[7])
 		tagflag=ord(tag[8])*256+ord(tag[9])
 		tagdata=tag[10:10+taglen]
-		#print "got tagid %s, taglen is %d" % (tagid, taglen)
+		#print "got tagid %s, taglen is %d (version %s)" % (tagid, taglen, version)
 		tag=tag[10+taglen:]
 		if tagid.startswith("T"):
 			if tagdata[0]=="\x00": # latin-1
@@ -389,7 +391,7 @@ def parsemp3(fname):
 		if int(id3version)==2:
 			v2data=v2_2_0(tag)
 		elif int(id3version) in [3,4]:
-			v2data=v2_3_0(tag)
+			v2data=v2_3_0(tag, id3version)
 		else:
 			print "Unknown tag version ID3v2.",int(id3version)
 			v2data={}

@@ -5,8 +5,7 @@ class GainFailedException(Exception):
 		self.reason = reason
 		self.args = args
 	def __str__(self):
-		return "%s (%s)" % (self.reason, repr(self.args))
-
+		return "%s %s" % (self.reason, repr(self.args))
 
 def remove_gain(filename):
 	if filename.lower().endswith(".mp3"):
@@ -44,7 +43,7 @@ def add_gain(files):
 	try:
 		ret = subprocess.call(args)
 	except OSError,e:
-		raise GainFailedException("Cannot find gain tool %s" % args[0])
+		raise GainFailedException("", "Cannot find gain tool %s" % args[0])
 	if ret != 0:
-		raise GainFailedException("Subprocess returned %d" % ret)
+		raise GainFailedException("", "Subprocess returned %d" % ret)
 

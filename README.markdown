@@ -52,7 +52,7 @@ This requires the genpuid command to be installed and a musicDNS key.
 renamealbum supports custom renaming schemes, which are specified as a standard 
 Python string expansion. The default scheme is:
 
-    %(albumartist)s - %(year)i - %(album)s/%(tracknumber)i - %(trackartist)s - %(trackname)s
+	%(sortalbumartist)s - %(year)i - %(album)s/%(tracknumber)02i - %(trackartist)s - %(trackname)s
 
 See --scheme-help for a list of supported expansions.
 
