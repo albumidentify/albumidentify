@@ -7,6 +7,7 @@ import subprocess
 import os
 import shutil
 import threading
+import glob
 
 q = Queue.Queue()
 
@@ -39,8 +40,8 @@ def process_item(path):
                     "--totally-silent"
                     ]
 
-        for f in [x for x in os.listdir(src) if x.endswith(".wav")]:
-                proclist.append(os.path.join(src, f))
+        for f in glob.glob(os.path.join(src, "*.wav")):
+                proclist.append(f)
 
         p = subprocess.Popen(proclist)
         p.communicate()
@@ -49,13 +50,14 @@ def process_item(path):
 
         if (p.returncode != 0):
                 # Clean up any mess that flac left
-                for f in [x for x in os.listdir(src) if x.endswith(".flac")]:
-                        os.unlink(os.path.join(src,f))
+                for f in glob.glob(os.path.join(src, "*.wav")):
+                        os.unlink(f)
                 return
 
         # Move the resulting flacs to destdir
         os.mkdir(dst)
-        os.system("mv %s %s" % (os.path.join(src, "*.flac"), dst))
+        for f in glob.glob(os.path.join(src, "*.flac")):
+                shutil.move(f, os.path.join(dst, os.path.basename(f)))
 
         # Copy the tocfile if it exists
         tocfilename = ""
