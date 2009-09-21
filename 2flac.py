@@ -50,7 +50,7 @@ def process_item(path):
 
         if (p.returncode != 0):
                 # Clean up any mess that flac left
-                for f in glob.glob(os.path.join(src, "*.wav")):
+                for f in glob.glob(os.path.join(src, "*.flac")):
                         os.unlink(f)
                 return
 
