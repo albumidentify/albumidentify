@@ -11,13 +11,18 @@ import glob
 
 q = Queue.Queue()
 
-def process_item(path):
+def process_item(path, destdir=None, pathcheck=True):
         dir = os.path.basename(path)
         src = path
-        dst = os.path.join(options.destpath, dir)
+        dst = ""
+
+        if destdir:
+                dst = os.path.abspath(destdir)
+        else:
+                dst = os.path.join(options.destpath, dir)
 
         # If dest exists, skip
-        if os.path.exists(dst):
+        if pathcheck and os.path.exists(dst):
                 print "%s already exists" % dst
                 return
 
@@ -55,7 +60,9 @@ def process_item(path):
                 return
 
         # Move the resulting flacs to destdir
-        os.mkdir(dst)
+        if pathcheck:
+                os.mkdir(dst)
+
         for f in glob.glob(os.path.join(src, "*.flac")):
                 shutil.move(f, os.path.join(dst, os.path.basename(f)))
 
@@ -84,49 +91,50 @@ def path_arg_cb(option, opt_str, value, parser):
                 raise optparse.OptionValueError("to %s must be a directory that exists" % path)
         setattr(parser.values, option.dest, path)
 
-opts = optparse.OptionParser(usage="%s [options] <srcdirs>" % sys.argv[0])
-opts.add_option(
-        "-d", "--dest-path",
-        type="str",
-        dest="destpath",
-        default="flacs/",
-        metavar="PATH",
-        action="callback",
-        callback=path_arg_cb,
-        help="Prefix output directories with PATH"
-)
+if __name__ == "__main__":
+        opts = optparse.OptionParser(usage="%s [options] <srcdirs>" % sys.argv[0])
+        opts.add_option(
+                "-d", "--dest-path",
+                type="str",
+                dest="destpath",
+                default="flacs/",
+                metavar="PATH",
+                action="callback",
+                callback=path_arg_cb,
+                help="Prefix output directories with PATH"
+        )
 
-opts.add_option(
-        "-j",
-        type="int",
-        dest="numcpus",
-        default=1,
-        metavar="THREADS",
-        help="Spawn multipled THREADS for encoding"
-)
+        opts.add_option(
+                "-j",
+                type="int",
+                dest="numcpus",
+                default=1,
+                metavar="THREADS",
+                help="Spawn multipled THREADS for encoding"
+        )
 
-(options,args) = opts.parse_args()
+        (options,args) = opts.parse_args()
 
-# Check that src paths exist
-for path in args:
-        if not os.path.exists(os.path.abspath(path)):
-                print("%s doesn't exist!" % path)
-                opts.print_help()
-                sys.exit(1)
+        # Check that src paths exist
+        for path in args:
+                if not os.path.exists(os.path.abspath(path)):
+                        print("%s doesn't exist!" % path)
+                        opts.print_help()
+                        sys.exit(1)
 
-# Queue paths for work
-for path in args:
-        if os.path.isdir(path):
-                q.put(path)
+        # Queue paths for work
+        for path in args:
+                if os.path.isdir(path):
+                        q.put(path)
 
-# Spawn worker threads to deal with the work
-for i in range(options.numcpus):
-        t = threading.Thread(target=worker)
-        t.setDaemon(True)
-        t.start()
+        # Spawn worker threads to deal with the work
+        for i in range(options.numcpus):
+                t = threading.Thread(target=worker)
+                t.setDaemon(True)
+                t.start()
 
-# Wait until all threads have finished (queue is processed)
-q.join()
-print "All worker threads finished"
+        # Wait until all threads have finished (queue is processed)
+        q.join()
+        print "All worker threads finished"
 
 
