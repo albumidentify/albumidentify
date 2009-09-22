@@ -18,7 +18,6 @@ import discid
 import shutil
 import urllib
 import mp3names
-import subprocess
 import re
 import time
 import submit #musicbrainz_submission_url()
@@ -37,6 +36,8 @@ import optparse
 import puidsubmit
 import sort
 import socket
+import stat
+import subprocess
 
 import glob
 import toflac
@@ -51,6 +52,12 @@ force_short_album = False
 report_entries = []
 srcpath=None
 
+class CDRipFailedException(Exception):
+        def __init__(self,message):
+                self.message=message
+        def __str__(self):
+                return "CD Rip Failed: %s" % self.message
+
 class IdentifyFailedException(Exception):
 	def __str__(self):
 		return "Couldn't find a matching release"
@@ -62,6 +69,36 @@ class UnknownYearException(Exception):
 
 	def __str__(self):
 		return "Unknown year for %s %s" % (repr(self.artist),repr(self.album))
+
+def is_block_device(path):
+        statinfo = os.stat(path)
+        return stat.S_ISBLK(statinfo.st_mode)
+
+def rip_cd(device, destpath):
+        oldwd = os.getcwd()
+        os.chdir(destpath)
+
+        proclist = ["cdrdao", "read-cd", "--with-cddb", "data.toc"]
+        p = subprocess.Popen(proclist)
+        p.communicate()
+
+        if p.returncode != 0:
+                raise CDRipFailedException("cdrdao failed with returncode %i" % p.returncode)
+
+        p2 = subprocess.Popen(["cueconvert", "data.toc", "data.cue"])
+        p2.communicate()
+
+        if p2.returncode != 0:
+                raise CDRipFailedException("cueconvert failed with returncode %i" % p2.returncode)
+
+        p3 = subprocess.Popen(["bchunk", "-s", "-w", "data.bin", "data.cue", "track"])
+        p3.communicate()
+
+        if p3.returncode != 0:
+                raise CDRipFailedException("bchunk failed with returncode %i" % p3.returncode)
+
+        os.chdir(oldwd)
+        return True
 
 def report(message):
         ts = datetime.datetime.now().ctime()
@@ -458,15 +495,31 @@ def main():
 			report("WARNING: renaming more than 1 folder and specifying total discs")
 		srcpath = os.path.abspath(path)
 		try:
+                        deletepaths = []
+
+                        # Is srcpath a block device?
+                        if is_block_device(srcpath):
+                                rawpath = tempfile.mkdtemp()
+                                report("Ripping %s to %s" % (srcpath, rawpath))
+                                try:
+                                        rip_cd(srcpath, rawpath)
+                                except:
+                                        report("Ripping of %s failed" % srcpath)
+                                        rmrf(rawpath)
+                                        continue
+                                srcpath = rawpath
+                                deletepaths.append(srcpath)
+
+                        # Do we need to encode the (possibly new) srcpath?
                         origsrcpath = srcpath
                         if path_is_raw_wavs(origsrcpath):
                                 srcpath = tempfile.mkdtemp()
                                 report("Encoding to FLAC at %s. This may take some time..." % srcpath)
                                 toflac.process_item(origsrcpath, srcpath, False)
-                                renamealbum(srcpath, options)
-                                rmrf(srcpath)
-                        else:
-                                renamealbum(srcpath, options)
+                                deletepaths.append(srcpath)
+
+                        renamealbum(srcpath, options)
+
 		except SystemExit:
 			raise
 		# Ignore keyboard interrupts
@@ -484,7 +537,12 @@ def main():
 		else:
 			report("success!")
 
-		write_report(os.path.join(origsrcpath, "report.txt"))
+                for path in deletepaths:
+                        print "Cleaning up", path
+                        rmrf(path)
+
+                if os.path.exists(origsrcpath):
+                        write_report(os.path.join(origsrcpath, "report.txt"))
 
 def renamealbum(srcpath, options):
         report("Using naming scheme: " + options.scheme)
