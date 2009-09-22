@@ -26,6 +26,9 @@ This will attempt to identify the album (flac, ogg or mp3) at
 (see section "Ripping new CDs") and will copy the album to /dest/path/
 creating subdirectories underneath that.
 
+If you pass a block device as a source path, renamealbum will attempt to rip it as
+if it were an audio CD and encode it to FLAC before naming the album.
+
 ## Renaming albums (advanced) ##
 
 There are a lot of advanced options for renaming albums, and you can view a list
@@ -70,17 +73,19 @@ file, using the naming_scheme key in the renamealbum section:
 
 ### Ripping new CDs ###
 
+renamealbum can rip, encode and tag a CD in one pass. However, if you want to rip
+lots of CDs at once, it can be more efficient to do it in steps.
+
 We've included a couple of scripts to make ripping and encoding CDs a bit
 easier. These are shell scripts that rely on several binaries that will need to
 be installed through your distribution. They are:
 
 *  cdrdao
-*  cdrecord
 *  cueconvert
 *  bchunk
 *  flac
 
-To rip CDs, run the ripcd.sh command. Then use the 2flac.sh command to convert
+To rip CDs, run the ripcd.sh command. Then use the toflac.sh command to convert
 the files to flacs. The important part of this process is keeping the CD's
 Table of Contents (TOC) so that renamealbum can make a much more precise guess
 as to what the album is.
