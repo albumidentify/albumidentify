@@ -141,7 +141,10 @@ def get_file_info(fname):
 		# FP only cached, musicbrainz had nothing last time.
 		fp, dur = data
 	if not fp:
-		fp, dur = populate_fingerprint_cache(fname)
+		try:
+			fp, dur = populate_fingerprint_cache(fname)
+		except:
+			return (fname,None,None,None,[],None)
 		fileinfocache[fhash]=(fp, dur)
 
 	update_progress("Looking up PUID")
