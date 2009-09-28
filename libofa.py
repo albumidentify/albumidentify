@@ -6,7 +6,10 @@
 
 from ctypes import *
 
-__libofa = CDLL("libofa.so.0")
+try:
+	__libofa = CDLL("libofa.so.0")
+except:
+	__libofa = CDLL("libofa.dll")
 
 __create_print = __libofa.ofa_create_print
 __create_print.argtypes = [c_char_p, c_int, c_long, c_int, c_int]
