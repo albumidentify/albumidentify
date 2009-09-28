@@ -5,7 +5,10 @@
 # (C) 2008 Scott Raynel <scottraynel@gmail.com>
 #
 
-import libofa
+try:
+	import libofa
+except:
+	pass
 import wave
 
 def fingerprint_wave(file):
@@ -42,6 +45,8 @@ def fingerprint_wave(file):
 	return (fprint, ms)
 
 def fingerprint(filename):
+	if "libofa" not in globals():
+		raise Exception("Fingerprinting not supported")
 	if filename.endswith(".wav"):
 		result = fingerprint_wave(filename)
 	else:
