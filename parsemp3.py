@@ -1,4 +1,5 @@
 #!/usr/bin/python 
+import StringIO
 
 versiontbl = [ 2.5, 0, 2, 1 ]
 layertbl = [ 0, 3, 2, 1 ]
@@ -324,7 +325,10 @@ def apev2(ape):
 	return data
 
 def parsemp3(fname):
-	f=open(fname,"rb")
+	fin=open(fname,"rb")
+	contents = fin.read()
+	fin.close()
+	f = StringIO.StringIO(contents)
 
 	# Decode the ID3v1
 	f.seek(-128,2)
