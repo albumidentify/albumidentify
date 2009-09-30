@@ -32,15 +32,21 @@ def _assure_memocache_open(name):
 			os.mkdir(os.path.expanduser("~/.mbcache/"))
 		memocache[name]=shelve.open(os.path.expanduser("~/.mbcache/"+name),"c")
 
-def memoify(func):
-	def memoify(*args,**kwargs):
-		_assure_memocache_open(func.__name__)
-		key=pickle.dumps((args,kwargs))
-		if key not in memocache[func.__name__]:
-			memocache[func.__name__][key]=func(*args,**kwargs)
-			memocache[func.__name__].sync()
+# This is a function, that returns a decorator, that returns a function,
+# that caches the return value from a forth function.
+def memoify(mappingfunc=lambda a,b:(a,b), cacheok=lambda arg,kwargs,ret:True)
+	def memoify(func):
+		def memoify(*args,**kwargs):
+			_assure_memocache_open(func.__name__)
+			key=pickle.dumps(mappingfunc(args,kwargs))
+			if key not in memocache[func.__name__]:
+				ret=func(*args,**kwargs)
+				if cacheok(args,kwargs,ret):
+					memocache[func.__name__][key]=ret
+					memocache[func.__name__].sync()
 
-		return memocache[func.__name__][key]
+			return ret
+		return memoify
 	return memoify
 
 def remove_from_cache(funcname,*args,**kwargs):
@@ -77,7 +83,7 @@ def delayed(webservice="default"):
 		return delay
 	return delayed2
 	
-@memoify
+@memoify()
 @delayed()
 def get_tracks_by_puid(puid):
 	""" Lookup a list of musicbrainz tracks by PUID. Returns a list of Track
@@ -90,7 +96,7 @@ def get_tracks_by_puid(puid):
 		results.append(r.getTrack())
 	return results
 
-@memoify
+@memoify()
 @delayed()
 def get_track_by_id(id):
 	q = ws.Query()
@@ -103,7 +109,7 @@ def get_track_by_id(id):
 	t = q.getTrackById(id_ = id, include = includes)
 	return t
 
-@memoify
+@memoify()
 @delayed()
 def get_release_by_releaseid(releaseid):
 	""" Given a musicbrainz release-id, fetch the release from musicbrainz. """
@@ -114,7 +120,7 @@ def get_release_by_releaseid(releaseid):
                 includes = ws.ReleaseIncludes(artist=True, counts=True, tracks=True, releaseEvents=True, urlRelations=True, releaseRelations=True)
 	return q.getReleaseById(id_ = releaseid, include=includes)
 
-@memoify
+@memoify()
 @delayed()
 def get_releases_by_cdtext(title, performer, num_tracks):
 	""" Given the performer, title and number of tracks on a disc,
@@ -129,7 +135,7 @@ def get_releases_by_cdtext(title, performer, num_tracks):
 	# Disc.
         return [r for r in rels if len(get_release_by_releaseid(r.release.id).getTracks()) == num_tracks]
 
-@memoify
+@memoify()
 @delayed()
 def get_releases_by_discid(discid):
         """ Given a musicbrainz disc-id, fetch a list of possible releases. """
@@ -147,7 +153,7 @@ def track_number(tracks, track):
 		tracknum += 1
 	return -1
 
-@memoify
+@memoify()
 @delayed()
 def get_track_artist_for_track(track):
 	""" Returns the musicbrainz Artist object for the given track. This may
@@ -200,7 +206,7 @@ def get_all_releases_in_set(releaseid):
 
         return releases
 
-@memoify
+@memoify()
 def get_album_art_url_for_asin(asin):
 	if asin is None:
 		return None
@@ -221,7 +227,7 @@ def get_album_art_url_for_asin(asin):
 	return None
 	"""
 
-@memoify
+@memoify()
 def get_asin_from_release(release, prefer=None):
 	# The ASIN specified in release.asin isn't necessarily the only ASIN
 	# for the release. Sigh. So, we need to look at the release's relations
