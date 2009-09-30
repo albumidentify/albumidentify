@@ -185,7 +185,7 @@ def get_dir_info(dirname):
 # We want to choose a track that's more likely to give us a result.  For
 # For example, if we have a track that appears in several nearly complete
 # albums, we probably don't need to expand it that frequently (but we still
-# should occasionally).
+# should occasionally to prevent exploring deadends).
 def choose_track(possible_releases, track_generator, trackinfo):
 	track_prob={}
 	for fileid in trackinfo:
@@ -209,28 +209,34 @@ def choose_track(possible_releases, track_generator, trackinfo):
 	return fileid
 
 def giving_up(removed_releases,fileid):
-	if removed_releases:
-		print "Possible releases:"
-		for releaseid in removed_releases:
-			# If this release only has one track that we found,
-			# and we have other possible releases, ignore this one.
-			#
-			# TODO: Actually, we should just display the top 2
-			#  releases, by number of tracks found on it.
-			if len(removed_releases[releaseid])<2 \
-				and len(removed_releases)>1:
-					continue
-			release = lookups.get_release_by_releaseid(releaseid)
-			print release.artist.name,"-",\
-				release.title,"(%s)" % releaseid
-			for trackind in range(len(release.tracks)):
-				if (trackind+1) not in removed_releases[releaseid]:
-					print "",trackind+1,release.tracks[trackind].id,release.tracks[trackind].title
-				#release.tracks[tracknum-1].title
-			#print "",release.tracks[tracknum-1].id
-			print "",output_list(removed_releases[releaseid].keys())
-	else:
+	if not removed_releases:
 		print "No possible releases left"
+		return
+	print "Possible releases:"
+	for releaseid in removed_releases:
+		# If this release only has one track that we found,
+		# and we have other possible releases, ignore this one.
+		#
+		# TODO: Actually, we should just display the top 2
+		#  releases, by number of tracks found on it.
+		if len(removed_releases[releaseid])<2 \
+			and len(removed_releases)>1:
+				continue
+		release = lookups.get_release_by_releaseid(releaseid)
+		print "%s - %s (%s)" % (
+			release.artist.name,
+			release.title,
+			releaseid)
+		for trackind in range(len(release.tracks)):
+			if (trackind+1) in removed_releases[releaseid]:
+				continue
+			print " #%02d %s %s" % (
+				trackind+1,
+				release.tracks[trackind].id,
+				release.tracks[trackind].title)
+		print " %s" % (
+			util.output_list(removed_releases[releaseid].keys())
+			)
 
 def end_of_track(possible_releases,impossible_releases,track_generator,trackinfo,fileid):
 	# If there are no more tracks for this
