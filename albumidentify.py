@@ -144,7 +144,10 @@ def get_file_info(fname):
 	return data
 
 def score_track(albumfreq,track):
-	return reduce(lambda a,b:a+b, [albumfreq[release.id] for release in track.releases])
+	"Returns the total number of albums this release is on that other
+tracks are on"
+	return reduce(lambda a,b:a+b, 
+		[albumfreq[release.id] for release in track.releases])
 
 def get_dir_info(dirname):
 	global fileinfocache
