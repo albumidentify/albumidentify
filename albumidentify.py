@@ -9,9 +9,7 @@ import musicbrainz2
 import itertools
 import hashlib
 import random
-import shelve
 import albumidentifyconfig
-import tempfile
 import sort
 import util
 
@@ -29,91 +27,21 @@ FORCE_ORDER=True
 
 key = 'a7f6063296c0f1c9b75c7f511861b89b'
 
-class FingerprintFailed(Exception):
-	def __init__(self,fname):
-		self.fname = fname
-
-	def __str__(self):
-		return "Failed to fingerprint track %s" % repr(self.fname)
-
-class DecodeFailed(FingerprintFailed):
-	def __init__(self,fname,reason):
-		self.fname = fname
-		self.reason = reason
-
-	def __str__(self):
-		return "Failed to decode file %s (%s)" % (repr(self.fname),self.reason)
-
-
-def decode(fromname, towavname):
-        if fromname.lower().endswith(".mp3"):
-		args = ["mpg123","--quiet","--wav",towavname,fromname]
-        elif fromname.lower().endswith(".flac"):
-		args = ["flac","-d", "--totally-silent", "-f", "-o", towavname,fromname]
-	elif fromname.lower().endswith(".ogg"):
-		args = ["oggdec","--quiet","-o",towavname,fromname]
-	else:
-		raise DecodeFailed(fromname, "Don't know how to decode filename")
-	
-	try:
-		ret = subprocess.call(args)
-	except OSError,e:
-		raise DecodeFailed(fromname, "Cannot find decoder %s" % args[0])
-	if ret != 0:
-		raise DecodeFailed(fromname, "Subprocess returned %d" % ret)
-
-fileinfocache = None
-
-def open_fileinfo_cache():
-	global fileinfocache
-	if fileinfocache is None:
-		fileinfocache=shelve.open(
-			os.path.expanduser("~/.albumidentifycachedb"),
-			"c")
-
-def populate_fingerprint_cache(fname):
-	(fd,toname)=tempfile.mkstemp(suffix=".wav")
-	os.close(fd)
-	try:
-		util.update_progress("Decoding "+os.path.basename(fname))
-		decode(fname,toname)
-		util.update_progress("Generating fingerprint")
-		(fp, dur) = fingerprint.fingerprint(toname)
-	except Exception, e:
-		print "Error creating fingerprint:",e
-		raise e
-	finally:
-		if os.path.exists(toname):
-			os.unlink(toname)
-
-	return fp, dur
-
 def hash_file(fname):
 	util.update_progress("Hashing file")
 	return hashlib.md5(open(fname,"r").read()).hexdigest()
 
+@memoify(mappingfunc=lambda (args,kwargs):(hash_file(args[0]),kwargs))
+def populate_fingerprint_cache(fname):
+	util.update_progress("Generating fingerprint "+os.path.basename(fname))
+	return fingerprint.fingerprint_any(fname)
+
 def get_file_info(fname):
-	fp = None
-	dur = None
-	fhash = hash_file(fname)
-	open_fileinfo_cache()
-	if fhash in fileinfocache:
-		data = fileinfocache[fhash]
-		if len(data) > 2:
-			(fname2,artist,trackname,dur,tracks,puid)=data
-			print "***",`puid`,`artist`,`trackname`,`os.path.basename(fname)`
-			return (fname,artist,trackname,dur,tracks,puid)
-		# FP only cached, musicbrainz had nothing last time.
-		fp, dur = data
-	if not fp:
-		try:
-			fp, dur = populate_fingerprint_cache(fname)
-		except:
-			return (fname,None,None,None,[],None)
-		fileinfocache[fhash]=(fp, dur)
+	fp, dur = populate_fingerprint_cache(fname)
+
+	(trackname, artist, puid) = musicdns.lookup_fingerprint(fp, dur, key)
 
 	util.update_progress("Looking up PUID")
-	(trackname, artist, puid) = musicdns.lookup_fingerprint(fp, dur, key)
 
 	print "***",`puid`,`artist`,`trackname`,`os.path.basename(fname)`
 	if puid is None:
@@ -125,16 +53,12 @@ def get_file_info(fname):
                 elif not musicdnskey:
                         print "No musicdnskey specified, can't submit fingerprint for %s" % fname
                 else:
-			# Submit the PUID for consideration by MusicDNS
-			# We probably can't use it this time through (it takes MusicDNS up to
-			# a few days to index new PUID's), but next time we're run hopefully we'll
-			# figure it out.
-                        (fd,toname) = tempfile.mkstemp(suffix = ".wav")
-			os.close(fd)
-			decode(fname,toname)
-			print "Submitting fingerprint to MusicDNS"
-			os.system(genpuid_cmd + " " + musicdnskey + " " + toname)
-			os.unlink(toname)
+			# Submit the PUID for consideration by MusicDNS We
+			# probably can't use it this time through (it takes
+			# MusicDNS up to a few days to index new PUID's), but
+			# next time we're run hopefully we'll figure it out.
+			util.update_progress("Submitting PUID to MusicDNS")
+			fingerprint.upload_fingerprint_any(fname, genpuidcmd, musicdnskey)
 		lookups.remove_from_cache("delayed_lookup_fingerprint",fp,dur,key)
 		return (fname,None,None,None,[],None)
 	util.update_progress("Looking up tracks by PUID")
@@ -150,7 +74,6 @@ tracks are on"
 		[albumfreq[release.id] for release in track.releases])
 
 def get_dir_info(dirname):
-	global fileinfocache
 	files=sort.sorted_dir(dirname)
 	trackinfo={}
 	lastpuid=None
@@ -171,11 +94,6 @@ def get_dir_info(dirname):
 			for mbtrack in trackinfo[fname][4]:
 				for release in mbtrack.releases:
 					albumfreq[release.id]=albumfreq.get(release.id,0)+1
-	# close the cache, we probably don't need it.
-	# This means multiple concurrent runs don't stand on each others feet
-	if fileinfocache:
-		fileinfocache.close()
-		fileinfocache=None
 	# Sort by the most likely album first.
 	for fileid in trackinfo:
 		trackinfo[fileid][4].sort(lambda b,a:cmp(score_track(albumfreq,a),score_track(albumfreq,b)))
