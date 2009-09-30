@@ -117,16 +117,6 @@ def write_report(reportpath):
 	report_entries = []
         f.close()
 
-def makedirs(path):
-        """ Ensure all directories exist """
-        if path == os.sep:
-                return
-        makedirs(os.path.dirname(path))
-        try:
-                os.mkdir(path)
-        except:
-                pass
-
 def get_release_by_fingerprints(disc):
         """ Do a fingerprint based search for a matching release.
 
@@ -930,7 +920,7 @@ def name_album(disc, release, srcpath, scheme, destprefix, imagemime=None, image
                 newfile = os.path.basename(newpath)
 
                 if not noact:
-                        makedirs(newdir)
+                        os.makedirs(newdir)
                         report(entry["srcfilepath"] + " -> " + newpath)
                         # Try renaming first, then fall back to copy/rm
                         try:
