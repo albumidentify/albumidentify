@@ -3,6 +3,7 @@
 # Tools for fingerprinting audio
 #
 # (C) 2008 Scott Raynel <scottraynel@gmail.com>
+# (C) 2009 Perry Lorier <perry@coders.net>
 #
 
 try:
@@ -10,6 +11,7 @@ try:
 except:
 	pass
 import wave
+import subprocess
 
 def fingerprint_wave(file):
 	""" Take a WAVE filename (or an open File object) and use libofa to
@@ -52,4 +54,49 @@ def fingerprint(filename):
 	else:
 		raise Exception("Format not supported")
 	return result
+
+class DecodeFailed(FingerprintFailed):
+	def __init__(self,fname,reason):
+		self.fname = fname
+		self.reason = reason
+
+	def __str__(self):
+		return "Failed to decode file %s (%s)" % (repr(self.fname),self.reason)
+
+def _decode(fromname, towavname):
+        if fromname.lower().endswith(".mp3"):
+		args = ["mpg123","--quiet","--wav",towavname,fromname]
+        elif fromname.lower().endswith(".flac"):
+		args = ["flac","-d", "--totally-silent", "-f", "-o", towavname,fromname]
+	elif fromname.lower().endswith(".ogg"):
+		args = ["oggdec","--quiet","-o",towavname,fromname]
+	else:
+		raise DecodeFailed(fromname, "Don't know how to decode filename")
 	
+	try:
+		ret = subprocess.call(args)
+	except OSError,e:
+		raise DecodeFailed(fromname, "Cannot find decoder %s" % args[0])
+	if ret != 0:
+		raise DecodeFailed(fromname, "Subprocess returned %d" % ret)
+
+def fingerprint_any(filename):
+	"Decode an music file to wav, then fingerprint it"
+	(fd,toname)=tempfile.mkstemp(suffix=".wav")
+	os.close(fd)
+	try:
+		_decode(fname,toname)
+		return fingerprint(toname)
+	finally:
+		if os.path.exists(toname):
+			os.unlink(toname)
+
+def upload_fingerprint_any(filename,genpuidcmd,musicdnskey):
+	(fd,toname)=tempfile.mkstemp(suffix=".wav")
+	os.close(fd)
+	try:
+		_decode(fname,toname)
+		os.system(genpuid_cmd + " " + musicdnskey + " " + toname)
+	finally:
+		if os.path.exists(toname):
+			os.unlink(toname)
