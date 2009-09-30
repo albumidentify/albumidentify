@@ -34,7 +34,7 @@ def _assure_memocache_open(name):
 
 # This is a function, that returns a decorator, that returns a function,
 # that caches the return value from a forth function.
-def memoify(mappingfunc=lambda a,b:(a,b), cacheok=lambda arg,kwargs,ret:True)
+def memoify(mappingfunc=lambda a,b:(a,b), cacheok=lambda arg,kwargs,ret:True):
 	def memoify(func):
 		def memoify(*args,**kwargs):
 			_assure_memocache_open(func.__name__)
@@ -44,6 +44,8 @@ def memoify(mappingfunc=lambda a,b:(a,b), cacheok=lambda arg,kwargs,ret:True)
 				if cacheok(args,kwargs,ret):
 					memocache[func.__name__][key]=ret
 					memocache[func.__name__].sync()
+			else:
+				ret = memocache[func.__name__][key]
 
 			return ret
 		return memoify
