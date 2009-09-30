@@ -43,4 +43,35 @@ def update_progress(msg):
 	sys.stdout.write(time.strftime("%H:%M:%S ")+msg.encode("ascii","ignore")+"\x1b[K\r\n")
 	sys.stdout.flush()
 
+def output_list(l):
+	"Give na list of integers, return a string with ranges collapsed"
+	if not l:
+		return "[]"
+	l.sort()
+	ret=[]
+	start=l[0]
+	end=l[0]
+	for i in l[1:]:
+		if end+1==i:
+			end=i
+			continue
+		if start!=end:
+			ret.append("%d-%d" % (start,end))
+		else:
+			ret.append("%d" % start)
+		start=i
+		end=i
+	if start!=end:
+		ret.append("%d-%d" % (start,end))
+	else:
+		ret.append("%d" % start)
+	return "[%s]" % (",".join(ret))
+
+def list_difference(src,remove):
+	res=src[:]
+	for i in remove:
+		if i in res:
+			res.remove(i)
+	return res
+
 

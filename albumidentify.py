@@ -27,36 +27,6 @@ FORCE_ORDER=True
 # trackind's are 0 based
 # tracknum's are 1 based
 
-def output_list(l):
-	if not l:
-		return "[]"
-	l.sort()
-	ret=[]
-	start=l[0]
-	end=l[0]
-	for i in l[1:]:
-		if end+1==i:
-			end=i
-			continue
-		if start!=end:
-			ret.append("%d-%d" % (start,end))
-		else:
-			ret.append("%d" % start)
-		start=i
-		end=i
-	if start!=end:
-		ret.append("%d-%d" % (start,end))
-	else:
-		ret.append("%d" % start)
-	return "[%s]" % (",".join(ret))
-		
-def list_difference(src,remove):
-	res=src[:]
-	for i in remove:
-		if i in res:
-			res.remove(i)
-	return res
-
 key = 'a7f6063296c0f1c9b75c7f511861b89b'
 
 class FingerprintFailed(Exception):
@@ -283,7 +253,7 @@ def end_of_track(possible_releases,impossible_releases,track_generator,trackinfo
 		giving_up(removed_releases, fileid)
 		return
 	for i in possible_releases:
-		print "",lookups.get_release_by_releaseid(i).title,"(tracks found: %s)" % (output_list(possible_releases[i].keys()))
+		print "",lookups.get_release_by_releaseid(i).title,"(tracks found: %s)" % (util.output_list(possible_releases[i].keys()))
 
 def verify_track(releaseid, release, possible_releases, impossible_releases, 
 		trackinfo, fileid, track):
@@ -313,7 +283,7 @@ def add_new_track(release, releaseid, possible_releases, fileid, track, trackinf
 			# This file has already has a track
 			return
 		possible_releases[releaseid][found_tracknumber]=fileid
-		print "Found track",found_tracknumber,"(",release.tracks[found_tracknumber-1].title,")","of",release.title,":",os.path.basename(fileid),"(tracks found: %s)\x1b[K" % (output_list(possible_releases[releaseid].keys()))
+		print "Found track",found_tracknumber,"(",release.tracks[found_tracknumber-1].title,")","of",release.title,":",os.path.basename(fileid),"(tracks found: %s)\x1b[K" % (util.output_list(possible_releases[releaseid].keys()))
 		return
 	else:
 		possible_releases[releaseid]={found_tracknumber:fileid}
@@ -341,12 +311,10 @@ def add_new_track(release, releaseid, possible_releases, fileid, track, trackinf
 					print " Also found track %02d: %s" % (trackind+1,release.tracks[trackind].title)
 					break
 	print " Found tracks: %s  Missing tracks: %s"% (
-		output_list(possible_releases[releaseid].keys()),
-		output_list(
-			list_difference(range(1,len(release.tracks)+1),
+		util.output_list(possible_releases[releaseid].keys()),
+		util.output_list(
+			util.list_difference(range(1,len(release.tracks)+1),
 			possible_releases[releaseid].keys())))
-
-
 
 def guess_album2(trackinfo):
 	# trackinfo is
