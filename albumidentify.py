@@ -31,7 +31,7 @@ def hash_file(fname):
 	util.update_progress("Hashing file")
 	return hashlib.md5(open(fname,"r").read()).hexdigest()
 
-@memoify(mappingfunc=lambda (args,kwargs):(hash_file(args[0]),kwargs))
+@lookups.memoify(mappingfunc=lambda args,kwargs:(hash_file(args[0]),kwargs))
 def populate_fingerprint_cache(fname):
 	util.update_progress("Generating fingerprint "+os.path.basename(fname))
 	return fingerprint.fingerprint_any(fname)
@@ -68,8 +68,8 @@ def get_file_info(fname):
 	return data
 
 def score_track(albumfreq,track):
-	"Returns the total number of albums this release is on that other
-tracks are on"
+	""""Returns the total number of albums this release is on that other
+tracks are on"""
 	return reduce(lambda a,b:a+b, 
 		[albumfreq[release.id] for release in track.releases])
 
