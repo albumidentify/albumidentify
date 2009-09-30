@@ -12,6 +12,8 @@ except:
 	pass
 import wave
 import subprocess
+import tempfile
+import os
 
 def fingerprint_wave(file):
 	""" Take a WAVE filename (or an open File object) and use libofa to
@@ -55,7 +57,7 @@ def fingerprint(filename):
 		raise Exception("Format not supported")
 	return result
 
-class DecodeFailed(FingerprintFailed):
+class DecodeFailed(Exception):
 	def __init__(self,fname,reason):
 		self.fname = fname
 		self.reason = reason
@@ -85,7 +87,7 @@ def fingerprint_any(filename):
 	(fd,toname)=tempfile.mkstemp(suffix=".wav")
 	os.close(fd)
 	try:
-		_decode(fname,toname)
+		_decode(filename,toname)
 		return fingerprint(toname)
 	finally:
 		if os.path.exists(toname):
