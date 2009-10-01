@@ -14,6 +14,9 @@ import wave
 import subprocess
 import tempfile
 import os
+import memocache
+import util
+import hashlib
 
 def fingerprint_wave(file):
 	""" Take a WAVE filename (or an open File object) and use libofa to
@@ -102,3 +105,13 @@ def upload_fingerprint_any(filename,genpuidcmd,musicdnskey):
 	finally:
 		if os.path.exists(toname):
 			os.unlink(toname)
+
+def hash_file(fname):
+	util.update_progress("Hashing file")
+	return hashlib.md5(open(fname,"r").read()).hexdigest()
+
+@memocache.memoify(mappingfunc=lambda args,kwargs:(hash_file(args[0]),kwargs))
+def populate_fingerprint_cache(fname):
+	util.update_progress("Generating fingerprint "+os.path.basename(fname))
+	return fingerprint.fingerprint_any(fname)
+

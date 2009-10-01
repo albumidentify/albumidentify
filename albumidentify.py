@@ -6,12 +6,10 @@ import lookups
 import parsemp3
 import musicbrainz2
 import itertools
-import hashlib
 import random
 import albumidentifyconfig
 import sort
 import util
-import lookups
 import memocache
 
 # Strategys
@@ -28,17 +26,8 @@ FORCE_ORDER=True
 
 key = 'a7f6063296c0f1c9b75c7f511861b89b'
 
-def hash_file(fname):
-	util.update_progress("Hashing file")
-	return hashlib.md5(open(fname,"r").read()).hexdigest()
-
-@memocache.memoify(mappingfunc=lambda args,kwargs:(hash_file(args[0]),kwargs))
-def populate_fingerprint_cache(fname):
-	util.update_progress("Generating fingerprint "+os.path.basename(fname))
-	return fingerprint.fingerprint_any(fname)
-
 def get_file_info(fname):
-	fp, dur = populate_fingerprint_cache(fname)
+	fp, dur = fingerprint.populate_fingerprint_cache(fname)
 
 	(trackname, artist, puid) = musicdns.lookup_fingerprint(fp, dur, key)
 
