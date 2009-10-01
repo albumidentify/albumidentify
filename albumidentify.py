@@ -11,6 +11,8 @@ import random
 import albumidentifyconfig
 import sort
 import util
+import lookups
+import memocache
 
 # Strategys
 import strat_transitive
@@ -30,7 +32,7 @@ def hash_file(fname):
 	util.update_progress("Hashing file")
 	return hashlib.md5(open(fname,"r").read()).hexdigest()
 
-@lookups.memoify(mappingfunc=lambda args,kwargs:(hash_file(args[0]),kwargs))
+@memocache.memoify(mappingfunc=lambda args,kwargs:(hash_file(args[0]),kwargs))
 def populate_fingerprint_cache(fname):
 	util.update_progress("Generating fingerprint "+os.path.basename(fname))
 	return fingerprint.fingerprint_any(fname)
@@ -57,8 +59,8 @@ def get_file_info(fname):
 			# MusicDNS up to a few days to index new PUID's), but
 			# next time we're run hopefully we'll figure it out.
 			util.update_progress("Submitting PUID to MusicDNS")
-			fingerprint.upload_fingerprint_any(fname, genpuidcmd, musicdnskey)
-		lookups.remove_from_cache("delayed_lookup_fingerprint",fp,dur,key)
+			fingerprint.upload_fingerprint_any(fname, genpuid_cmd, musicdnskey)
+		memocache.remove_from_cache("delayed_lookup_fingerprint",fp,dur,key)
 		return (fname,None,None,None,[],None)
 	util.update_progress("Looking up tracks by PUID")
 	tracks = lookups.get_tracks_by_puid(puid)

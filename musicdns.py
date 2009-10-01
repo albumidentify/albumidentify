@@ -9,11 +9,12 @@ import urllib
 from xml.etree import ElementTree
 import re
 import lookups
+import memocache
 
 musicdns_host = 'ofa.musicdns.org'
 musicdns_port = 80
 
-@lookups.memoify()
+@memocache.memoify()
 @lookups.delayed("musicdns")
 def lookup_fingerprint(fingerprint, duration, musicdns_key):
 	""" Given a fingerprint and duration, lookup the track using the 

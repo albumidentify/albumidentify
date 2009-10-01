@@ -8,6 +8,7 @@ import os
 import re
 import albumidentifyconfig
 import lookups
+import memocache
 import musicbrainz2.webservice as ws
 import musicbrainz2.model as model
 from ConfigParser import NoOptionError
@@ -39,8 +40,8 @@ def submit_puids_mb(track2puid):
 		submititems=submititems[20:]
 
 	for (track,puid) in track2puid.iteritems():
-		lookups.remove_from_cache("delayed_get_tracks_by_puid",puid)
-		lookups.remove_from_cache("delayed_get_track_by_id",track)
+		memocache.remove_from_cache("delayed_get_tracks_by_puid",puid)
+		memocache.remove_from_cache("delayed_get_track_by_id",track)
 
 @lookups.delayed()
 def submit_isrcs_mb(track2isrc):
@@ -58,4 +59,4 @@ def submit_isrcs_mb(track2isrc):
 		submititems=submititems[20:]
 
 	for (track,isrc) in track2isrc.iteritems():
-		lookups.remove_from_cache("delayed_get_track_by_id",track)
+		memocache.remove_from_cache("delayed_get_track_by_id",track)
