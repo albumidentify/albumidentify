@@ -277,7 +277,7 @@ def guess_album2(trackinfo):
 		fileid = choose_track(possible_releases, track_generator, trackinfo)
 		try:
 			track = track_generator[fileid].next()
-		except StopIteration, si:
+		except StopIteration:
 			end_of_track(possible_releases,
 				impossible_releases,
 				track_generator,
