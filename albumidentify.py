@@ -2,7 +2,6 @@
 import fingerprint
 import musicdns
 import os
-import subprocess
 import lookups
 import parsemp3
 import musicbrainz2
