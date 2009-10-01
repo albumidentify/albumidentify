@@ -233,13 +233,13 @@ def __read_tag_mp3_anyver(mp3tags,tagname):
 def __read_tags_mp3(filename):
 	data = parsemp3.parsemp3(filename)
 	tags = {}
-	tags[TITLE] = __read_tag_mp3_anyver(data["v2"],"TIT2")
-	tags[ARTIST] = __read_tag_mp3_anyver(data["v2"],"TPE1")
-	tags[ALBUM] = __read_tag_mp3_anyver(data["v2"],"TALB")
-	tags[YEAR] = __read_tag_mp3_anyver(data["v2"],"TYER")
-	tags[DATE] = __read_tag_mp3_anyver(data["v2"],"TDAT")
-	tags[TRACK_NUMBER] = __read_tag_mp3_anyver(data["v2"],"TRCK")
-	tag = __read_tag_mp3_anyver(data["v2"],"TPOS")
+	tags[TITLE] = __read_tag_mp3_anyver(data,"TIT2")
+	tags[ARTIST] = __read_tag_mp3_anyver(data,"TPE1")
+	tags[ALBUM] = __read_tag_mp3_anyver(data,"TALB")
+	tags[YEAR] = __read_tag_mp3_anyver(data,"TYER")
+	tags[DATE] = __read_tag_mp3_anyver(data,"TDAT")
+	tags[TRACK_NUMBER] = __read_tag_mp3_anyver(data,"TRCK")
+	tag = __read_tag_mp3_anyver(data,"TPOS")
 	if tag:
 		parts = tag.split("/")
 		if len(parts) == 2:
@@ -247,7 +247,7 @@ def __read_tags_mp3(filename):
 			tags[DISC_TOTAL_NUMBER] = int(parts[1])
 		else:
 			tags[DISC_NUMBER] = parts
-	tag = __read_tag_mp3_anyver(data["v2"],"TXXX")
+	tag = __read_tag_mp3_anyver(data,"TXXX")
 	if tag:
 		if type(tag) == type([]):
 			parts = tag
@@ -260,7 +260,7 @@ def __read_tags_mp3(filename):
 					tags[ARTIST_ID] = v.encode("ascii", "ignore")
 				elif k == "MusicBrainz Album Id":
 					tags[ALBUM_ID] = v.encode("ascii", "ignore")
-	tag = __read_tag_mp3_anyver(data["v2"],"UFID")
+	tag = __read_tag_mp3_anyver(data,"UFID")
 	if tag:
 		if type(tag) == type([]):
 			parts = tag
