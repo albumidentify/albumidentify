@@ -1,10 +1,9 @@
-
 import subprocess
 import parsemp3
-import sys
 try:
 	import eyeD3
 except ImportError:
+	import sys
 	print "Cannot find eyeD3.  Please install python-eyed3 or similar"
 	sys.exit(1)
 
@@ -159,7 +158,7 @@ def tag(filename, tags, noact=False, image=None):
 def __remove_tags_flac(filename, noact):
 	proclist = ["metaflac", "--remove", "--block-type=VORBIS_COMMENT,PICTURE", filename]
 	if not noact:
-		ret = subprocess.call(proclist)
+		return subprocess.call(proclist)
 
 def __remove_tags_mp3(filename, noact):
 	if not noact:
@@ -180,6 +179,7 @@ def remove_tags(filename, noact=False):
 	raise Exception("Don't know how to remove tags for this file (%s)!" % filename)
 
 def read_tags(filename):
+	"Returns a hash of tags, indexed by constants in this file"
         if filename.lower().endswith(".flac"):
 	        return __read_tags_flac(filename)
         elif filename.lower().endswith(".mp3"):

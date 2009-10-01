@@ -12,7 +12,7 @@ def clean_name(name):
 
 def comp_name(n1,n2):
 	"Copmare two names for equality, after applying cleanups"
-	return cleanname(n1) == clean_name(n2)
+	return clean_name(n1) == clean_name(n2)
 
 
 def _combinations(func,doneargs,todoargs):

@@ -41,7 +41,7 @@ def generate_track_name_possibilities(fname, fileid, possible_releases):
 			if trackind+1 in v:
 				continue
 
-			if util.combinations(comp_name, rtrackname, ftrackname):
+			if util.combinations(util.comp_name, rtrackname, ftrackname):
 				print "Using text based comparison for track",trackind+1,`rtrackname`
 				yield lookups.get_track_by_id(release.tracks[trackind].id)
 
