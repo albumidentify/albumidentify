@@ -15,14 +15,17 @@ def remove_gain(filename):
 	elif filename.lower().endswith(".flac"):
 		args = ["metaflac", "--remove-replay-gain", filename]
 	else:
-		raise GainFailedException(filename, "Cannot remove gain from file")
+		raise GainFailedException(filename, 
+				"Cannot remove gain from file")
 
 	try:
 		ret = subprocess.call(args)
 	except OSError,e:
-		raise GainFailedException(filename, "Cannot find gain tool %s" % args[0])
+		raise GainFailedException(filename, 
+				"Cannot find gain tool %s" % args[0])
 	if ret != 0:
-		raise GainFailedException(filename, "Subprocess returned %d" % ret)
+		raise GainFailedException(filename, 
+				"Subprocess returned %d" % ret)
 
 def add_gain(files):
 	if type(files) != type([]):
