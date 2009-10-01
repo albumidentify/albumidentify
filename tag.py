@@ -223,35 +223,36 @@ def __read_tags_ogg(filename):
 			tags[DISC_TOTAL_NUMBER] = v
 	return tags
 
+def __read_tag_mp3_anyver(mp3tags,tagname):
+	if tagname in mp3tags["v2"]:
+		return mp3tags["v2"][tagname]
+	if tagname in mp3tags["v1"]:
+		return mp3tags["v1"][tagname]
+	return None
 
 def __read_tags_mp3(filename):
 	data = parsemp3.parsemp3(filename)
-	mp3tags = data["v2"]
 	tags = {}
-	if "TIT2" in mp3tags:
-		tags[TITLE] = mp3tags["TIT2"]
-	if "TPE1" in mp3tags:
-		tags[ARTIST] = mp3tags["TPE1"]
-	if "TALB" in mp3tags:
-		tags[ALBUM] = mp3tags["TALB"]
-	if "TYER" in mp3tags:
-		tags[YEAR] = mp3tags["TYER"]
-	if "TDAT" in mp3tags:
-		tags[DATE] = mp3tags["TDAT"]
-	if "TRCK" in mp3tags:
-		tags[TRACK_NUMBER] = mp3tags["TRCK"]
-	if "TPOS" in mp3tags:
-		parts = mp3tags["TPOS"].split("/")
+	tags[TITLE] = __read_tag_mp3_anyver(data["v2"],"TIT2")
+	tags[ARTIST] = __read_tag_mp3_anyver(data["v2"],"TPE1")
+	tags[ALBUM] = __read_tag_mp3_anyver(data["v2"],"TALB")
+	tags[YEAR] = __read_tag_mp3_anyver(data["v2"],"TYER")
+	tags[DATE] = __read_tag_mp3_anyver(data["v2"],"TDAT")
+	tags[TRACK_NUMBER] = __read_tag_mp3_anyver(data["v2"],"TRCK")
+	tag = __read_tag_mp3_anyver(data["v2"],"TPOS")
+	if tag:
+		parts = tag.split("/")
 		if len(parts) == 2:
 			tags[DISC_NUMBER] = int(parts[0])
 			tags[DISC_TOTAL_NUMBER] = int(parts[1])
 		else:
 			tags[DISC_NUMBER] = parts
-	if "TXXX" in mp3tags:
-		if type(mp3tags["TXXX"]) == type([]):
-			parts = mp3tags["TXXX"]
+	tag = __read_tag_mp3_anyver(data["v2"],"TXXX")
+	if tag:
+		if type(tag) == type([]):
+			parts = tag
 		else:
-			parts = [mp3tags["TXXX"]]
+			parts = [tag]
 		for i in parts:
 			if len(i.split("\0")) == 2:
 				(k,v) = tuple(i.split("\0"))
@@ -259,11 +260,12 @@ def __read_tags_mp3(filename):
 					tags[ARTIST_ID] = v.encode("ascii", "ignore")
 				elif k == "MusicBrainz Album Id":
 					tags[ALBUM_ID] = v.encode("ascii", "ignore")
-	if "UFID" in mp3tags:
-		if type(mp3tags["UFID"]) == type([]):
-			parts = mp3tags["UFID"]
+	tag = __read_tag_mp3_anyver(data["v2"],"UFID")
+	if tag:
+		if type(tag) == type([]):
+			parts = tag
 		else:
-			parts = [mp3tags["UFID"]]
+			parts = [tag]
 		for i in parts:
 			if len(i.split("\0")) == 2:
 				(k,v) = tuple(i.split("\0"))
