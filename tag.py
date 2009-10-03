@@ -122,6 +122,8 @@ def __tag_mp3(filename, tags, noact=False, image=None):
 	tag.setTrackNum((tags[TRACK_NUMBER],tags[TRACK_TOTAL]))
 	if tags.has_key(DISC_NUMBER) and tags.has_key(DISC_TOTAL_NUMBER):
 		tag.setDiscNum((tags[DISC_NUMBER], tags[DISC_TOTAL_NUMBER]))
+        if tags.has_key(SORT_ARTIST):
+                tag.setArtist(tags[SORT_ARTIST], id="TSOP")
 	tag.addUserTextFrame("MusicBrainz Artist Id", tags[ARTIST_ID])
 	tag.addUserTextFrame("MusicBrainz Album Id", tags[ALBUM_ID])
 	tag.addUniqueFileID("http://musicbrainz.org", tags[TRACK_ID].encode("iso8859-1"))
