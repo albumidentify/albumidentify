@@ -342,6 +342,73 @@ def path_is_raw_wavs(path):
                 return True
         return False
 
+def process_one_path(numargs, options, path):
+	report("----renamealbum started----")
+	# Do this here so it gets written to all reports
+	if numargs > 1 and options.asin is not None:
+		report("WARNING: renaming more than 1 folder and specifying an ASIN")
+	if numargs > 1 and options.year is not None:
+		report("WARNING: renaming more than 1 folder and specifying a year")
+	if numargs > 1 and options.totaldiscs is not None:
+		report("WARNING: renaming more than 1 folder and specifying total discs")
+	srcpath = os.path.abspath(path)
+	origsrcpath = srcpath
+	try:
+		deletepaths = []
+
+		# Is srcpath a block device?
+		if is_block_device(srcpath):
+			rawpath = tempfile.mkdtemp()
+			report("Ripping %s to %s" % (srcpath, rawpath))
+			try:
+				rip_cd(srcpath, rawpath)
+			except:
+				report("Ripping of %s failed" % srcpath)
+				rmrf(rawpath)
+				return
+			srcpath = rawpath
+			deletepaths.append(srcpath)
+
+		if not os.path.isdir(srcpath):
+			print "Skipping non directory",srcpath
+			return
+
+		# Do we need to encode the (possibly new) srcpath?
+		if path_is_raw_wavs(origsrcpath):
+			srcpath = tempfile.mkdtemp()
+			report("Encoding to FLAC at %s. This may take some time..." % srcpath)
+			toflac.process_item(origsrcpath, srcpath, False)
+			deletepaths.append(srcpath)
+
+		renamealbum(srcpath, options)
+
+	except SystemExit:
+		raise
+	# Ignore keyboard interrupts
+	except KeyboardInterrupt:
+		raise
+	except IdentifyFailedException:
+		report("fail!")
+	except:
+		(t,v,tb) = sys.exc_info()
+		report(t)
+		report(v)
+		report(traceback.format_exception(t,v,tb))
+		del tb
+		report("fail!")
+	else:
+		report("success!")
+
+	for path in deletepaths:
+		print "Cleaning up", path
+		rmrf(path)
+
+	if os.path.exists(origsrcpath):
+		try:
+			write_report(os.path.join(origsrcpath, "report.txt"))
+		except Exception, e:
+			print "Unable to write report:",str(e)
+
 def main():
 	global srcpath,force_short_album
 	opts = optparse.OptionParser(usage="%s [options] <srcdir> [...]" % sys.argv[0])
@@ -475,67 +542,7 @@ def main():
 	
 	numargs = len(args)
 	for path in args:
-	        report("----renamealbum started----")
-		# Do this here so it gets written to all reports
-		if numargs > 1 and options.asin is not None:
-			report("WARNING: renaming more than 1 folder and specifying an ASIN")
-		if numargs > 1 and options.year is not None:
-			report("WARNING: renaming more than 1 folder and specifying a year")
-		if numargs > 1 and options.totaldiscs is not None:
-			report("WARNING: renaming more than 1 folder and specifying total discs")
-		srcpath = os.path.abspath(path)
-		try:
-                        deletepaths = []
-
-                        # Is srcpath a block device?
-                        if is_block_device(srcpath):
-                                rawpath = tempfile.mkdtemp()
-                                report("Ripping %s to %s" % (srcpath, rawpath))
-                                try:
-                                        rip_cd(srcpath, rawpath)
-                                except:
-                                        report("Ripping of %s failed" % srcpath)
-                                        rmrf(rawpath)
-                                        continue
-                                srcpath = rawpath
-                                deletepaths.append(srcpath)
-
-                        # Do we need to encode the (possibly new) srcpath?
-                        origsrcpath = srcpath
-                        if path_is_raw_wavs(origsrcpath):
-                                srcpath = tempfile.mkdtemp()
-                                report("Encoding to FLAC at %s. This may take some time..." % srcpath)
-                                toflac.process_item(origsrcpath, srcpath, False)
-                                deletepaths.append(srcpath)
-
-                        renamealbum(srcpath, options)
-
-		except SystemExit:
-			raise
-		# Ignore keyboard interrupts
-		except KeyboardInterrupt:
-			raise
-		except IdentifyFailedException:
-			report("fail!")
-		except:
-			(t,v,tb) = sys.exc_info()
-			report(t)
-			report(v)
-			report(traceback.format_exception(t,v,tb))
-			del tb
-			report("fail!")
-		else:
-			report("success!")
-
-                for path in deletepaths:
-                        print "Cleaning up", path
-                        rmrf(path)
-
-                if os.path.exists(origsrcpath):
-			try:
-				write_report(os.path.join(origsrcpath, "report.txt"))
-			except Exception, e:
-				print "Unable to write report:",str(e)
+		process_one_path(numargs, options, path)
 
 def renamealbum(srcpath, options):
         report("Using naming scheme: " + options.scheme)
