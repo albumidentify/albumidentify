@@ -17,6 +17,7 @@ import musicfile
 import strat_transitive
 import strat_metadata
 import strat_trackname
+import strat_musicbrainzid
 
 # If set to True, this will force tracks to be found in order
 # if set to False, tracks can be found in any order (has false positives)
@@ -229,6 +230,7 @@ def guess_album2(trackinfo):
 	for (fileid,file) in trackinfo.iteritems():
 		track_generator[fileid]=itertools.chain(
 			file.getTracks(),
+			strat_musicbrainzid.generate_from_metadata(file),
 			strat_transitive.generate_track_puid_possibilities(
 				file.getTracks()),
 			strat_metadata.generate_from_metadata(
