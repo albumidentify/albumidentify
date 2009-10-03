@@ -532,7 +532,10 @@ def main():
                         rmrf(path)
 
                 if os.path.exists(origsrcpath):
-                        write_report(os.path.join(origsrcpath, "report.txt"))
+			try:
+				write_report(os.path.join(origsrcpath, "report.txt"))
+			except Exception, e:
+				print "Unable to write report:",str(e)
 
 def renamealbum(srcpath, options):
         report("Using naming scheme: " + options.scheme)
@@ -913,6 +916,7 @@ def name_album(disc, release, srcpath, scheme, destprefix, imagemime=None, image
 			rmrf(tmpdir)
 			return (srcfiles, destfiles)
 
+        os.makedirs(os.path.dirname(tmpfiles[0]["destfilepath"]))
         # Step 3: Overwrite/create files if appropriate
         for entry in tmpfiles:
                 newpath = entry["destfilepath"]
@@ -920,7 +924,6 @@ def name_album(disc, release, srcpath, scheme, destprefix, imagemime=None, image
                 newfile = os.path.basename(newpath)
 
                 if not noact:
-                        os.makedirs(newdir)
                         report(entry["srcfilepath"] + " -> " + newpath)
                         # Try renaming first, then fall back to copy/rm
                         try:
