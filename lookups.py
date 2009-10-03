@@ -23,28 +23,42 @@ if SUBMIT_SUPPORT == False:
         print "To submit PUIDs or ISRCs to the musicbrainz database you need"
         print " python-musicbrainz2 >= v 0.7.0"
 
-MAXDELAY=1.5
+MINDELAY=1.5
+
+webservices = {
+	"musicdns" : { 
+		"freequeries" : 1,
+	},
+	"musicbrainz" : {
+		"freequeries" : 13,
+	},
+}
 
 def delayed(webservice="default"):
 	"Decorator to make sure a function isn't called more often than once every 2 seconds. used to space webservice calls"
+	assert webservice in webservices,"Unknown webservice"
 	def delayed2(func):
 		def delay(*args,**kwargs):
 			global lastwsquery
 			if webservice not in lastwsquery:
 				lastwsquery[webservice]=startup
+
+			lastwsquery[webservice] = max(
+				lastwsquery[webservice],
+				time.time() - webservices[webservice]["freequeries"] * MINDELAY)
 				
-			if time.time()-lastwsquery[webservice]<MAXDELAY:
-				wait=MAXDELAY-(time.time()-lastwsquery[webservice])
+			if time.time()-lastwsquery[webservice]<MINDELAY:
+				wait=MINDELAY-(time.time()-lastwsquery[webservice])
 				time.sleep(wait)
 			ret=func(*args,**kwargs)
-			lastwsquery[webservice]=time.time()
+			lastwsquery[webservice]+=MINDELAY
 			return ret
 		delay.__name__="delayed_"+func.__name__
 		return delay
 	return delayed2
 	
 @memocache.memoify()
-@delayed()
+@delayed("musicbrainz")
 def get_tracks_by_puid(puid):
 	""" Lookup a list of musicbrainz tracks by PUID. Returns a list of Track
 	objects. """ 
@@ -57,7 +71,7 @@ def get_tracks_by_puid(puid):
 	return results
 
 @memocache.memoify()
-@delayed()
+@delayed("musicbrainz")
 def get_track_by_id(id):
 	q = ws.Query()
 	results = []
@@ -70,7 +84,7 @@ def get_track_by_id(id):
 	return t
 
 @memocache.memoify()
-@delayed()
+@delayed("musicbrainz")
 def get_release_by_releaseid(releaseid):
 	""" Given a musicbrainz release-id, fetch the release from musicbrainz. """
 	q = ws.Query()
@@ -81,7 +95,7 @@ def get_release_by_releaseid(releaseid):
 	return q.getReleaseById(id_ = releaseid, include=includes)
 
 @memocache.memoify()
-@delayed()
+@delayed("musicbrainz")
 def get_releases_by_cdtext(title, performer, num_tracks):
 	""" Given the performer, title and number of tracks on a disc, lookup
 the release in musicbrainz. This method returns a list of possible results, or
@@ -100,7 +114,7 @@ the empty list if there were no matches. """
 		]
 
 @memocache.memoify()
-@delayed()
+@delayed("musicbrainz")
 def get_releases_by_discid(discid):
         """ Given a musicbrainz disc-id, fetch a list of possible releases. """
         q = ws.Query()
@@ -118,7 +132,7 @@ def track_number(tracks, track):
 	return -1
 
 @memocache.memoify()
-@delayed()
+@delayed("musicbrainz")
 def get_track_artist_for_track(track):
 	""" Returns the musicbrainz Artist object for the given track. This may
 		require a webservice lookup

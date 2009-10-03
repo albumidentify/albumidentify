@@ -24,7 +24,7 @@ class SubmitFailed(Exception):
 	def __str__(self):
 		return "Failed to submit to Musicbrainz: %s" % self.reason
 
-@lookups.delayed()
+@lookups.delayed("musicdns")
 def submit_puids_mb(track2puid):
 	try:
 		username=albumidentifyconfig.config.get("musicbrainz","username")
@@ -43,7 +43,7 @@ def submit_puids_mb(track2puid):
 		memocache.remove_from_cache("delayed_get_tracks_by_puid",puid)
 		memocache.remove_from_cache("delayed_get_track_by_id",track)
 
-@lookups.delayed()
+@lookups.delayed("musicdns")
 def submit_isrcs_mb(track2isrc):
 	try:
 		username=albumidentifyconfig.config.get("musicbrainz","username")
