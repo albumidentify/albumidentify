@@ -19,13 +19,11 @@ function finish
 if [ "$#" -eq "1" ]; then
 	begin
 	cdrdao read-cd --device $1 --with-cddb data.toc
-	cdrecord dev=$1 -toc > cdrecord.toc
 	eject $1
 	finish
 elif [ "$#" -eq "0" ]; then
 	begin
 	cdrdao read-cd --with-cddb data.toc
-	cdrecord -toc > cdrecord.toc
 	eject
 	finish
 else
