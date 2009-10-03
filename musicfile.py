@@ -73,6 +73,11 @@ class MusicFile:
 		self._fetchmetadata()
 		return self.metadata.get(tag.ARTIST,None)
 
+	def getMDTrackID(self):
+		"Return the musicbrainz track id, or None if not known"
+		self._fetchmetadata()
+		return self.metadata.get(tag.TRACK_ID,None)
+
 	def getMDTrackTitle(self):
 		"Return the track title, or None if not known"
 		self._fetchmetadata()
