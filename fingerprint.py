@@ -79,6 +79,7 @@ def _decode(fromname, towavname):
 		raise DecodeFailed(fromname, "Don't know how to decode filename")
 	
 	try:
+		util.update_progress("Decoding file")
 		ret = subprocess.call(args)
 	except OSError,e:
 		raise DecodeFailed(fromname, "Cannot find decoder %s" % args[0])
