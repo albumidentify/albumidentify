@@ -19,7 +19,6 @@ import shutil
 import urllib
 import mp3names
 import re
-import time
 import submit #musicbrainz_submission_url()
 import musicdns
 import lookups
