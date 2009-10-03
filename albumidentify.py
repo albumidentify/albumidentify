@@ -174,7 +174,10 @@ def add_new_track(release, releaseid, possible_releases, fileid, track, trackinf
 		return
 	else:
 		possible_releases[releaseid]={found_tracknumber:fileid}
-		print "Considering new",release.artist.name,"-",release.title," (found track",found_tracknumber,")\x1b[K"
+		print "Considering new %s - %s (found track %d)\x1b[K" % (
+			release.artist.name,
+			release.title,
+			found_tracknumber)
 
 	# Right, lets see if we can find some other tracks quick smart
 	for trackind in range(len(release.tracks)):
