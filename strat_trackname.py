@@ -17,7 +17,7 @@ def generate_track_name_possibilities(file, fileid, possible_releases):
 		consideration and case insensitively compares the tracks, returning any
 		matches.
 	"""
-	track = file.getMDTrackTitle()
+	ftrackname = file.getMDTrackTitle()
 	for (rid,v) in possible_releases.items():
 		release = lookups.get_release_by_releaseid(rid)
 		for trackind in range(len(release.tracks)):
