@@ -86,7 +86,7 @@ def _decode(fromname, towavname):
 		raise DecodeFailed(fromname, "Subprocess returned %d" % ret)
 
 def fingerprint_any(filename):
-	"Decode an music file to wav, then fingerprint it"
+	"Decode an music file to wav, then fingerprint it, returning (fp,dur), or raising an exception"
 	(fd,toname)=tempfile.mkstemp(suffix=".wav")
 	os.close(fd)
 	try:
@@ -112,6 +112,6 @@ def hash_file(fname):
 
 @memocache.memoify(mappingfunc=lambda args,kwargs:(hash_file(args[0]),kwargs))
 def populate_fingerprint_cache(fname):
-	util.update_progress("Generating fingerprint "+os.path.basename(fname))
-	return fingerprint.fingerprint_any(fname)
+	util.update_progress("Looking up fingerprint for "+os.path.basename(fname))
+	return fingerprint_any(fname)
 

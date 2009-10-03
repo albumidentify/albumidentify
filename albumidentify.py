@@ -11,6 +11,7 @@ import albumidentifyconfig
 import sort
 import util
 import memocache
+import musicfile
 
 # Strategys
 import strat_transitive
@@ -24,44 +25,14 @@ FORCE_ORDER=True
 # trackind's are 0 based
 # tracknum's are 1 based
 
-key = 'a7f6063296c0f1c9b75c7f511861b89b'
-
-def get_file_info(fname):
-	fp, dur = fingerprint.populate_fingerprint_cache(fname)
-
-	(trackname, artist, puid) = musicdns.lookup_fingerprint(fp, dur, key)
-
-	util.update_progress("Looking up PUID")
-
-	print "***",`puid`,`artist`,`trackname`,`os.path.basename(fname)`
-	if puid is None:
-                genpuid_cmd = albumidentifyconfig.config.get("albumidentify","genpuid_command")
-                musicdnskey = albumidentifyconfig.config.get("albumidentify","musicdnskey")
-
-                if not genpuid_cmd:
-			print "No genpuid command specified, can't submit fingerprint for %s" % fname
-                elif not musicdnskey:
-                        print "No musicdnskey specified, can't submit fingerprint for %s" % fname
-                else:
-			# Submit the PUID for consideration by MusicDNS We
-			# probably can't use it this time through (it takes
-			# MusicDNS up to a few days to index new PUID's), but
-			# next time we're run hopefully we'll figure it out.
-			util.update_progress("Submitting PUID to MusicDNS")
-			fingerprint.upload_fingerprint_any(fname, genpuid_cmd, musicdnskey)
-		memocache.remove_from_cache("delayed_lookup_fingerprint",fp,dur,key)
-		return (fname,None,None,None,[],None)
-	util.update_progress("Looking up tracks by PUID")
-	tracks = lookups.get_tracks_by_puid(puid)
-	util.update_progress("Done")
-	data=(fname,artist,trackname,dur,tracks,puid)
-	return data
-
 def score_track(albumfreq,track):
 	""""Returns the total number of albums this release is on that other
 tracks are on"""
 	return reduce(lambda a,b:a+b, 
 		[albumfreq[release.id] for release in track.releases])
+
+def cmp_track(freq, tracka, trackb):
+	return cmp(score_track(freq, tracka), score_track(freq, trackb))
 
 def get_dir_info(dirname):
 	files=sort.sorted_dir(dirname)
@@ -71,22 +42,24 @@ def get_dir_info(dirname):
 	albumfreq={}
 	print "Examining",dirname
 	for i in files:
+		print "",i
 		fname=os.path.join(dirname,i)
-		trackinfo[fname]=get_file_info(fname)
+		trackinfo[fname]=musicfile.MusicFile(fname)
 		# If this is a duplicate of the previous track, ignore it.
 		# Dedupe by PUID
-		if lastpuid is not None and trackinfo[fname][5] == lastpuid:
-			print "WARNING: Duplicate track ignored",`trackinfo[fname][0]`,"and",`trackinfo[lastfile][0]`
+		if lastpuid is not None and trackinfo[fname].getPUID() == lastpuid:
+			print "WARNING: Duplicate track ignored",repr(trackinfo[fname].getFilename()),"and",repr(trackinfo[lastfile].getFilename())
 			del trackinfo[fname]
-		else:
-			lastpuid = trackinfo[fname][5]
-			lastfile = fname
-			for mbtrack in trackinfo[fname][4]:
-				for release in mbtrack.releases:
-					albumfreq[release.id]=albumfreq.get(release.id,0)+1
+			continue
+		lastpuid = trackinfo[fname].getFilename()
+		lastfile = fname
+		for mbtrack in trackinfo[fname].getTracks():
+			for release in mbtrack.releases:
+				albumfreq[release.id]=albumfreq.get(release.id,0)+1
 	# Sort by the most likely album first.
 	for fileid in trackinfo:
-		trackinfo[fileid][4].sort(lambda b,a:cmp(score_track(albumfreq,a),score_track(albumfreq,b)))
+		trackinfo[fileid].getTracks().sort(
+			lambda b,a:cmp_track(albumfreq,a,b))
 	return trackinfo
 
 # We need to choose a track to expand out.
@@ -101,7 +74,7 @@ def choose_track(possible_releases, track_generator, trackinfo):
 			continue
 		# use the number of trackid's found as a hint, so we avoid
 		# exhausting a track too soon.
-		track_prob[fileid]=1+len(trackinfo[fileid][4])
+		track_prob[fileid]=1+len(trackinfo[fileid].getTracks())
 		for release in possible_releases:
 			if fileid not in possible_releases[release].values():
 				track_prob[fileid]+=len(possible_releases[release])**2
@@ -151,12 +124,9 @@ def end_of_track(possible_releases,impossible_releases,track_generator,trackinfo
 	# skip it and try more.
 	del track_generator[fileid]
 	print "All possibilities for file",fileid,"exhausted\x1b[K"
-	print "filename",trackinfo[fileid][0]
-	if trackinfo[fileid][0].lower().endswith(".mp3"):
-		md=parsemp3.parsemp3(trackinfo[fileid][0])
-		if "TIT2" in md["v2"]:
-			print "ID3 Title:",`md["v2"]["TIT2"]`
-	print "puid:",trackinfo[fileid][5]#[0].puids
+	print "filename",trackinfo[fileid].getFilename()
+	print "Metadata Title:",trackinfo[fileid].getMDTrackTitle()
+	print "puid:",trackinfo[fileid].getPUID()
 	removed_releases={}
 	print "Current possible releases:"
 	for i in possible_releases.keys():
@@ -215,7 +185,7 @@ def add_new_track(release, releaseid, possible_releases, fileid, track, trackinf
 		for fileid in trackinfo:
 			if fileid in possible_releases[releaseid].values():
 				continue
-			if trackinfo[fileid][5] in track.puids:
+			if trackinfo[fileid].getPUID() in track.puids:
 				# yay, found one.
 				if verify_track(releaseid, 
 						release,
@@ -235,7 +205,7 @@ def add_new_track(release, releaseid, possible_releases, fileid, track, trackinf
 
 def guess_album2(trackinfo):
 	# trackinfo is
-	#  <fname> => (fname,artist,trackname,dur,[mbtrackids],puid)
+	#  <fname> => <musicfile.MusicFile>
 	#
 	# returns a list of possible release id's
 	#
@@ -248,26 +218,35 @@ def guess_album2(trackinfo):
 	impossible_releases=[]
 	track_generator={}
 	completed_releases=[]
-	for (fileid,(fname,artist,trackname,dur,trackids,puid)) in trackinfo.iteritems():
+
+	if trackinfo=={}:
+		print "No tracks to identify?"
+		return
+
+	for (fileid,file) in trackinfo.iteritems():
 		track_generator[fileid]=itertools.chain(
-			(track for track in trackids),
-			strat_transitive.generate_track_puid_possibilities(trackids),
-			strat_metadata.generate_from_metadata(fname, len(trackinfo)),
-			strat_trackname.generate_track_name_possibilities(fname,
+			file.getTracks(),
+			strat_transitive.generate_track_puid_possibilities(
+				file.getTracks()),
+			strat_metadata.generate_from_metadata(
+				file,
+				len(trackinfo)),
+			strat_trackname.generate_track_name_possibilities(	
+					file,
 					fileid,
 					possible_releases)
 			)
 
-	if track_generator=={}:
-		print "No tracks to identify?"
-		return
-
 	while track_generator!={}:
-		fileid = choose_track(possible_releases, track_generator, trackinfo)
+		fileid = choose_track(
+				possible_releases,
+				 track_generator,
+				 trackinfo)
 		try:
 			track = track_generator[fileid].next()
 		except StopIteration:
-			end_of_track(possible_releases,
+			end_of_track(
+				possible_releases,
 				impossible_releases,
 				track_generator,
 				trackinfo,
@@ -322,17 +301,12 @@ def guess_album(trackinfo):
 			directoryname = "Soundtrack"
 		else:
 			directoryname = albumartist.name
-		#print albumartist.name,":",release.title+" ("+rid+".html)"
 		releaseevents=release.getReleaseEvents()
-		#print "Release dates:"
-		#for ev in releaseevents:
-		#	print " ",ev.date
-		#print "Track:"
 		tracks=release.getTracks()
 		trackdata=[]
 		for tracknum,fileid in trackmap.items():
 			trk=tracks[tracknum-1]
-			(fname,artist,trackname,dur,trackprints,puid) = trackinfo[fileid]
+			musicfile = trackinfo[fileid]
 			if trk.artist is None:
 				artist=albumartist.name
 				sortartist=albumartist.sortName
@@ -341,15 +315,16 @@ def guess_album(trackinfo):
 				artist=trk.artist.name
 				sortartist=trk.artist.sortName
 				artistid=trk.artist.id
-			#print " ",tracknum+1,"-",artist,"-",trk.title,"%2d:%06.3f" % (int(dur/60000),(dur%6000)/1000),`fname`
-			trackdata.append((tracknum,
+			trackdata.append((
+					tracknum,			
 					artist,
 					sortartist,
 					trk.title,
-					dur,
-					fname,
+					musicfile.getDuration(),
+					musicfile.getFilename(),
 					artistid,
 					trk.id))
+
 		asin = lookups.get_asin_from_release(release)
 		albuminfo = (
 			directoryname,
@@ -374,6 +349,7 @@ def process_dir(dir_path):
 		A generator which will yield album_info guesses. See guess_album for
 		details of the guess format.
 	"""
+	print "got here"
 	trackinfo = get_dir_info(dir_path)
 	return guess_album(trackinfo)
 

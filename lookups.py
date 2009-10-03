@@ -83,17 +83,21 @@ def get_release_by_releaseid(releaseid):
 @memocache.memoify()
 @delayed()
 def get_releases_by_cdtext(title, performer, num_tracks):
-	""" Given the performer, title and number of tracks on a disc,
-	lookup the release in musicbrainz. This method returns a list of possible
-	results, or the empty list if there were no matches. """
+	""" Given the performer, title and number of tracks on a disc, lookup
+the release in musicbrainz. This method returns a list of possible results, or
+the empty list if there were no matches. """
 
 	q = ws.Query()
-	filter = ws.ReleaseFilter(title=title.encode("utf8"), artistName=performer.encode("utf8"))
+	filter = ws.ReleaseFilter(title=title, 
+				artistName=performer)
 	rels = q.getReleases(filter=filter)
 	
-	# Filter out of the list releases with a different number of tracks to the
-	# Disc.
-        return [r for r in rels if len(get_release_by_releaseid(r.release.id).getTracks()) == num_tracks]
+	# Filter out of the list releases with a different number of tracks to
+	# the Disc.
+        return [r 
+		for r in rels 
+		if len(get_release_by_releaseid(r.release.id).getTracks()) == num_tracks
+		]
 
 @memocache.memoify()
 @delayed()
