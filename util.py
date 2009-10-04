@@ -2,6 +2,8 @@ import re
 import sys
 import time
 
+VERBOSE=0
+
 def clean_name(name):
 	"Clean up an mp3 name for comparison"
 	name = re.sub(r"\(.*\)","",name)
@@ -40,8 +42,11 @@ def update_progress(msg):
 	"Display some progress"
 	if type(msg) == type(''):
 		msg = msg.decode('utf8','ignore')
-	sys.stdout.write(time.strftime("%H:%M:%S ")+msg.encode("ascii","ignore")+"\x1b[K\r\n")
-	sys.stdout.flush()
+	if VERBOSE:
+		print time.strftime("%H:%M:%S"),msg.encode("ascii","ignore")
+	else:
+		sys.stdout.write(time.strftime("%H:%M:%S ")+msg.encode("ascii","ignore")+"\x1b[K\r")
+		sys.stdout.flush()
 
 def output_list(l):
 	"Give na list of integers, return a string with ranges collapsed"
