@@ -26,6 +26,12 @@ FORCE_ORDER=True
 # trackind's are 0 based
 # tracknum's are 1 based
 
+def duration_to_string(duration):
+	duration = duration / 1000.0 # ms -> s
+	if duration > 60:
+		return "%02d:%05.2f" % (duration/60,duration%60)
+	return "%05.2f" % (duration)
+
 def score_track(albumfreq,track):
 	""""Returns the total number of albums this release is on that other
 tracks are on"""
@@ -158,6 +164,16 @@ def verify_track(releaseid, release, possible_releases, impossible_releases,
 		if found_tracknumber != file_ids.index(fileid)+1:
 			util.update_progress(release.title[:40]+": track at wrong position")
 			return False
+
+	dur_ratio = track.getDuration() * 1.0 / trackinfo[fileid].getDuration()
+	if dur_ratio < .9 or dur_ratio > 1.1:
+		print "WARNING: Track lengths differ"
+		print " %s (%s) vs %s (%s)" % (
+			trackinfo[fileid].getFilename(),
+			duration_to_string(trackinfo[fileid].getDuration()),
+			track.title,
+			duration_to_string(track.getDuration())
+			)
 
 	return True
 
