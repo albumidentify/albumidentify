@@ -181,6 +181,7 @@ def verify_track(releaseid, release, possible_releases, impossible_releases,
 			track.title,
 			duration_to_string(track.getDuration())
 			)
+		return False
 
 	return True
 
