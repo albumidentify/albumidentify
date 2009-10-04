@@ -305,6 +305,9 @@ def get_musicbrainz_release(disc):
                         if tag.ALBUM_ID in tags:
                                 relid = tags[tag.ALBUM_ID]
                                 releases[relid] = releases.get(relid, 0)+1
+			else:
+				# Give up if we didn't find a tag on the first file
+				break
                         numfiles += 1
                 if len(releases) == 1 and releases[releases.keys()[0]] == numfiles:
                         # Every file has the same musicbrainz release id.  See if this release
