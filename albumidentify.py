@@ -149,6 +149,13 @@ def end_of_track(possible_releases,impossible_releases,track_generator,trackinfo
 	for i in possible_releases:
 		print "",lookups.get_release_by_releaseid(i).title,"(tracks found: %s)" % (util.output_list(possible_releases[i].keys()))
 
+def get_puids_for_release(releaseid):
+	puids=[]
+	for trackid in release.tracks:
+		track = lookups.get_track_by_id(trackid)
+		puids = puids + track.puids
+	return puids
+
 def verify_track(releaseid, release, possible_releases, impossible_releases, 
 		trackinfo, fileid, track):
 	if len(release.tracks) != len(trackinfo):
@@ -157,7 +164,7 @@ def verify_track(releaseid, release, possible_releases, impossible_releases,
 		impossible_releases.append(releaseid)
 		return False
 
-	if FORCE_ORDER:
+	if FORCE_ORDER or trackinfo[fileid].getPUID() in get_puids_for_release(releaseid):
 		found_tracknumber=lookups.track_number(release.tracks, track)
 		file_ids = trackinfo.keys()
 		file_ids = sort.sorted_list(file_ids)
