@@ -1,0 +1,52 @@
+#!/usr/bin/python
+import lastfm
+import sys
+import optparse
+import albumidentifyconfig
+import mp3names
+import urllib2
+import os
+
+def path_arg_cb(option, opt_str, value, parser):
+        path = os.path.abspath(value)
+        if not os.path.isdir(path):
+		raise optparse.OptionValueError("to %s must be a directory that exists" % value)
+	setattr(parser.values, option.dest, path)
+
+opts = optparse.OptionParser(usage="%s [options] <artistname>" % sys.argv[0])
+
+opts.add_option(
+	"--dest-path",
+	dest="destprefix",
+	type="str",
+	action="callback",
+	callback=path_arg_cb,
+	default=albumidentifyconfig.config.get("renamealbum", "dest_path"),
+	metavar="PATH",
+	help="Use PATH instead of the current path for creating output directories."
+	)
+
+(options, args) = opts.parse_args()
+
+if len(args) < 1:
+	opts.print_help()
+
+import pprint
+for artist in args:
+	artistinfo = lastfm.get_artist_info(artist)
+	images = [ x for x in artistinfo['image'] if x != '' ]
+	f = urllib2.Request(images[-1])
+	f.add_header('User-Agent','AlbumIdentify v1.0')
+	try:
+		f = urllib2.urlopen(f)
+	except Exception, e:
+		print e.msg
+		print e.fp.read()
+		raise
+	fout = open(os.path.join(options.destprefix,mp3names.FixFilename(artist),"folder.jpg"),"wb")
+	fout.write(f.read())
+	fout.close()
+	f.close()
+
+	
+
