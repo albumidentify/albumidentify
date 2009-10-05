@@ -2,6 +2,8 @@ import lastfm
 import traceback
 import tag
 
+# Based loosely on lastfm tagger plugin for picard by rifraf
+
 major_genres  = ["audiobooks", "blues", "classic rock", "classical", "country",
 "dance", "electronica", "folk", "hip-hop", "indie", "jazz", "kids", "metal",
 "pop", "punk", "reggae", "rock", "soul", "trance" ]
@@ -60,8 +62,31 @@ countries = ["african", "american", "arabic", "australian", "austrian",
 "norwegian", "oriental", "polish", "portuguese", "russian", "scandinavian", 
 "scottish", "southern", "spanish", "swedish", "swiss", "thai", "third world", 
 "turkish", "welsh", "western"]
-#
-#GENRE_FILTER["city"] = ["acapulco, adelaide, amsterdam, athens, atlanta, atlantic city, auckland, austin, bakersfield, bali, baltimore, bangalore, bangkok, barcelona, barrie, beijing, belfast, berlin, birmingham, bogota, bombay, boston, brasilia, brisbane, bristol, brooklyn, brussels, bucharest, budapest, buenos aires, buffalo, calcutta, calgary, california, cancun, caracas, charlotte, chicago, cincinnati, cleveland, copenhagen, dallas, delhi, denver, detroit, dublin, east coast, edmonton, frankfurt, geneva, glasgow, grand rapids, guadalajara, halifax, hamburg, hamilton, helsinki, hong kong, houston, illinois, indianapolis, istanbul, jacksonville, kansas city, kiev, las vegas, leeds, lisbon, liverpool, london, los angeles, louisville, madrid, manchester, manila, marseille, mazatlan, melbourne, memphis, mexico city, miami, michigan, milan, minneapolis, minnesota, mississippi, monterrey, montreal, munich, myrtle beach, nashville, new jersey, new orleans, new york, new york city, niagara falls, omaha, orlando, oslo, ottawa, palm springs, paris, pennsylvania, perth, philadelphia, phoenix, phuket, pittsburgh, portland, puebla, raleigh, reno, richmond, rio de janeiro, rome, sacramento, salt lake city, san antonio, san diego, san francisco, san jose, santiago, sao paulo, seattle, seoul, shanghai, sheffield, spokane, stockholm, sydney, taipei, tampa, texas, tijuana, tokyo, toledo, toronto, tucson, tulsa, vancouver, victoria, vienna, warsaw, wellington, westcoast, windsor, winnipeg, zurich"]
+
+cities = ["acapulco", "adelaide", "amsterdam", "athens", "atlanta", 
+"atlantic city", "auckland", "austin", "bakersfield", "bali", "baltimore", 
+"bangalore", "bangkok", "barcelona", "barrie", "beijing", "belfast", "berlin", 
+"birmingham", "bogota", "bombay", "boston", "brasilia", "brisbane", "bristol", 
+"brooklyn", "brussels", "bucharest", "budapest", "buenos aires", "buffalo", 
+"calcutta", "calgary", "california", "cancun", "caracas", "charlotte", 
+"chicago", "cincinnati", "cleveland", "copenhagen", "dallas", "delhi", 
+"denver", "detroit", "dublin", "east coast", "edmonton", "frankfurt", "geneva",
+"glasgow", "grand rapids", "guadalajara", "halifax", "hamburg", "hamilton", 
+"helsinki", "hong kong", "houston", "illinois", "indianapolis", "istanbul", 
+"jacksonville", "kansas city", "kiev", "las vegas", "leeds", "lisbon", 
+"liverpool", "london", "los angeles", "louisville", "madrid", "manchester", 
+"manila", "marseille", "mazatlan", "melbourne", "memphis", "mexico city", 
+"miami", "michigan", "milan", "minneapolis", "minnesota", "mississippi", 
+"monterrey", "montreal", "munich", "myrtle beach", "nashville", "new jersey", 
+"new orleans", "new york", "new york city", "niagara falls", "omaha", "orlando",
+"oslo", "ottawa", "palm springs", "paris", "pennsylvania", "perth", 
+"philadelphia", "phoenix", "phuket", "pittsburgh", "portland", "puebla", 
+"raleigh", "reno", "richmond", "rio de janeiro", "rome", "sacramento", 
+"salt lake city", "san antonio", "san diego", "san francisco", "san jose", 
+"santiago", "sao paulo", "seattle", "seoul", "shanghai", "sheffield", "spokane",
+"stockholm", "sydney", "taipei", "tampa", "texas", "tijuana", "tokyo", "toledo",
+"toronto", "tucson", "tulsa", "vancouver", "victoria", "vienna", "warsaw", 
+"wellington", "westcoast", "windsor", "winnipeg", "zurich"]
 mood = ["angry", "bewildered", "bouncy", "calm", "cheerful", "chill", "cold", "complacent", "crazy", "crushed", "cynical", "depressed", "dramatic", "dreamy", "drunk", "eclectic", "emotional", "energetic", "envious", "feel good", "flirty", "funky", "groovy", "happy", "haunting", "healing", "high", "hopeful", "hot", "humorous", "inspiring", "intense", "irritated", "laidback", "lonely", "lovesongs", "meditation", "melancholic", "melancholy", "mellow", "moody", "morose", "passionate", "peace", "peaceful", "playful", "pleased", "positive", "quirky", "reflective", "rejected", "relaxed", "retro", "sad", "sentimental", "sexy", "silly", "smooth", "soulful", "spiritual", "suicidal", "surprised", "sympathetic", "trippy", "upbeat", "uplifting", "weird", "wild", "yearning"]
 decade = [str(x)+"s" for x in range(1800,2010,10)]
 year = [str(x) for x in range(1801,2010)]
@@ -78,21 +103,24 @@ def get_tags(tags,mbtrack,artistname):
 	print "Looking up lastfm"
 	artist_tags = lastfm.get_artist_toptags(artistname)
 	track_tags =  lastfm.get_track_toptags(artistname,mbtrack.title)
-	tags = [
+	taglist = [
 		i["name"][0]
 		for i in 
 		artist_tags['tag'] + track_tags['tag']
 		if int(i["count"][0])>1
 		]
-	major=find_genres(major_genres, tags)
-	minor=find_genres(minor_genres, tags)
+	major=find_genres(major_genres, taglist)
+	minor=find_genres(minor_genres, taglist)
 	mmood=find_genres(mood, tags)
-	moccasion=find_genres(occasion, tags)
-	mcountry=find_genres(countries, tags)
-	mdecade=find_genres(decade, tags)
+	moccasion=find_genres(occasion, taglist)
+	mcountry=find_genres(countries, taglist)
+	mdecade=find_genres(decade, taglist)
 	#tags[tag.GENRE] = ",".join(major)
-	print "genre=",major,minor
-	print "mood=",mmood
-	print "occasion=",moccasion
-	print "decade=",mdecade
-	print "country=",mcountry
+	#print "genre=",major,minor
+	#print "mood=",mmood
+	#print "occasion=",moccasion
+	#print "decade=",mdecade
+	#print "country=",mcountry
+
+	tags[tag.MOOD] = ",".join(mmood)
+	tags[tag.GENRE] = ",".join(set(major).union(set(minor)))

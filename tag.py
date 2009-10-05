@@ -27,6 +27,7 @@ DISC_TOTAL_NUMBER = "DISCC"
 RELEASE_TYPES = "MUSICBRAINZ_RELEASE_ATTRIBUTE"
 DISC_NAME = "DISCNAME"
 GENRE = "GENRE"
+MOOD = "MOOD"
 
 flac_tag_map = {
         TITLE : "TITLE",
@@ -127,7 +128,7 @@ def remove_tags(filename, noact=False):
 	raise Exception("Don't know how to remove tags for this file (%s)!" % filename)
 
 def get_mp3_tags(tags):
-        return {
+        id3tags= {
                 "TIT2" : tags[TITLE],
                 "TPE1" : tags[ARTIST],
                 "TALB" : tags[ALBUM],
@@ -147,6 +148,11 @@ def get_mp3_tags(tags):
                 # TSST -- Set subtitle
                 "COMM" : ""
                 }
+	if MOOD in tags:
+		id3tags["TMOO"] = tags[MOOD]
+	if GENRE in tags:
+		id3tags["TCON"] = tags[GENRE].split(",")
+	return id3tags
 
 def read_tags(filename):
 	"Returns a hash of tags, indexed by constants in this file"

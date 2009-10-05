@@ -60,6 +60,10 @@ def _id3v2(f,data):
 		assert type(data["UFID"][0]) == type("")
 		assert type(data["UFID"][1]) == type("")
 		outp+=_tag("UFID",data["UFID"][0]+"\x00"+data["UFID"][1])
+	if "TMOO" in data and len(data["TMOO"])>0:
+		outp+=_texttag("TMOO",data["TMOO"])
+	if "TCON" in data and len(data["TCON"])>0:
+		outp+=_texttag("TCON","\x00".join(data["TCON"]))
 	if "TXXX" in data:
 		for (k,v) in data["TXXX"]:
 			outp+=_texttag("TXXX",k+u"\x00"+v)
