@@ -2,8 +2,28 @@ import urllib2
 import urllib
 import urlparse
 import xml.etree.ElementTree
+import re
+import memocache
+from htmlentitydefs import name2codepoint
+
 key="65085e011105adbea86d1fdb8f3fe7a5"
 secret="7c74c71eeac0045d153ab3cbfc828397"
+
+def htmlentitydecode(s):
+    os= re.sub('&(%s);' % '|'.join(name2codepoint), 
+            lambda m: unichr(name2codepoint[m.group(1)]), s)
+    return os
+
+def clean_trackid(trackid):
+	m=re.match(".*([a-fA-Z0-9]{8}-[a-fA-Z0-9]{4}-[a-fA-Z0-9]{4}-[a-fA-Z0-9]{4}-[a-fA-Z0-9]{12}).*",trackid)
+	assert m
+	mbid=m.group(1)
+	return mbid
+
+def _cleanname(x):
+	if x is None:
+		return ''
+	return htmlentitydecode(x)
 
 def _etree_to_dict(etree):
 	result={}
@@ -13,22 +33,11 @@ def _etree_to_dict(etree):
 		if len(i):
 			result[i.tag].append(_etree_to_dict(i))
 		else:
-			result[i.tag].append(i.text)
+			result[i.tag].append(_cleanname(i.text))
 	return result
 
-def get_track_info(mbid,artist,track):
-	url=urlparse.urlunparse(('http',
-		'ws.audioscrobbler.com',
-		'/2.0/',
-		'',
-		urllib.urlencode({
-			"method":"track.getinfo",
-			"api_key" : key,
-			"artist" : artist,
-			"track" : track,
-			"mbid" : mbid,
-			}),
-			''))
+@memocache.memoify()
+def _do_raw_lastfm_query(url):
 	f = urllib2.Request(url)
 	f.add_header('User-Agent','AlbumIdentify v1.0')
 	try:
@@ -41,7 +50,42 @@ def get_track_info(mbid,artist,track):
 	tree = xml.etree.ElementTree.ElementTree(file=f)
 	result=_etree_to_dict(tree.getroot()[0])
 	return result
+
+def _do_lastfm_query(method,**kwargs):
+	args = { 
+		"method" : method,
+		"api_key" : key,
+	 	}
+	args.update(kwargs)
+	url=urlparse.urlunparse(('http',
+		'ws.audioscrobbler.com',
+		'/2.0/',
+		'',
+		urllib.urlencode(args),
+		''))
+	print "url=",url
+	return _do_raw_lastfm_query(url)
+
+def get_track_info(artistname, trackname):
+	return _do_lastfm_query("track.getinfo",
+		artist=artistname,
+		track=trackname)
+
+def get_track_toptags(artistname, trackname):
+	return _do_lastfm_query("track.gettoptags",
+		artist=artistname,
+		track=trackname)
+
+def get_artist_info(artistname):
+	return _do_lastfm_query("artist.getinfo",
+		artist=artistname
+		)
+
+def get_artist_toptags(artistname):
+	return _do_lastfm_query("artist.gettoptags",
+		artist=artistname)
 	
 if __name__=="__main__":
 	import pprint
-	pprint.pprint(get_track_info('33e1d8ed-40e1-401c-962f-0170573cbc00','Pearl Jam','Even Flow',))
+	pprint.pprint(get_track_info('Pearl Jam','Even Flow',))
+

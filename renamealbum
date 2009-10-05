@@ -25,6 +25,7 @@ import albumidentifyconfig
 import operator
 import tag
 import parsemp3
+import serialisemp3
 import replaygain
 import tempfile
 import traceback
@@ -38,6 +39,9 @@ import subprocess
 
 import glob
 import toflac
+
+# metadata plugins
+import md_lastfm
 
 # Catch connections timing out
 socket.setdefaulttimeout(10)
@@ -841,17 +845,6 @@ def name_album(disc, release, srcpath, scheme, destprefix, imagemime=None, image
                         shutil.copyfile(os.path.join(srcpath, file), entry["tmpfilename"])
                         replaygain.remove_gain(entry["tmpfilename"])
                         tag.remove_tags(entry["tmpfilename"])
-                if not noact and ext.lower() == ".mp3":
-                        # Make a temp copy and undo any mp3gain
-                        (fd,tmpmp3) = tempfile.mkstemp(suffix=".mp3")
-                        os.close(fd)
-                        shutil.copy(srcfilepath, tmpmp3)
-                        replaygain.remove_gain(tmpmp3)
-                        parsed_data = parsemp3.parsemp3(tmpmp3)
-		        f=open(entry["tmpfilename"],"wb")
-			f.write(parsed_data["bitstream"])
-		        f.close()
-                        os.unlink(tmpmp3)
 
                 (track_artist, track_sort_artist, track_artist_id) = get_track_artist_info(release, track.mb_track)
 
@@ -895,7 +888,29 @@ def name_album(disc, release, srcpath, scheme, destprefix, imagemime=None, image
                 if embedcovers and imagepath:
                         image = imagepath
 
+		md_lastfm.get_tags(tags,mbtrack,track_artist)
                 tag.tag(entry["tmpfilename"], tags, noact, image)
+
+                # Special case mp3.. tag.tag() won't do anything with mp3 files
+                # as we write out the tags + bitstream in one operation, so do
+                # that here.
+                if ((not noact) and (ext.lower() == ".mp3")):
+                        # Make a temp copy and undo any mp3gain
+                        (fd,tmpmp3) = tempfile.mkstemp(suffix=".mp3")
+                        os.close(fd)
+                        shutil.copy(srcfilepath, tmpmp3)
+                        replaygain.remove_gain(tmpmp3)
+
+                        parsed_data = parsemp3.parsemp3(tmpmp3)
+                        outtags = tag.get_mp3_tags(tags)
+                        outtags["bitstream"] = parsed_data["bitstream"]
+                        if image:
+                                imagefp=open(image, "rb")
+                                imagedata=imagefp.read()
+                                imagefp.close()
+                                outtags["APIC"] = (imagemime,"\x03","",imagedata)
+                        serialisemp3.output(entry["tmpfilename"], outtags)
+                        os.unlink(tmpmp3)
 
                 srcfiles.append(srcfilepath)
 

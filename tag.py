@@ -1,11 +1,6 @@
 import subprocess
+import serialisemp3
 import parsemp3
-try:
-	import eyeD3
-except ImportError:
-	import sys
-	print "Cannot find eyeD3.  Please install python-eyed3 or similar"
-	sys.exit(1)
 
 supported_extensions = [".mp3", ".ogg", ".flac"]
 
@@ -31,6 +26,7 @@ DISC_NUMBER = "DISC"
 DISC_TOTAL_NUMBER = "DISCC"
 RELEASE_TYPES = "MUSICBRAINZ_RELEASE_ATTRIBUTE"
 DISC_NAME = "DISCNAME"
+GENRE = "GENRE"
 
 flac_tag_map = {
         TITLE : "TITLE",
@@ -51,6 +47,7 @@ flac_tag_map = {
         ISRC : "ISRC",
         MCN : "MCN",
         DISC_NAME : "DISCNAME",
+	GENRE : "GENRE",
 }
 
 def __gen_flac_tags(tags):
@@ -89,7 +86,7 @@ def __tag_flac(filename, tags, noact = False, image = None):
                 p = subprocess.Popen(proclist, stdin=subprocess.PIPE)
                 p.stdin.write(flactags.encode("utf8"))
                 p.stdin.close()
-                p.wait
+                p.wait()
 
 def __tag_ogg(filename, tags, noact=False, image=None):
         oggtags = __gen_flac_tags(tags)
@@ -100,60 +97,15 @@ def __tag_ogg(filename, tags, noact=False, image=None):
                 (stdout, stderr) = p.communicate(oggtags.encode("utf8"))
                 p.wait()
 
-def __tag_mp3(filename, tags, noact=False, image=None):
-	tag = eyeD3.Tag()
-	# Don't write tagging time
-	tag.do_tdtg = False
-	tag.link(filename)
-	tag.header.setVersion(eyeD3.ID3_V2_3)
-	tag.setTextEncoding(eyeD3.frames.UTF_16_ENCODING)
-	tag.setArtist(tags[ARTIST])
-	tag.setAlbum(tags[ALBUM])
-	tag.setTitle(tags[TITLE])
-	date = tags[DATE].split("-")
-	if len(date) == 3:
-		tag.setDate(date[0], date[1], date[2])
-	elif len(date) == 2:
-		tag.setDate(date[0], date[1])
-	elif len(date) == 1:
-		tag.setDate(date[0])
-	else:
-		tag.setDate(tags[YEAR])
-	tag.setTrackNum((tags[TRACK_NUMBER],tags[TRACK_TOTAL]))
-	if tags.has_key(DISC_NUMBER) and tags.has_key(DISC_TOTAL_NUMBER):
-		tag.setDiscNum((tags[DISC_NUMBER], tags[DISC_TOTAL_NUMBER]))
-        if tags.has_key(SORT_ARTIST):
-                tag.setArtist(tags[SORT_ARTIST], id="TSOP")
-	tag.addUserTextFrame("MusicBrainz Artist Id", tags[ARTIST_ID])
-	tag.addUserTextFrame("MusicBrainz Album Id", tags[ALBUM_ID])
-	tag.addUniqueFileID("http://musicbrainz.org", tags[TRACK_ID].encode("iso8859-1"))
-	if image:
-		tag.addImage(0x03, image)
-
-	if not noact:
-		# Write 2.3
-		tag.update()
-		# Write 1.1
-		# eyed3 won't ignore encoding errors by default, so we'll re-encode them
-		#  here, and ignore any errors.
-		tag.header.setVersion(eyeD3.ID3_V1_1)
-		tag.setTextEncoding(eyeD3.frames.LATIN1_ENCODING)
-		# ouch
-		old_encoding = eyeD3.LOCAL_ENCODING
-		eyeD3.LOCAL_ENCODING="latin1"
-		tag.setArtist(tags[ARTIST].encode("latin1", "replace"))
-		tag.setAlbum(tags[ALBUM].encode("latin1", "replace"))
-		tag.setTitle(tags[TITLE].encode("latin1", "replace"))
-		tag.update()
-		eyeD3.LOCAL_ENCODING=old_encoding
-
 def tag(filename, tags, noact=False, image=None):
         if filename.lower().endswith(".flac"):
                 return __tag_flac(filename, tags, noact, image)
         elif filename.lower().endswith(".ogg"):
                 return __tag_ogg(filename, tags, noact, image)
         elif filename.lower().endswith(".mp3"):
-		return __tag_mp3(filename, tags, noact, image)
+		#return __tag_mp3(filename, tags, noact, image)
+		#Tags are written out earlier
+		return
 
         raise Exception("Don't know how to tag this file type!")
 
@@ -162,13 +114,6 @@ def __remove_tags_flac(filename, noact):
 	if not noact:
 		return subprocess.call(proclist)
 
-def __remove_tags_mp3(filename, noact):
-	if not noact:
-		tag = eyeD3.Tag()
-		tag.link(filename)
-		tag.remove()
-		tag.update()
-
 def remove_tags(filename, noact=False):
 	if filename.lower().endswith(".flac"):
 		return __remove_tags_flac(filename, noact)
@@ -176,9 +121,32 @@ def remove_tags(filename, noact=False):
 		# Tagging Oggs uses -w (replace) so don't remove
 		return
 	elif filename.lower().endswith(".mp3"):
-		return __remove_tags_mp3(filename, noact)
+		# Don't bother doing anything with mp3 at the moment.
+		return
 
 	raise Exception("Don't know how to remove tags for this file (%s)!" % filename)
+
+def get_mp3_tags(tags):
+        return {
+                "TIT2" : tags[TITLE],
+                "TPE1" : tags[ARTIST],
+                "TALB" : tags[ALBUM],
+                "TYER" : tags[YEAR],
+                "TDAT" : tags[DATE],
+                "TRCK" : "%s/%s" % (tags[TRACK_NUMBER], tags[TRACK_TOTAL]),
+                "UFID" : ("http://musicbrainz.org",tags[TRACK_ID].encode("iso8859-1")),
+                "TXXX" : [("MusicBrainz Artist Id", tags[ARTIST_ID]),
+                          ("MusicBrainz Album Id", tags[ALBUM_ID])],
+                # TCOM -- Composer
+                # TDLY -- Playlist delay (preample)
+                # TSOA -- Album sort order
+                # TSOP -- Performer sort
+                # TSOT -- Title Sort
+                # TIPL -- Involved People
+                # TPOS -- Part of set
+                # TSST -- Set subtitle
+                "COMM" : ""
+                }
 
 def read_tags(filename):
 	"Returns a hash of tags, indexed by constants in this file"
