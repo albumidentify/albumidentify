@@ -157,15 +157,6 @@ def get_release_by_fingerprints(disc):
 
         return release
 
-def all_tracks_in_order(release,trackinfo,trackmap):
-	file_ids = trackinfo.keys()
-	file_ids.sort()
-	for fileid in trackinfo:
-		found_tracknumber=lookups.track_number(release.tracks, track)
-		if found_tracknumber != file_ids.index(fileid)+1:
-			return False
-	return True
-
 def get_sorted_directory(dirname):
 	files = sort.sorted_dir(dirname)
 	tracknum = 1
