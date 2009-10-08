@@ -169,10 +169,6 @@ def get_sorted_directory(dirname):
 	return tracknames
 
 def submit_puids(disc, release):
-	if not albumidentifyconfig.config.getboolean("albumidentify",
-		"push_shortcut_puids"):
-		print "Not submiting shortcut puids: not enabled in config"
-		return
 	if not albumidentify.FORCE_ORDER:
 		print "Not submitting: No order"
 		return
@@ -200,7 +196,10 @@ def submit_puids(disc, release):
 			# This just meant that searching was slower, so next time we can find this
 			# faster
 			lookups.remove_from_cache("delayed_get_track_by_id",trackid)
-	if flag:
+	if flag and not albumidentifyconfig.config.getboolean("albumidentify",
+			"push_shortcut_puids"):
+		print "Not subbmitting PUIDs: Disabled by config"
+	elif flag:
 		print "Submitting PUIDs to Musicbrainz"
 		puidsubmit.submit_puids_mb(track2puid)
 	else:
@@ -210,10 +209,6 @@ def submit_isrcs(disc, release):
         if not lookups.SUBMIT_SUPPORT:
                 print "Not submitting shortcut isrcs: need pymusicbrainz2 > 0.7.0"
                 return
-	if not albumidentifyconfig.config.getboolean("albumidentify",
-		"push_shortcut_puids"):
-		print "Not submiting shortcut isrcs: not enabled in config"
-		return
 	if not albumidentify.FORCE_ORDER:
 		print "Not submitting: No order"
 		return
@@ -232,8 +227,12 @@ def submit_isrcs(disc, release):
 		if isrc not in track.isrcs:
 			flag = True
 			track2isrc[trackid] = isrc
+			print " %02d: %s -> %s" % (trackind+1,isrc, track.title)
 	
-	if flag:
+	if flag and not albumidentifyconfig.config.getboolean("albumidentify",
+			"push_shortcut_puids"):
+		print "Not submitting ISRCs: Disabled by config"
+	elif flag:
 		print "Submitting ISRCs to Musicbrainz"
 		puidsubmit.submit_isrcs_mb(track2isrc)
 		lookups.remove_from_cache("delayed_get_release_by_releaseid", release.id)
