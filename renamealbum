@@ -186,7 +186,7 @@ def submit_puids(disc, release):
 	print release.artist.name,"-",release.title,":"
 	for trackind in range(len(tracknames)):
 		trackid = release.tracks[trackind].id
-		puid = dirinfo[tracknames[trackind+1]][5]
+		puid = dirinfo[tracknames[trackind+1]].getPUID()
 		if puid == None:
 			print "%02d: No PUID" % (trackind+1)
 			continue
