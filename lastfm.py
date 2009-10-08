@@ -63,7 +63,6 @@ def _do_lastfm_query(method,**kwargs):
 		'',
 		urllib.urlencode(args),
 		''))
-	print "url=",url
 	return _do_raw_lastfm_query(url)
 
 def get_track_info(artistname, trackname):
