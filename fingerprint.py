@@ -17,6 +17,7 @@ import os
 import memocache
 import util
 import hashlib
+import stat
 
 def fingerprint_wave(file):
 	""" Take a WAVE filename (or an open File object) and use libofa to
@@ -107,9 +108,17 @@ def upload_fingerprint_any(filename,genpuidcmd,musicdnskey):
 		if os.path.exists(toname):
 			os.unlink(toname)
 
+def stat_file(fname):
+	s = list(os.stat(fname))
+	s.pop(stat.ST_ATIME) # Remove ATime from the list of considered attributes
+	return s
+
+@memocache.memoify(mappingfunc=lambda args,kwargs:(stat_file(args[0]),kwargs))
 def hash_file(fname):
 	util.update_progress("Hashing file")
-	return hashlib.md5(open(fname,"r").read()).hexdigest()
+	h=hashlib.md5(open(fname,"r").read()).hexdigest()
+	util.update_progress("Hashed file")
+	return h
 
 @memocache.memoify(mappingfunc=lambda args,kwargs:(hash_file(args[0]),kwargs))
 def populate_fingerprint_cache(fname):
