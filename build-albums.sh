@@ -1,5 +1,9 @@
 #!/bin/sh
 
+# Must be run from inside ..../albums
+# Musc provide relative arguments
+
+
 for filetype in "$@"; do
 	for artist in "$filetype"/*; do
 		artist=$(basename "$artist")
