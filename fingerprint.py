@@ -18,6 +18,7 @@ import memocache
 import util
 import hashlib
 import stat
+import albumidentifyconfig
 
 def fingerprint_wave(file):
 	""" Take a WAVE filename (or an open File object) and use libofa to
@@ -102,7 +103,9 @@ def upload_fingerprint_any(filename,genpuidcmd,musicdnskey):
 	(fd,toname)=tempfile.mkstemp(suffix=".wav")
 	os.close(fd)
 	try:
-		_decode(fname,toname)
+		_decode(filename,toname)
+		genpuid_cmd = albumidentifyconfig.config.get("albumidentify","genpuid_command")
+		musicdnskey = albumidentifyconfig.config.get("albumidentify","musicdnskey")
 		os.system(genpuid_cmd + " " + musicdnskey + " " + toname)
 	finally:
 		if os.path.exists(toname):

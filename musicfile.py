@@ -3,6 +3,7 @@ import lookups
 import tag
 import fingerprint
 import musicdns
+import memocache
 import albumidentifyconfig
 
 # Used for reading.
@@ -49,7 +50,7 @@ class MusicFile:
 				genpuid_cmd,
 				musicdnskey)
 		memocache.remove_from_cache("delayed_lookup_fingerprint",
-				self.fp,
+				self.fingerprint,
 				self.dur,
 				musicdns_key)
 		return None
