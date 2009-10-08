@@ -4,6 +4,12 @@
 import lookups
 import util
 
+def any(iterable):
+	for i in iterable:
+		if i:
+			return True
+	return False
+
 def generate_track_name_possibilities(file, fileid, possible_releases):
 	"""Return all track ids matching the tracks.
 
@@ -27,7 +33,7 @@ def generate_track_name_possibilities(file, fileid, possible_releases):
 			if trackind+1 in v:
 				continue
 
-			if util.combinations(util.comp_name, rtrackname, ftrackname):
-				print "Using text based comparison for track",trackind+1,`rtrackname`
+			if any(util.combinations(util.comp_name, rtrackname, ftrackname)):
+				print "Using text based comparison for track",trackind+1,`rtrackname`,"(",repr(ftrackname),")"
 				yield lookups.get_track_by_id(release.tracks[trackind].id)
 

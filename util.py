@@ -19,16 +19,14 @@ def comp_name(n1,n2):
 
 def _combinations(func,doneargs,todoargs):
 	if todoargs==():
-		for ret in func(*doneargs):
-			yield ret
-		return
-	if type(todoargs[0]) not in [type(()),type([])]:
+		yield func(*doneargs)
+	elif type(todoargs[0]) not in [type(()),type([])]:
 		for ret in _combinations(func,doneargs+(todoargs[0],),todoargs[1:]):
 			yield ret
-		return
-	for arg in todoargs[0]:
-		for ret in _combinations(func,doneargs+(arg,),todoargs[1:]):
-			yield ret
+	else:
+		for arg in todoargs[0]:
+			for ret in _combinations(func,doneargs+(arg,),todoargs[1:]):
+				yield ret
 	return
 		
 
