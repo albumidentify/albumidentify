@@ -21,7 +21,8 @@ import strat_musicbrainzid
 
 # If set to True, this will force tracks to be found in order
 # if set to False, tracks can be found in any order (has false positives)
-FORCE_ORDER=True
+#FORCE_ORDER=True
+FORCE_ORDER=False
 
 # trackind's are 0 based
 # tracknum's are 1 based
@@ -151,20 +152,34 @@ def end_of_track(possible_releases,impossible_releases,track_generator,trackinfo
 
 def get_puids_for_release(releaseid):
 	puids=[]
-	for trackid in release.tracks:
-		track = lookups.get_track_by_id(trackid)
+	release = lookups.get_release_by_releaseid(releaseid)
+	for track in release.tracks:
+		track = lookups.get_track_by_id(track.id)
 		puids = puids + track.puids
 	return puids
 
-def verify_track(releaseid, release, possible_releases, impossible_releases, 
-		trackinfo, fileid, track):
+def verify_track(release, possible_releases, impossible_releases, 
+			trackinfo, fileid, track):
+	# Step One: Has this file already been found on this release?
+	releaseid = release.id
+	if releaseid in possible_releases and fileid in possible_releases[releaseid].values():
+		util.update_progress("Already found on this release:" + fileid )
+		return False
+	# Step Two: Check for the right number of tracks
 	if len(release.tracks) != len(trackinfo):
 		# Ignore release -- wrong number of tracks
 		util.update_progress(release.title.encode("ascii","ignore")[:40]+": wrong number of tracks (%d not %d)" % (len(release.tracks),len(trackinfo)))
 		impossible_releases.append(releaseid)
 		return False
 
-	if FORCE_ORDER or trackinfo[fileid].getPUID() in get_puids_for_release(releaseid):
+	# Step Three: Have we found a file for this track on this release?
+	tracknum = lookups.track_number(release.tracks, track)
+	if releaseid in possible_releases and tracknum in possible_releases[releaseid]:
+		util.update_progress("Already found a file for track %02d: %s" % (tracknum,possible_releases[releaseid][tracknum]))
+		return False
+
+	# Step Four: (optionally) Check that track 'n' maps to file 'n'.
+	if FORCE_ORDER:
 		found_tracknumber=lookups.track_number(release.tracks, track)
 		file_ids = trackinfo.keys()
 		file_ids = sort.sorted_list(file_ids)
@@ -172,28 +187,45 @@ def verify_track(releaseid, release, possible_releases, impossible_releases,
 			util.update_progress(release.title[:40]+": track at wrong position")
 			return False
 
+	# Step Five: Make sure if there is another mapping on this album
+	# that we don't accept this one.
+ 	if trackinfo[fileid].getPUID() in get_puids_for_release(releaseid):
+		if trackinfo[fileid].getPUID() not in lookups.get_track_by_id(track.id).puids:
+			print "Track exists elsewhere on this release"
+			print "",fileid
+			print "",track.title
+			
+			for ntrackind,ntrack in enumerate(release.tracks):
+				ntrack = lookups.get_track_by_id(ntrack.id)
+				if trackinfo[fileid].getPUID() in ntrack.puids:
+					print " should be:",ntrack.title
+					
+			return False
+
+	# Step Six: Make sure the song is within 10% of the length of the 
+	# track we expect it to be.
 	dur_ratio = track.getDuration() * 1.0 / trackinfo[fileid].getDuration()
 	if dur_ratio < .9 or dur_ratio > 1.1:
-		print "WARNING: Track lengths differ"
-		print " %s (%s) vs %s (%s)" % (
-			trackinfo[fileid].getFilename(),
+		print "Track lengths differ"
+		print " (%s) %s" % (
 			duration_to_string(trackinfo[fileid].getDuration()),
+			trackinfo[fileid].getFilename(),
+			)
+		print " (%s) %s" % (
+			duration_to_string(track.getDuration()),
 			track.title,
-			duration_to_string(track.getDuration())
 			)
 		return False
 
+	# Well, after passing through that gauntlet, we might consider this track!
 	return True
 
-def add_new_track(release, releaseid, possible_releases, fileid, track, trackinfo, impossible_releases):
+def add_new_track(release, possible_releases, fileid, track, trackinfo, impossible_releases):
+	releaseid = release.id
 	found_tracknumber=lookups.track_number(release.tracks, track)
 	if releaseid in possible_releases:
-		if found_tracknumber in possible_releases[releaseid]:
-			# We already have a file for this track
-			return
-		if fileid in possible_releases[releaseid].values():
-			# This file has already has a track
-			return
+		assert found_tracknumber not in possible_releases[releaseid]
+		assert fileid not in possible_releases[releaseid].values(),(fileid,possible_releases[releaseid])
 		possible_releases[releaseid][found_tracknumber]=fileid
 		print "Found track",found_tracknumber,"(",release.tracks[found_tracknumber-1].title,")","of",release.title,":",os.path.basename(fileid),"(tracks found: %s)\x1b[K" % (util.output_list(possible_releases[releaseid].keys()))
 		return
@@ -215,8 +247,7 @@ def add_new_track(release, releaseid, possible_releases, fileid, track, trackinf
 				continue
 			if trackinfo[fileid].getPUID() in track.puids:
 				# yay, found one.
-				if verify_track(releaseid, 
-						release,
+				if verify_track(release,
 						possible_releases,
 						impossible_releases,
 						trackinfo,
@@ -297,8 +328,7 @@ def guess_album2(trackinfo):
 			release = lookups.get_release_by_releaseid(releaseid)
 
 			# Is the track usable?
-			if not verify_track(releaseid, 
-					release, 
+			if not verify_track(release, 
 					possible_releases,
 					impossible_releases,
 					trackinfo,
@@ -307,7 +337,6 @@ def guess_album2(trackinfo):
 				continue
 
 			add_new_track(release, 
-					releaseid, 
 					possible_releases, 
 					fileid, 
 					track, 
@@ -367,7 +396,54 @@ def guess_album(trackinfo):
 		)
 		yield albuminfo
 
+def tracks_in_order(trackdata):
+	fids = [x[5] for x in trackdata]
+	fids = sort.sorted_list(fids)
+	for (tracknum,artist,sortartist,title,dur,fname,artistid,trkid),fid in zip(trackdata,fids):
+		if fname != fid:
+			return False
+	return True
 
+
+def guess_best_album(trackinfo):
+	count = 0
+	possibilities={}
+	for (directoryname, 
+			title,
+			rid, 
+			revents, 
+			asin, 
+			trackdata, 
+			albumartist, 
+			releaseid) in guess_album(trackinfo):
+		count+=1
+		possibilities[releaseid]=title
+		if tracks_in_order(trackdata):
+			yield (directoryname, 
+				title, 
+				rid,
+				revents, 
+				asin, 
+				trackdata, 
+				albumartist, 
+				releaseid)
+	if count == 0:
+		print "Unable to identify album"
+	if count == 1:
+		yield (directoryname, 
+			release.title, 
+			rid,
+			revents, 
+			asin, 
+			trackdata, 
+			albumartist, 
+			releaseid)
+	if count > 1:
+		print "Too many out of order tracks"
+		print "Possible releases:"
+		for releaseid,releasetitle in possibilities.items():
+			print " %s: %s" % (releaseid, releasetitle)
+	
 def process_dir(dir_path):
 	"""Process a directory and guess the album in it.
 
@@ -378,10 +454,8 @@ def process_dir(dir_path):
 		A generator which will yield album_info guesses. See guess_album for
 		details of the guess format.
 	"""
-	print "got here"
 	trackinfo = get_dir_info(dir_path)
-	return guess_album(trackinfo)
-
+	return guess_best_album(trackinfo)
 
 if __name__=="__main__":
 	import sys
