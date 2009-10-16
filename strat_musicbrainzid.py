@@ -14,5 +14,5 @@ def generate_from_metadata(file):
 	"""
 	trackid=file.getMDTrackID()
 	if trackid:
-		yield trackid
+		yield lookups.get_track_by_id(trackid)
 
