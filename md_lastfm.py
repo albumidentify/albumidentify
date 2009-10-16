@@ -106,7 +106,7 @@ def get_tags(tags,mbtrack,artistname):
 	taglist = [
 		i["name"][0]
 		for i in 
-		artist_tags['tag'] + track_tags['tag']
+		artist_tags.get('tag',[]) + track_tags.get('tag',[])
 		if int(i["count"][0])>1
 		]
 	major=find_genres(major_genres, taglist)
