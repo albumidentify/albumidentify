@@ -56,7 +56,8 @@ def _do_lastfm_query(method,**kwargs):
 		"method" : method,
 		"api_key" : key,
 	 	}
-	args.update(kwargs)
+	for k,v in kwargs.items():
+		args[k] = v.encode("utf8")
 	url=urlparse.urlunparse(('http',
 		'ws.audioscrobbler.com',
 		'/2.0/',
