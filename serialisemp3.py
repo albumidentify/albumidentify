@@ -94,7 +94,6 @@ def _id3v2(f,data):
                 d+=desc.encode("utf8")+"\x00"
                 d+=stream
 		outp+=_tag("APIC",d)
-	print "Wrote tags:",data["COMM"]
 	f.write(chr(len(outp)>>21)+
 		chr((len(outp)>>14)&0x7f)+
 		chr((len(outp)>>7)&0x7f)+
