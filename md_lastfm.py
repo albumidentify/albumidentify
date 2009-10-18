@@ -11,5 +11,4 @@ def get_tags(tags, mbalbum, mbtrack, artistname):
 		if int(i["count"][0])>1
 		]
 	tags[tag.TAGS] = ",".join(taglist)
-	print "lastfm tags:",tags[tag.TAGS]
 
