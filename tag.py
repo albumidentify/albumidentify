@@ -207,7 +207,7 @@ def __read_tag_mp3_anyver(mp3tags,tagname):
 	return None
 
 def __read_tags_mp3(filename):
-	data = parsemp3.parsemp3(filename)
+	data = parsemp3.readid3(filename)
 	tags = {}
 	tags[TITLE] = __read_tag_mp3_anyver(data,"TIT2")
 	tags[ARTIST] = __read_tag_mp3_anyver(data,"TPE1")

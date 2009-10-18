@@ -324,6 +324,47 @@ def apev2(ape):
 		data[apekey]=apedata
 	return data
 
+# Just read id3 tags, skipping the bitstream and any other tag types
+def readid3(fname):
+	f=open(fname,"rb")
+
+	f.seek(-128,2)
+	id3v1=f.read(128)
+	flength=f.tell()
+	if id3v1.startswith("TAG"):
+		v1data=v1(id3v1[3:])
+		flength-=128
+	else:
+		v1data={}
+
+	f.seek(0)
+
+	# Find a ID3v2 tag
+	if f.read(3)=="ID3":
+		id3version = ord(f.read(1))+ord(f.read(1))/256.0
+		id3flags = ord(f.read(1))
+		id3len = ord(f.read(1))*128*128*128+ord(f.read(1))*128*128+ord(f.read(1))*128+ord(f.read(1))
+		#print "ID3 v 2",id3version,"found"
+		#print "flags:",id3flags
+		#print "len:",id3len
+		tag=f.read(id3len)
+		if int(id3version)==2:
+			v2data=v2_2_0(tag)
+		elif int(id3version) in [3,4]:
+			v2data=v2_3_0(tag, id3version)
+		else:
+			print "Unknown tag version ID3v2.",int(id3version)
+			v2data={}
+		v2data["version"]=u"ID3v2.%s" % unicode(id3version)
+	else:
+		f.seek(0)
+		v2data={}
+
+	return {
+		"v2" : v2data,
+		"v1" : v1data
+		}
+
 def parsemp3(fname):
 	fin=open(fname,"rb")
 	contents = fin.read()
