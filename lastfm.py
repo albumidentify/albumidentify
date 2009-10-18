@@ -78,13 +78,20 @@ def get_track_toptags(artistname, trackname):
 
 def get_artist_info(artistname):
 	return _do_lastfm_query("artist.getinfo",
-		artist=artistname
-		)
+		artist=artistname)
+
+def get_artist_by_mbid(mbid):
+	return _do_lastfm_query("artist.getinfo",
+		mbid=mbid)
 
 def get_artist_toptags(artistname):
 	return _do_lastfm_query("artist.gettoptags",
 		artist=artistname)
-	
+
+def get_artist_toptracks(artistname):
+	return _do_lastfm_query("artist.gettoptracks",
+		artist=artistname)
+
 if __name__=="__main__":
 	import pprint
 	pprint.pprint(get_track_info('Pearl Jam','Even Flow',))
