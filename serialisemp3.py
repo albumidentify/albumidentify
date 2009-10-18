@@ -52,6 +52,8 @@ def _id3v2(f,data):
 	# Length
 	outp =_texttag("TIT2",data["TIT2"])
 	outp+=_texttag("TPE1",data["TPE1"])
+	if "TPE2" in data:
+		outp+=_texttag("TPE2",data["TPE2"])
 	outp+=_texttag("TALB",data["TALB"])
 	outp+=_texttag("TYER",data["TYER"])
 	outp+=_texttag("TDAT",data["TDAT"])
@@ -61,6 +63,12 @@ def _id3v2(f,data):
 		assert type(data["UFID"][0]) == type("")
 		assert type(data["UFID"][1]) == type("")
 		outp+=_tag("UFID",data["UFID"][0]+"\x00"+data["UFID"][1])
+	if "TSOB" in data \
+			and len(data["TSOP"])>0 \
+			and data["TSOP"]!=data["TPE1"]:
+		outp+=_texttag("TSOB",data["TSOB"])
+	if "TSO2" in data and len(data["TSO2"])>0:
+		outp+=_texttag("TSO2",data["TSO2"])
 	if "TMOO" in data and len(data["TMOO"])>0:
 		outp+=_texttag("TMOO",data["TMOO"])
 	if "TCON" in data and len(data["TCON"])>0:

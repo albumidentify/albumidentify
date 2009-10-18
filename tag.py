@@ -6,6 +6,8 @@ supported_extensions = [".mp3", ".ogg", ".flac"]
 
 # http://musicbrainz.org/doc/PicardQt/TagMapping
 # http://xiph.org/vorbis/doc/v-comment.html
+# http://wiki.hydrogenaudio.org/index.php?title=Foobar2000:ID3_Tag_Mapping
+# http://www.jthink.net/jaudiotagger/tagmapping.html
 TITLE = "TITLE"
 ARTIST = "ARTIST"
 ALBUM_ARTIST = "ALBUM_ARTIST"
@@ -134,6 +136,7 @@ def get_mp3_tags(tags):
         id3tags= {
                 "TIT2" : tags[TITLE],
                 "TPE1" : tags[ARTIST],
+		"TPE2" : tags[ALBUM_ARTIST],
                 "TALB" : tags[ALBUM],
                 "TYER" : tags[YEAR],
                 "TDAT" : tags[DATE],
@@ -145,13 +148,16 @@ def get_mp3_tags(tags):
                 # TCOM -- Composer
                 # TDLY -- Playlist delay (preample)
                 # TSOA -- Album sort order
-                # TSOP -- Performer sort
                 # TSOT -- Title Sort
                 # TIPL -- Involved People
                 # TPOS -- Part of set
                 # TSST -- Set subtitle
                 "COMM" : [('Tags',tags[TAGS])],
                 }
+	if SORT_ARTIST in tags:
+		id3tags["TSOP"] = tags[SORT_ARTIST]
+	if SORT_ALBUM_ARTIST in tags:
+		id3tags["TSO2"] = tags[SORT_ALBUM_ARTIST]
 	if MOOD in tags:
 		id3tags["TMOO"] = tags[MOOD]
 	if GENRE in tags:
