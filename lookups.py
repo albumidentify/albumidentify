@@ -9,8 +9,11 @@ import os
 import atexit
 import shelve
 import memocache
+import util
 
 AMAZON_LICENSE_KEY='1WQQTEA14HEA9AERDMG2'
+
+PROFILE=0
 
 startup = time.time()
 lastwsquery = {}
@@ -49,8 +52,13 @@ def delayed(webservice="default"):
 				
 			if time.time()-lastwsquery[webservice]<MINDELAY:
 				wait=MINDELAY-(time.time()-lastwsquery[webservice])
+				if PROFILE:
+					util.update_progress("Waiting %.2fs for %s" % (wait,func.__name__))
 				time.sleep(wait)
+			t=time.time()
 			ret=func(*args,**kwargs)
+			if PROFILE:
+				util.update_progress("%s took %.2fs" % (func.__name__,time.time()-t))
 			lastwsquery[webservice]+=MINDELAY
 			return ret
 		delay.__name__="delayed_"+func.__name__
