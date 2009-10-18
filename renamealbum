@@ -42,6 +42,7 @@ import toflac
 
 # metadata plugins
 import md_lastfm
+import md_musicbrainz
 import md_genre
 
 # Catch connections timing out
@@ -879,8 +880,9 @@ def name_album(disc, release, srcpath, scheme, destprefix, imagemime=None, image
                 if embedcovers and imagepath:
                         image = imagepath
 
-		md_lastfm.get_tags(tags, mbtrack, track_artist)
-		md_genre.get_tags(tags, mbtrack, track_artist)
+		md_lastfm.get_tags(tags, release, mbtrack, track_artist)
+		md_musicbrainz.get_tags(tags, release, mbtrack, track_artist)
+		md_genre.get_tags(tags, release, mbtrack, track_artist)
 
                 tag.tag(entry["tmpfilename"], tags, noact, image)
 

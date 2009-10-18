@@ -9,7 +9,8 @@ def _id3v1(f,data):
 	_write_fixed_width(f,data["TPE1"].encode("iso8859-1","replace"),30)
 	_write_fixed_width(f,data["TALB"].encode("iso8859-1","replace"),30)
 	_write_fixed_width(f,data["TYER"].encode("iso8859-1","replace"),4)
-	_write_fixed_width(f,data["COMM"].encode("iso8859-1","replace"),28)
+	# Grab the value of the first comment tag
+	_write_fixed_width(f,data["COMM"][0][1].encode("iso8859-1","replace"),28)
 	f.write("\x00") # ID3v1.1 tag
 	f.write(chr(int(data["TRCK"].split("/")[0])))
 	_write_fixed_width(f,"\xFF",1) # No Genre
@@ -42,7 +43,7 @@ def _encode(data):
 
 def _texttag(name,data):
 	(type,data) = _encode(data)
-	return _tag(name,type+data)
+	return _tag(name, type+data)
 
 def _id3v2(f,data):
 	f.write("ID3")		# Magic
@@ -67,6 +68,13 @@ def _id3v2(f,data):
 	if "TXXX" in data:
 		for (k,v) in data["TXXX"]:
 			outp+=_texttag("TXXX",k+u"\x00"+v)
+	#outp+=_tag("TLEN",data["TLEN"])
+	#outp+=_tag("TLEN",str(data["TLEN"]))
+	if "COMM" in data:
+		for (k,v) in data["COMM"]:
+			(encoding, payload) = _encode("\x00"+v)
+			outp+= _tag("COMM", encoding+"eng"+"Tags\x00"+payload)
+	# Output the APIC tag last
 	if "APIC" in data:
 		# encoding, mimetype, \x00, pic type (\x03 = front cover), desc, \x00, data
 		(mimetype, pictype, desc, stream) = data["APIC"]
@@ -78,8 +86,7 @@ def _id3v2(f,data):
                 d+=desc.encode("utf8")+"\x00"
                 d+=stream
 		outp+=_tag("APIC",d)
-	#outp+=_tag("TLEN",data["TLEN"])
-	#outp+=_tag("TLEN",str(data["TLEN"]))
+	print "Wrote tags:",data["COMM"]
 	f.write(chr(len(outp)>>21)+
 		chr((len(outp)>>14)&0x7f)+
 		chr((len(outp)>>7)&0x7f)+

@@ -150,7 +150,7 @@ def get_mp3_tags(tags):
                 # TIPL -- Involved People
                 # TPOS -- Part of set
                 # TSST -- Set subtitle
-                "COMM" : tags[TAGS],
+                "COMM" : [('Tags',tags[TAGS])],
                 }
 	if MOOD in tags:
 		id3tags["TMOO"] = tags[MOOD]

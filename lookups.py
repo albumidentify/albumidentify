@@ -83,10 +83,20 @@ def get_tracks_by_puid(puid):
 def get_track_by_id(id):
 	q = ws.Query()
 	results = []
+	requests = {
+		"artist"	: True,
+		"releases"	: True,
+		"puids"		: True,
+		"artistRelations": False,
+		"releaseRelations": False,
+		"trackRelations": False,
+		"urlRelations"	: False,
+		"tags"		: True,
+	}
         if SUBMIT_SUPPORT:
-                includes = ws.TrackIncludes(artist=True, releases=True, puids=True, isrcs=True)
-        else:
-                includes = ws.TrackIncludes(artist=True, releases=True, puids=True)
+		requests[isrcs]=True
+
+        includes = ws.TrackIncludes(**requests)
 
 	t = q.getTrackById(id_ = id, include = includes)
 	return t

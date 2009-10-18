@@ -98,7 +98,7 @@ def find_genres(genre_list, tag_list):
 			ret.add(tag)
 	return list(ret)
 
-def get_tags(tags,mbtrack,artistname):
+def get_tags(tags,mbalbum, mbtrack,artistname):
 	taglist=tags[tag.TAGS].split(",")
 	major=find_genres(major_genres, taglist)
 	minor=find_genres(minor_genres, taglist)

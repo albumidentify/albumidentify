@@ -1,8 +1,7 @@
 import lastfm
 import tag
 
-def get_tags(tags, mbtrack, artistname):
-	print "Looking up lastfm"
+def get_tags(tags, mbalbum, mbtrack, artistname):
 	artist_tags = lastfm.get_artist_toptags(artistname)
 	track_tags =  lastfm.get_track_toptags(artistname,mbtrack.title)
 	taglist = [
@@ -12,4 +11,5 @@ def get_tags(tags, mbtrack, artistname):
 		if int(i["count"][0])>1
 		]
 	tags[tag.TAGS] = ",".join(taglist)
+	print "lastfm tags:",tags[tag.TAGS]
 
