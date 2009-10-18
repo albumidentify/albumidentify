@@ -256,11 +256,16 @@ def add_new_track(release, possible_releases, fileid, track, trackinfo, impossib
 					possible_releases[releaseid][trackind+1]=fileid
 					print " Also found track %02d: %s" % (trackind+1,release.tracks[trackind].title)
 					break
-	print " Found tracks: %s  Missing tracks: %s"% (
-		util.output_list(possible_releases[releaseid].keys()),
-		util.output_list(
-			util.list_difference(range(1,len(release.tracks)+1),
-			possible_releases[releaseid].keys())))
+	print " Found tracks: %s" % (
+		util.output_list(possible_releases[releaseid].keys())),
+	if util.list_difference(range(1,len(release.tracks)+1),
+			possible_releases[releaseid].keys()):
+		print " Missing tracks: %s"% (
+			util.output_list(
+				util.list_difference(range(1,len(release.tracks)+1),
+				possible_releases[releaseid].keys())))
+	else:
+		print
 
 def guess_album2(trackinfo):
 	# trackinfo is
