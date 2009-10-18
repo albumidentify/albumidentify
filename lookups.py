@@ -88,10 +88,18 @@ def get_track_by_id(id):
 def get_release_by_releaseid(releaseid):
 	""" Given a musicbrainz release-id, fetch the release from musicbrainz. """
 	q = ws.Query()
+	requests = {
+		"artist" 	: True,
+		"counts" 	: True,
+		"tracks" 	: True,
+		"releaseEvents" : True,
+		"releaseRelations" : True,
+		"urlRelations"	: True,
+		"tags"		: True,
+	}
         if SUBMIT_SUPPORT:
-                includes = ws.ReleaseIncludes(artist=True, counts=True, tracks=True, releaseEvents=True, urlRelations=True, releaseRelations=True, isrcs=True)
-        else:
-                includes = ws.ReleaseIncludes(artist=True, counts=True, tracks=True, releaseEvents=True, urlRelations=True, releaseRelations=True)
+		requests["isrcs"] = True
+	includes = ws.ReleaseIncludes(**requests)
 	return q.getReleaseById(id_ = releaseid, include=includes)
 
 @memocache.memoify()
