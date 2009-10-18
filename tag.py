@@ -4,6 +4,8 @@ import parsemp3
 
 supported_extensions = [".mp3", ".ogg", ".flac"]
 
+# http://musicbrainz.org/doc/PicardQt/TagMapping
+# http://xiph.org/vorbis/doc/v-comment.html
 TITLE = "TITLE"
 ARTIST = "ARTIST"
 ALBUM_ARTIST = "ALBUM_ARTIST"
@@ -28,6 +30,7 @@ RELEASE_TYPES = "MUSICBRAINZ_RELEASE_ATTRIBUTE"
 DISC_NAME = "DISCNAME"
 GENRE = "GENRE"
 MOOD = "MOOD"
+TAGS = "TAGS"
 
 flac_tag_map = {
         TITLE : "TITLE",
@@ -137,7 +140,8 @@ def get_mp3_tags(tags):
                 "TRCK" : "%s/%s" % (tags[TRACK_NUMBER], tags[TRACK_TOTAL]),
                 "UFID" : ("http://musicbrainz.org",tags[TRACK_ID].encode("iso8859-1")),
                 "TXXX" : [("MusicBrainz Artist Id", tags[ARTIST_ID]),
-                          ("MusicBrainz Album Id", tags[ALBUM_ID])],
+                          ("MusicBrainz Album Id", tags[ALBUM_ID]),
+			 ],
                 # TCOM -- Composer
                 # TDLY -- Playlist delay (preample)
                 # TSOA -- Album sort order
@@ -146,7 +150,7 @@ def get_mp3_tags(tags):
                 # TIPL -- Involved People
                 # TPOS -- Part of set
                 # TSST -- Set subtitle
-                "COMM" : ""
+                "COMM" : tags[TAGS],
                 }
 	if MOOD in tags:
 		id3tags["TMOO"] = tags[MOOD]
