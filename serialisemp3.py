@@ -82,6 +82,9 @@ def _id3v2(f,data):
 		for (k,v) in data["COMM"]:
 			(encoding, payload) = _encode("\x00"+v)
 			outp+= _tag("COMM", encoding+"eng"+"Tags\x00"+payload)
+	if "WXXX" in data:
+		for (k,v) in data["WXXX"]:
+			outp+= _texttag("WXXX", k+"\x00"+v)
 	# Output the APIC tag last
 	if "APIC" in data:
 		# encoding, mimetype, \x00, pic type (\x03 = front cover), desc, \x00, data
