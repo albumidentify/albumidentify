@@ -13,6 +13,9 @@ COVER="http://musicbrainz.org/ns/rel-1.0#Cover"
 REMIX="http://musicbrainz.org/ns/rel-1.0#Remix"
 MASHESUP="http://musicbrainz.org/ns/rel-1.0#MashesUp"
 
+FIRST_ALBUM_RELEASE="http://musicbrainz.org/ns/rel-1.0#FirstAlbumRelease"
+PART_OF_SET="http://musicbrainz.org/ns/rel-1.0#PartOfSet"
+
 # Release - URL
 ASIN="http://musicbrainz.org/ns/rel-1.0#AmazonAsin"
 WIKIPEDIA="http://musicbrainz.org/ns/rel-1.0#Wikipedia"
@@ -29,25 +32,44 @@ def _add_track_relationship(tags, relationship):
 		print " targetid=",relationship.getTargetId()
 		print " targettype=",relationship.getTargetType()
 		print " type=",relationship.getType()
+	elif relationship.getTargetType() == mbmodel.Relation.TO_RELEASE:
+		print "RELEASE"
+		print " dir=",relationship.getDirection()
+		print " target=",relationship.getTarget()
+		print " targetid=",relationship.getTargetId()
+		print " targettype=",relationship.getTargetType()
+		print " type=",relationship.getType()
 	else:
 		print "Unknown type:",relationship.getTargetType()
 	
 def _add_album_relationship(tags, relationship):
 	if relationship.getType() == ASIN:
-		print " ASIN:",relationship.getTargetId()
+		#print " ASIN:",relationship.getTargetId()
+		pass
 	elif relationship.getType() == WIKIPEDIA:
-		print " Wikipedia:",relationship.getTargetId()
+		#print " Wikipedia:",relationship.getTargetId()
 		tags[tag.URL_WIKIPEDIA_RELEASE_SITE] = relationship.getTargetId()
 	elif relationship.getType() == DISCOGS:
-		print " Discogs:",relationship.getTargetId()
+		#print " Discogs:",relationship.getTargetId()
 		tags[tag.URL_DISCOGS_RELEASE_SITE] = relationship.getTargetId()
 	elif relationship.getType() == IMDB:
-		print " Discogs:",relationship.getTargetId()
+		#print " Discogs:",relationship.getTargetId()
 		tags[tag.URL_IMDB_RELEASE_SITE] = relationship.getTargetId()
 	elif relationship.getType() == REMASTER:
 		print " Remaster of", relationship.getTargetId()
+	elif relationship.getType() == PART_OF_SET:
+		print " Part of set:", relationship.getTargetId()
+	elif relationship.getType() == FIRST_ALBUM_RELEASE:
+		print " First album release:", relationship.getTargetId()
 	elif relationship.getTargetType() == mbmodel.Relation.TO_URL:
 		print "URL"
+		print " dir=",relationship.getDirection()
+		print " target=",relationship.getTarget()
+		print " targetid=",relationship.getTargetId()
+		print " targettype=",relationship.getTargetType()
+		print " type=",relationship.getType()
+	elif relationship.getTargetType() == mbmodel.Relation.TO_RELEASE:
+		print "RELEASE"
 		print " dir=",relationship.getDirection()
 		print " target=",relationship.getTarget()
 		print " targetid=",relationship.getTargetId()
@@ -72,9 +94,7 @@ def get_tags(tags, mbrelease, mbtrack, artistname):
 	release_md = {}
 
 	# Find relationships
-	print "release relations:"
 	for i in mbrelease.getRelations():
 		_add_album_relationship(tags, i)
-	print "track relations:"
 	for i in mbtrack.getRelations():
 		_add_track_relationship(tags, i)
