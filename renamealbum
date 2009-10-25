@@ -36,6 +36,7 @@ import sort
 import socket
 import stat
 import subprocess
+import memocache
 
 import glob
 import toflac
@@ -197,7 +198,7 @@ def submit_puids(disc, release):
 			# this almost certainly means our cache is out of date, so delete it.
 			# This just meant that searching was slower, so next time we can find this
 			# faster
-			lookups.remove_from_cache("delayed_get_track_by_id",trackid)
+			memocache.remove_from_cache("delayed_get_track_by_id",trackid)
 	if flag and not albumidentifyconfig.config.getboolean("albumidentify",
 			"push_shortcut_puids"):
 		print "Not subbmitting PUIDs: Disabled by config"
@@ -237,7 +238,7 @@ def submit_isrcs(disc, release):
 	elif flag:
 		print "Submitting ISRCs to Musicbrainz"
 		puidsubmit.submit_isrcs_mb(track2isrc)
-		lookups.remove_from_cache("delayed_get_release_by_releaseid", release.id)
+		memocache.remove_from_cache("delayed_get_release_by_releaseid", release.id)
 	else:
 		print "No ISRCs need submitting"
 		
@@ -618,7 +619,7 @@ def renamealbum(srcpath, options):
 		disc.year = disc.releasedate[0:4]
 	else:
                 report("couldn't determine year for %s - %s" % (`disc.artist`, `disc.album`))
-		lookups.remove_from_cache("delayed_get_release_by_releaseid", release.id)
+		memocache.remove_from_cache("delayed_get_release_by_releaseid", release.id)
 		raise UnknownYearException(disc.artist,disc.album)
 
 	disc.compilation = 0
@@ -660,7 +661,6 @@ def renamealbum(srcpath, options):
 		if not options.noact:
                         imagemime="image/jpeg"
                         imagepath = os.path.join(srcpath, "folder.jpg")
-
 
 	# Deal with disc x of y numbering
 	(albumname, discnumber, disctitle) = lookups.parse_album_name(disc.album)
