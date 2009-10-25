@@ -1,16 +1,12 @@
 #!/usr/bin/python2.5
-import fingerprint
-import musicdns
 import os
 import lookups
-import parsemp3
 import musicbrainz2
+import musicbrainz2.utils
 import itertools
 import random
-import albumidentifyconfig
 import sort
 import util
-import memocache
 import musicfile
 
 # Strategys
@@ -329,7 +325,8 @@ def guess_album2(trackinfo):
 			if releaseid in impossible_releases:
 				continue
 
-			util.update_progress("Considering %s" %releaseid)
+			util.update_progress("Considering %s" % (
+				musicbrainz2.utils.extractUuid(releaseid)))
 			release = lookups.get_release_by_releaseid(releaseid)
 
 			# Is the track usable?
@@ -356,7 +353,6 @@ def guess_album2(trackinfo):
 				completed_releases.append(releaseid)
 			
 def guess_album(trackinfo):
-	releasedata={}
 	for rid,trackmap in guess_album2(trackinfo):
 		release = lookups.get_release_by_releaseid(rid)
 		albumartist=release.artist
