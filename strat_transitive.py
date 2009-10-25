@@ -28,7 +28,8 @@ def generate_track_puid_possibilities(tracks):
 	while tracks:
 		t = tracks.pop()
 		#print "Looking for any tracks related to %s" % t.title
-		track = lookups.get_track_by_id(t.id)
+		if not t.puids:
+			track = lookups.get_track_by_id(t.id)
 		for puid in track.puids:
 			if puid in done_puids:
 				continue
@@ -37,8 +38,8 @@ def generate_track_puid_possibilities(tracks):
 			for t2 in tracks2:
 				if t2.id in done_track_ids:
 					continue
-				yield t2
 				done_track_ids.add(t2.id)
+				yield t2
 				tracks.append(t2)
 				#print " via %s considering track: %s" % (puid, t2.title)
 
