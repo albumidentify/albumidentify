@@ -47,6 +47,3 @@ for artist in args:
 	fout.write(f.read())
 	fout.close()
 	f.close()
-
-	
-
