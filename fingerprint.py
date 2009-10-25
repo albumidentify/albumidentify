@@ -19,6 +19,7 @@ import util
 import hashlib
 import stat
 import albumidentifyconfig
+import time
 
 def fingerprint_wave(file):
 	""" Take a WAVE filename (or an open File object) and use libofa to
@@ -118,9 +119,9 @@ def stat_file(fname):
 
 @memocache.memoify(mappingfunc=lambda args,kwargs:(stat_file(args[0]),kwargs))
 def hash_file(fname):
-	util.update_progress("Hashing file")
+	t = time.time()
 	h=hashlib.md5(open(fname,"r").read()).hexdigest()
-	util.update_progress("Hashed file")
+	util.update_progress("Hashed file (%fs)" % (time.time()-t))
 	return h
 
 @memocache.memoify(mappingfunc=lambda args,kwargs:(hash_file(args[0]),kwargs))
