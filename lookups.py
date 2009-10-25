@@ -6,8 +6,6 @@ import amazon4
 import re
 import pickle
 import os
-import atexit
-import shelve
 import memocache
 import util
 
