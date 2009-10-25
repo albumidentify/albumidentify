@@ -11,7 +11,11 @@ import util
 
 AMAZON_LICENSE_KEY='1WQQTEA14HEA9AERDMG2'
 
-PROFILE=0
+# 0 = No profile information
+# 1 = Delay information only
+# 2 = Delay and webquery time
+PROFILE=2
+MINDELAY=1.25
 
 startup = time.time()
 lastwsquery = {}
@@ -24,7 +28,6 @@ if SUBMIT_SUPPORT == False:
         print "To submit PUIDs or ISRCs to the musicbrainz database you need"
         print " python-musicbrainz2 >= v 0.7.0"
 
-MINDELAY=1.5
 
 webservices = {
 	"musicdns" : { 
@@ -48,20 +51,34 @@ def delayed(webservice="default"):
 				lastwsquery[webservice],
 				time.time() - webservices[webservice]["freequeries"] * MINDELAY)
 				
+			wait=0
 			if time.time()-lastwsquery[webservice]<MINDELAY:
 				wait=MINDELAY-(time.time()-lastwsquery[webservice])
-				if PROFILE:
+				if PROFILE==1:
 					util.update_progress("Waiting %.2fs for %s" % (wait,func.__name__))
 				time.sleep(wait)
 			t=time.time()
 			ret=func(*args,**kwargs)
-			if PROFILE:
-				util.update_progress("%s took %.2fs" % (func.__name__,time.time()-t))
+			if PROFILE>=2:
+				util.update_progress("%s took %.2fs (after a %.2fs wait)" % (func.__name__,time.time()-t,wait))
 			lastwsquery[webservice]+=MINDELAY
 			return ret
 		delay.__name__="delayed_"+func.__name__
 		return delay
 	return delayed2
+
+trackincludes = {
+	"artist"	: True,
+	"releases"	: True,
+	"puids"		: True,
+	"artistRelations": False,
+	"releaseRelations": False,
+	"trackRelations": False,
+	"urlRelations"	: False,
+	"tags"		: True,
+}
+if SUBMIT_SUPPORT:
+	trackincludes["isrcs"]=True
 	
 @memocache.memoify()
 @delayed("musicbrainz")
@@ -81,20 +98,7 @@ def get_tracks_by_puid(puid):
 def get_track_by_id(id):
 	q = ws.Query()
 	results = []
-	requests = {
-		"artist"	: True,
-		"releases"	: True,
-		"puids"		: True,
-		"artistRelations": False,
-		"releaseRelations": False,
-		"trackRelations": False,
-		"urlRelations"	: False,
-		"tags"		: True,
-	}
-        if SUBMIT_SUPPORT:
-		requests[isrcs]=True
-
-        includes = ws.TrackIncludes(**requests)
+        includes = ws.TrackIncludes(**trackincludes)
 
 	t = q.getTrackById(id_ = id, include = includes)
 	return t
