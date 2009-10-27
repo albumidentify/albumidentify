@@ -250,7 +250,7 @@ def get_musicbrainz_release(disc):
 	"""
 	# If a release id has been specified, that takes precedence
 	if disc.releaseid is not None:
-		return lookups.get_release_by_releaseid(disc.releaseid)
+		return (lookups.get_release_by_releaseid(disc.releaseid), "manual")
 
 	# Otherwise, lookup the releaseid using the discid as a key
         if disc.discid is not None:
@@ -259,13 +259,13 @@ def get_musicbrainz_release(disc):
                         for result in results:
                                 report(result.release.id + ".html")
                         report("Ambiguous DiscID, trying fingerprint matching")
-                        return get_release_by_fingerprints(disc)
+                        return (get_release_by_fingerprints(disc), "fingerprint")
 
                 # DiscID lookup gave us an exact match. Use this!
                 if len(results) == 1:
                         releaseid = results[0].release.id
                         report("Got release via discID")
-                        return lookups.get_release_by_releaseid(results[0].release.id)
+                        return (lookups.get_release_by_releaseid(results[0].release.id), "discid")
 
 	# Otherwise, use CD-TEXT if present to guess the release
 	if disc.performer is not None and disc.title is not None:
@@ -279,7 +279,7 @@ def get_musicbrainz_release(disc):
 			report("Suggest submitting TOC and discID to musicbrainz:")
 			report("Release URL: " + results[0].release.id + ".html")
 			report("Submit URL : " + submit.musicbrainz_submission_url(disc))
-			return lookups.get_release_by_releaseid(results[0].release.id)
+			return (lookups.get_release_by_releaseid(results[0].release.id), "cdtext")
 		elif len(results) > 1:
 			for result in results:
 				report(result.release.id + ".html")
@@ -310,11 +310,11 @@ def get_musicbrainz_release(disc):
                         release = lookups.get_release_by_releaseid(releases.keys()[0])
                         if len(release.tracks) == numfiles:
                                 report("Success! - %s.html" % release.id)
-				return release
+				return (release, "tagged")
 	
         # Last resort, fingerprinting
         report("Trying fingerprint search")
-	return get_release_by_fingerprints(disc)
+	return (get_release_by_fingerprints(disc), "fingerprint")
 
 def scheme_help():
         print "Naming scheme help:"
@@ -570,14 +570,16 @@ def renamealbum(srcpath, options):
                 report("Forcing releaseid: " + options.releaseid)
 		disc.releaseid = options.releaseid
 	
-	release = get_musicbrainz_release(disc)
+	(release, method) = get_musicbrainz_release(disc)
 
 	if release is None:
                 report("no releases found")
 		raise IdentifyFailedException()
-	else:
-		# Got a release, submit puids
-		submit_puids(disc, release)
+
+        # Look for PUIDs to submit. Don't do this if we're naming based on
+        # a discID.
+        if method != "discid":
+                submit_puids(disc, release)
 		
 	if disc.tocfilename:
 		submit_isrcs(disc, release)
