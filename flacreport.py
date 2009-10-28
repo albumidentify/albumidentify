@@ -60,11 +60,10 @@ for d in sys.argv[1:]:
 		log("No release found:",d)
 	elif s.find("No ASIN") != -1:
 		no_asin = no_asin + 1
-	elif s.find("Success") != -1:
-		success = success + 1
 	elif s.find("Ambiguous DiscID") != -1:
 		amb_discid = amb_discid + 1
-		failure = 1
+                if s.find("success") == -1:
+                        failure = 1
 	elif s.find("Unknown year") != -1:
 		unk_year = unk_year + 1
 		failure = 1
