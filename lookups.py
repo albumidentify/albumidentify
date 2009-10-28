@@ -38,6 +38,30 @@ webservices = {
 	},
 }
 
+def musicbrainz_503_cooldown():
+        " Decorator to catch 503s and cooldown before calling the function again. "
+        def ws_backoff(func):
+                def backoff_func(*args, **kwargs):
+                        global lastwsquery
+                        try:
+                                return func(*args,**kwargs)
+                        except ws.WebServiceError,e:
+                                if (e.msg.find("503") != -1):
+                                        util.update_progress("Caught musicbrainz 503, waiting 20s and trying again...")
+                                        time.sleep(20)
+                                        # Reset the timer delayed uses so that we don't
+                                        # end up with a bunch of queries causing
+                                        # another 503
+                                        lastwsquery["musicbrainz"]=time.time()
+                                        return func(*args,**kwargs)
+                                else:
+                                        raise e
+                        except Exception,e:
+                                raise e
+                backoff_func.__name__=func.__name__
+                return backoff_func
+        return ws_backoff
+
 def delayed(webservice="default"):
 	"Decorator to make sure a function isn't called more often than once every 2 seconds. used to space webservice calls"
 	assert webservice in webservices,"Unknown webservice"
@@ -81,6 +105,7 @@ if SUBMIT_SUPPORT:
 	trackincludes["isrcs"]=True
 	
 @memocache.memoify()
+@musicbrainz_503_cooldown()
 @delayed("musicbrainz")
 def get_tracks_by_puid(puid):
 	""" Lookup a list of musicbrainz tracks by PUID. Returns a list of Track
@@ -94,6 +119,7 @@ def get_tracks_by_puid(puid):
 	return results
 
 @memocache.memoify()
+@musicbrainz_503_cooldown()
 @delayed("musicbrainz")
 def get_track_by_id(id):
 	q = ws.Query()
@@ -104,6 +130,7 @@ def get_track_by_id(id):
 	return t
 
 @memocache.memoify()
+@musicbrainz_503_cooldown()
 @delayed("musicbrainz")
 def get_release_by_releaseid(releaseid):
 	""" Given a musicbrainz release-id, fetch the release from musicbrainz. """
@@ -123,6 +150,7 @@ def get_release_by_releaseid(releaseid):
 	return q.getReleaseById(id_ = releaseid, include=includes)
 
 @memocache.memoify()
+@musicbrainz_503_cooldown()
 @delayed("musicbrainz")
 def get_releases_by_cdtext(title, performer, num_tracks):
 	""" Given the performer, title and number of tracks on a disc, lookup
@@ -142,6 +170,7 @@ the empty list if there were no matches. """
 		]
 
 @memocache.memoify()
+@musicbrainz_503_cooldown()
 @delayed("musicbrainz")
 def get_releases_by_discid(discid):
         """ Given a musicbrainz disc-id, fetch a list of possible releases. """
@@ -160,6 +189,7 @@ def track_number(tracks, track):
 	return -1
 
 @memocache.memoify()
+@musicbrainz_503_cooldown()
 @delayed("musicbrainz")
 def get_track_artist_for_track(track):
 	""" Returns the musicbrainz Artist object for the given track. This may
