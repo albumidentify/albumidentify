@@ -201,7 +201,7 @@ def submit_puids(disc, release):
 			memocache.remove_from_cache("delayed_get_track_by_id",trackid)
 	if flag and not albumidentifyconfig.config.getboolean("albumidentify",
 			"push_shortcut_puids"):
-		print "Not subbmitting PUIDs: Disabled by config"
+		print "Not submitting PUIDs: Disabled by config"
 	elif flag:
 		print "Submitting PUIDs to Musicbrainz"
 		puidsubmit.submit_puids_mb(track2puid)
