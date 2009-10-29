@@ -679,12 +679,12 @@ def renamealbum(srcpath, options):
 
 	print "disc " + str(disc.number) + " of " + str(disc.totalnumber)
 
-	(srcfiles, destfiles) = name_album(disc, release, srcpath, options.scheme, options.destprefix, imagemime, imagepath, options.embedcovers, options.noact)
+	(srcfiles, destfiles, needs_replaygain) = name_album(disc, release, srcpath, options.scheme, options.destprefix, imagemime, imagepath, options.embedcovers, options.noact)
 
         if (image_needs_unlink):
                 os.unlink(imagepath)
 
-	if not options.noact and len(destfiles) > 0:
+	if not options.noact and len(destfiles) > 0 and needs_replaygain:
 		print "Adding replaygain"
 		replaygain.add_gain(destfiles)
 
@@ -797,7 +797,7 @@ def name_album(disc, release, srcpath, scheme, destprefix, imagemime=None, image
         tracknum = 0
         srcfiles = []
         destfiles = []
-        need_mp3_gain = False
+        needs_replaygain = True
 
         # Step 1: Tag all of the files into a temporary directory
         tmpdir = tempfile.mkdtemp()
@@ -837,6 +837,7 @@ def name_album(disc, release, srcpath, scheme, destprefix, imagemime=None, image
 
                 if not noact and ext.lower() != ".mp3":
                         shutil.copyfile(os.path.join(srcpath, file), entry["tmpfilename"])
+                        entry["gain"] = replaygain.get_gain(entry["tmpfilename"])
                         replaygain.remove_gain(entry["tmpfilename"])
                         tag.remove_tags(entry["tmpfilename"])
 
@@ -887,6 +888,12 @@ def name_album(disc, release, srcpath, scheme, destprefix, imagemime=None, image
 		md_genre.get_tags(tags, release, mbtrack, track_artist)
 
                 tag.tag(entry["tmpfilename"], tags, noact, image)
+
+                if entry.has_key("gain") and entry["gain"] != {}:
+                        # Re-apply old replaygain settings to the file.
+                        # This will only affect FLACs.
+                        replaygain.set_gain(entry["tmpfilename"], entry["gain"])
+                        needs_replaygain = False
 
                 # Special case mp3.. tag.tag() won't do anything with mp3 files
                 # as we write out the tags + bitstream in one operation, so do
@@ -965,7 +972,7 @@ def name_album(disc, release, srcpath, scheme, destprefix, imagemime=None, image
                 shutil.copyfile(imagepath, os.path.join(newdir, "folder.jpg"))
 
         rmrf(tmpdir)
-        return (srcfiles, destfiles)
+        return (srcfiles, destfiles, needs_replaygain)
 	
 
 if __name__ == "__main__":

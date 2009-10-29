@@ -7,6 +7,29 @@ class GainFailedException(Exception):
 	def __str__(self):
 		return "%s %s" % (self.reason, repr(self.args))
 
+def get_gain(filename):
+        if filename.lower().endswith(".flac") == False:
+                return None
+        gaindict = {}
+        args = ["metaflac", "--export-tags-to=-", filename]
+        p = subprocess.Popen(args, stdout=subprocess.PIPE)
+        (sout, serr) = p.communicate()
+        for line in sout.split('\n'):
+                line = line.strip()
+                parts = line.split('=', 1)
+                if parts[0].startswith("REPLAYGAIN_"):
+                        gaindict[parts[0]] = parts[1]
+        return gaindict
+
+def set_gain(filename, gain):
+        if filename.lower().endswith(".flac") == False:
+                return
+        args = ["metaflac"]
+        for k in gain.keys():
+                args.append("--set-tag=%s=%s" % (k,gain[k]))
+        args.append(filename)
+        subprocess.call(args)
+
 def remove_gain(filename):
 	if filename.lower().endswith(".mp3"):
 		args = ["mp3gain", "-u", "-q", filename]
