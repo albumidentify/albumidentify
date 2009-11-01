@@ -256,7 +256,7 @@ def __read_tags_mp3(filename):
 	tags[TRACK_NUMBER] = __read_tag_mp3_anyver(data,"TRCK")
 	tag = __read_tag_mp3_anyver(data,"TPOS")
 	if tag:
-		parts = tag.split("/")
+		parts = tag.strip().strip("\x00").split("/")
 		if len(parts) == 2:
 			tags[DISC_NUMBER] = int(parts[0])
 			tags[DISC_TOTAL_NUMBER] = int(parts[1])
