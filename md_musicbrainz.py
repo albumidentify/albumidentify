@@ -21,7 +21,8 @@ ASIN="http://musicbrainz.org/ns/rel-1.0#AmazonAsin"
 WIKIPEDIA="http://musicbrainz.org/ns/rel-1.0#Wikipedia"
 DISCOGS="http://musicbrainz.org/ns/rel-1.0#Discogs"
 MUSICMOZ="http://musicbrainz.org/ns/rel-1.0#Musicmoz"
-IMDB="http://musicbrainz.org/ns/rel-1.0#Imdb"
+IMDB="http://musicbrainz.org/ns/rel-1.0#IMDb"
+REVIEW="http://musicbrainz.org/ns/rel-1.0#Review"
 
 
 def _add_track_relationship(tags, relationship):
@@ -52,6 +53,9 @@ def _add_album_relationship(tags, relationship):
 	elif relationship.getType() == DISCOGS:
 		#print " Discogs:",relationship.getTargetId()
 		tags[tag.URL_DISCOGS_RELEASE_SITE] = relationship.getTargetId()
+	elif relationship.getType() == MUSICMOZ:
+		#print " Discogs:",relationship.getTargetId()
+		tags[tag.URL_MUSICMOZ_RELEASE_SITE] = relationship.getTargetId()
 	elif relationship.getType() == IMDB:
 		#print " Discogs:",relationship.getTargetId()
 		tags[tag.URL_IMDB_RELEASE_SITE] = relationship.getTargetId()
