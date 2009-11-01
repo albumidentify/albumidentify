@@ -63,8 +63,7 @@ flac_tag_map = {
         COMPILATION : "COMPILATION",
         ISRC : "ISRC",
         MCN : "MCN",
-        DISC_NAME : "DISCNAME",
-	GENRE : "GENRE",
+        DISC_NAME : "DISCNAME"
 }
 
 class TagReadFailedException(Exception):
@@ -95,6 +94,12 @@ def __gen_flac_tags(tags):
         if tags.has_key(RELEASE_TYPES):
                 for t in tags[RELEASE_TYPES]:
 			flactags += "MUSICBRAINZ_RELEASE_ATTRIBUTE=%s\n" % t
+
+        if tags.has_key(GENRE):
+                genres = [x.strip().title() for x in tags[GENRE].split(',')]
+                for g in genres:
+                        flactags += "GENRE=" + g + "\n"
+
         return flactags
 
 def __tag_flac(filename, tags, noact = False, image = None):

@@ -33,16 +33,24 @@ if len(args) < 1:
 
 import pprint
 for artist in args:
-	artistinfo = lastfm.get_artist_info(artist)
+        try:
+                artistinfo = lastfm.get_artist_info(artist)
+        except Exception,e:
+                print "Failed to lookup artist " + artist
+                continue
 	images = [ x for x in artistinfo['image'] if x != '' ]
+        if images == []:
+                print "No images available for " + artist
+                continue
 	f = urllib2.Request(images[-1])
 	f.add_header('User-Agent','AlbumIdentify v1.0')
+        print "Getting artist image for " + artist
 	try:
 		f = urllib2.urlopen(f)
 	except Exception, e:
 		print e.msg
 		print e.fp.read()
-		raise
+                continue
 	fout = open(os.path.join(options.destprefix,mp3names.FixFilename(artist),"folder.jpg"),"wb")
 	fout.write(f.read())
 	fout.close()

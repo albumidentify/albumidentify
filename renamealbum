@@ -155,7 +155,7 @@ def submit_puids(disc, release):
 			memocache.remove_from_cache("delayed_get_track_by_id",trackid)
 	if flag and not albumidentifyconfig.config.getboolean("albumidentify",
 			"push_shortcut_puids"):
-		print "Not subbmitting PUIDs: Disabled by config"
+		print "Not submitting PUIDs: Disabled by config"
 	elif flag:
 		print "Submitting PUIDs to Musicbrainz"
 		puidsubmit.submit_puids_mb(track2puid)
@@ -204,7 +204,7 @@ def get_musicbrainz_release(disc):
 	"""
 	# If a release id has been specified, that takes precedence
 	if disc.releaseid is not None:
-		return lookups.get_release_by_releaseid(disc.releaseid)
+		return (lookups.get_release_by_releaseid(disc.releaseid), "manual")
 
 	# Otherwise, lookup the releaseid using the discid as a key
         if disc.discid is not None:
@@ -213,13 +213,13 @@ def get_musicbrainz_release(disc):
                         for result in results:
                                 util.report(result.release.id + ".html")
                         util.report("Ambiguous DiscID, trying fingerprint matching")
-                        return get_release_by_fingerprints(disc)
+                        return (get_release_by_fingerprints(disc), "fingerprint")
 
                 # DiscID lookup gave us an exact match. Use this!
                 if len(results) == 1:
                         releaseid = results[0].release.id
                         util.report("Got release via discID")
-                        return lookups.get_release_by_releaseid(results[0].release.id)
+                        return (lookups.get_release_by_releaseid(results[0].release.id), "discid")
 
 	# Otherwise, use CD-TEXT if present to guess the release
 	if disc.performer is not None and disc.title is not None:
@@ -233,7 +233,7 @@ def get_musicbrainz_release(disc):
 			util.report("Suggest submitting TOC and discID to musicbrainz:")
 			util.report("Release URL: " + results[0].release.id + ".html")
 			util.report("Submit URL : " + submit.musicbrainz_submission_url(disc))
-			return lookups.get_release_by_releaseid(results[0].release.id)
+			return (lookups.get_release_by_releaseid(results[0].release.id), "cdtext")
 		elif len(results) > 1:
 			for result in results:
 				util.report(result.release.id + ".html")
@@ -264,11 +264,11 @@ def get_musicbrainz_release(disc):
                         release = lookups.get_release_by_releaseid(releases.keys()[0])
                         if len(release.tracks) == numfiles:
                                 util.report("Success! - %s.html" % release.id)
-				return release
+				return (release, "tagged")
 	
         # Last resort, fingerprinting
         util.report("Trying fingerprint search")
-	return get_release_by_fingerprints(disc)
+	return (get_release_by_fingerprints(disc), "fingerprint")
 
 def scheme_help():
         print "Naming scheme help:"
@@ -525,14 +525,16 @@ def renamealbum(srcpath, options):
                 util.report("Forcing releaseid: " + options.releaseid)
 		disc.releaseid = options.releaseid
 	
-	release = get_musicbrainz_release(disc)
+	(release, method) = get_musicbrainz_release(disc)
 
 	if release is None:
                 util.report("no releases found")
 		raise IdentifyFailedException()
-	else:
-		# Got a release, submit puids
-		submit_puids(disc, release)
+
+        # Look for PUIDs to submit. Don't do this if we're naming based on
+        # a discID.
+        if method != "discid":
+                submit_puids(disc, release)
 		
 	if disc.tocfilename:
 		submit_isrcs(disc, release)
@@ -632,12 +634,12 @@ def renamealbum(srcpath, options):
 
 	print "disc " + str(disc.number) + " of " + str(disc.totalnumber)
 
-	(srcfiles, destfiles) = name_album(disc, release, srcpath, options.scheme, options.destprefix, imagemime, imagepath, options.embedcovers, options.noact)
+	(srcfiles, destfiles, needs_replaygain) = name_album(disc, release, srcpath, options.scheme, options.destprefix, imagemime, imagepath, options.embedcovers, options.noact)
 
         if (image_needs_unlink):
                 os.unlink(imagepath)
 
-	if not options.noact and len(destfiles) > 0:
+	if not options.noact and len(destfiles) > 0 and needs_replaygain:
 		print "Adding replaygain"
 		replaygain.add_gain(destfiles)
 
@@ -750,7 +752,7 @@ def name_album(disc, release, srcpath, scheme, destprefix, imagemime=None, image
         tracknum = 0
         srcfiles = []
         destfiles = []
-        need_mp3_gain = False
+        needs_replaygain = True
 
         # Step 1: Tag all of the files into a temporary directory
         tmpdir = tempfile.mkdtemp()
@@ -790,6 +792,7 @@ def name_album(disc, release, srcpath, scheme, destprefix, imagemime=None, image
 
                 if not noact and ext.lower() != ".mp3":
                         shutil.copyfile(os.path.join(srcpath, file), entry["tmpfilename"])
+                        entry["gain"] = replaygain.get_gain(entry["tmpfilename"])
                         replaygain.remove_gain(entry["tmpfilename"])
                         tag.remove_tags(entry["tmpfilename"])
 
@@ -840,6 +843,12 @@ def name_album(disc, release, srcpath, scheme, destprefix, imagemime=None, image
 		md_genre.get_tags(tags, release, mbtrack, track_artist)
 
                 tag.tag(entry["tmpfilename"], tags, noact, image)
+
+                if entry.has_key("gain") and entry["gain"] != {}:
+                        # Re-apply old replaygain settings to the file.
+                        # This will only affect FLACs.
+                        replaygain.set_gain(entry["tmpfilename"], entry["gain"])
+                        needs_replaygain = False
 
                 # Special case mp3.. tag.tag() won't do anything with mp3 files
                 # as we write out the tags + bitstream in one operation, so do
@@ -922,7 +931,7 @@ def name_album(disc, release, srcpath, scheme, destprefix, imagemime=None, image
                 shutil.copyfile(imagepath, os.path.join(newdir, "folder.jpg"))
 
         rmrf(tmpdir)
-        return (srcfiles, destfiles)
+        return (srcfiles, destfiles, needs_replaygain)
 	
 
 if __name__ == "__main__":
