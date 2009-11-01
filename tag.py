@@ -67,6 +67,13 @@ flac_tag_map = {
 	GENRE : "GENRE",
 }
 
+class TagReadFailedException(Exception):
+	def __init__(self, reason):
+		self.reason = reason
+
+	def __str__(self):
+		return "Failed to read tags: %s" % self.reason
+
 def __gen_flac_tags(tags):
         flactags = u""
         # Simple tags
@@ -223,7 +230,10 @@ def __read_tags_flac(filename):
 
 def __read_tags_ogg(filename):
 	args = ["vorbiscomment", "-l", filename]
-	oggtags = subprocess.Popen(args, stdout=subprocess.PIPE).communicate()[0]
+	try:
+		oggtags = subprocess.Popen(args, stdout=subprocess.PIPE).communicate()[0]
+	except:
+		raise TagReadFailedException("Could not execute vorbiscomment")
 	inverse_flac_map = dict([(v, k) for k, v in flac_tag_map.iteritems()])
 	tags = {}
 	for line in oggtags.split("\n"):
