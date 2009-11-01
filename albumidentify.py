@@ -8,6 +8,7 @@ import random
 import sort
 import util
 import musicfile
+import time
 
 # Strategys
 import strat_transitive
@@ -20,8 +21,15 @@ import strat_musicbrainzid
 FORCE_ORDER=True
 #FORCE_ORDER=False
 
+# Set this to None to make it keep trying until it runs out of things to do
+# (This may take a long long time), or the number of seconds after giving up
+# This is per album
+TIMELIMIT=None
+
 # trackind's are 0 based
 # tracknum's are 1 based
+
+starttime=0
 
 def duration_to_string(duration):
 	duration = duration / 1000.0 # ms -> s
@@ -281,6 +289,8 @@ def guess_album2(trackinfo):
 	track_generator={}
 	completed_releases=[]
 
+	start_time = time.time()
+
 	if trackinfo=={}:
 		print "No tracks to identify?"
 		return
@@ -301,6 +311,9 @@ def guess_album2(trackinfo):
 			)
 
 	while track_generator!={}:
+		if TIMELIMIT is not None and time.time() - start_time > TIMELIMIT:
+			print "TIMEOUT EXCEEDED, GIVING UP"
+			break
 		fileid = choose_track(
 				possible_releases,
 				 track_generator,
