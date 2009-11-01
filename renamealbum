@@ -344,7 +344,8 @@ def process_one_path(numargs, options, path):
 		(t,v,tb) = sys.exc_info()
 		util.report(t)
 		util.report(v)
-		util.report(traceback.format_exception(t,v,tb))
+		for i in traceback.format_exception(t,v,tb):
+			util.report(i.strip())
 		del tb
 		util.report("fail!")
 	else:
