@@ -329,7 +329,11 @@ def guess_album2(trackinfo):
 
 			util.update_progress("Considering %s" % (
 				musicbrainz2.utils.extractUuid(releaseid)))
-			release = lookups.get_release_by_releaseid(releaseid)
+			try:
+				release = lookups.get_release_by_releaseid(releaseid)
+			except Exception,e:
+				util.report("WARNING: Unexpected exception looking for "+musicbrainz2.utils.extractUuid(releaseid)+": "+str(e))
+				continue
 
 			# Is the track usable?
 			if not verify_track(release, 
