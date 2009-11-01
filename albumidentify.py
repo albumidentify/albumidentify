@@ -17,8 +17,8 @@ import strat_musicbrainzid
 
 # If set to True, this will force tracks to be found in order
 # if set to False, tracks can be found in any order (has false positives)
-#FORCE_ORDER=True
-FORCE_ORDER=False
+FORCE_ORDER=True
+#FORCE_ORDER=False
 
 # trackind's are 0 based
 # tracknum's are 1 based
