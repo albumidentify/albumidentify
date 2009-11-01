@@ -747,7 +747,7 @@ def name_album(disc, release, srcpath, scheme, destprefix, imagemime=None, image
 
         if len(files) != len(disc.tracks):
                 util.report("Number of files to rename (%i) != number of tracks in release (%i)" % (len(files), len(disc.tracks)))
-                return
+                assert False
 
         tracknum = 0
         srcfiles = []
@@ -889,13 +889,13 @@ def name_album(disc, release, srcpath, scheme, destprefix, imagemime=None, image
 		elif old_total_bitrate == new_total_bitrate:
 			util.report("Bitrates are the same, ignoring")
 			rmrf(tmpdir)
-			return (srcfiles, destfiles)
+			return (srcfiles, destfiles, False)
 		elif old_total_bitrate < new_total_bitrate:
 			util.report("Old bitrate lower than new bitrate, overwriting (%d / %d)" % (old_total_bitrate, new_total_bitrate))
 		elif old_total_bitrate > new_total_bitrate:
 			util.report("Not overwriting, old bitrate higher than new (%d / %d)" % (old_total_bitrate, new_total_bitrate))
 			rmrf(tmpdir)
-			return (srcfiles, destfiles)
+			return (srcfiles, destfiles, False)
 
 	try:
 		os.makedirs(os.path.dirname(tmpfiles[0]["destfilepath"]))
