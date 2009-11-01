@@ -29,8 +29,10 @@ def generate_from_metadata(file, num_tracks):
 		util.update_progress("Trying "+release.title+" by text lookup")
 		for trackind in range(len(release.tracks)):
 			rtrackname = release.tracks[trackind].title
-
-			if util.comp_name(rtrackname,title):
-				print "Using album based text comparison for",artist,album,"'s track",trackind+1,`rtrackname`
-				yield lookups.get_track_by_id(release.tracks[trackind].id)
+			if type(title) != type([]):
+				title=[title]
+			for t in title:
+				if util.comp_name(rtrackname,t):
+					print "Using album based text comparison for",artist,album,"'s track",trackind+1,`rtrackname`
+					yield lookups.get_track_by_id(release.tracks[trackind].id)
 
