@@ -1,6 +1,7 @@
 import re
 import sys
 import time
+import datetime
 
 VERBOSE=1
 
@@ -77,4 +78,21 @@ def list_difference(src,remove):
 			res.remove(i)
 	return res
 
+report_entries = []
+def report(message):
+        ts = datetime.datetime.now().ctime()
+        if (type(message) == type([])):
+                for m in message:
+                        report(m)
+                return
+        report_entries.append("%s: %s" % (ts, message))
+        print message
+
+def write_report(reportpath):
+	global report_entries
+        f = open(reportpath, "w")
+        for r in report_entries:
+                f.write(r + "\n")
+	report_entries = []
+        f.close()
 
