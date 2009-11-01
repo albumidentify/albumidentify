@@ -14,5 +14,8 @@ def generate_from_metadata(file):
 	"""
 	trackid=file.getMDTrackID()
 	if trackid:
-		yield lookups.get_track_by_id(trackid)
+		try:
+			yield lookups.get_track_by_id(trackid)
+		except Exception, e:
+			util.report("WARNING: Unexpected exception when looking up mbtrackid %s: %s" % (trackid, e))
 
