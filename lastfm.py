@@ -71,10 +71,16 @@ def get_track_info(artistname, trackname):
 		artist=artistname,
 		track=trackname)
 
-def get_track_toptags(artistname, trackname):
-	return _do_lastfm_query("track.gettoptags",
-		artist=artistname,
-		track=trackname)
+def get_track_toptags(artistname, trackname, mbtrackid=None):
+	if mbtrackid is None:
+		return _do_lastfm_query("track.gettoptags",
+			artist=artistname,
+			track=trackname)
+	else:
+		return _do_lastfm_query("track.gettoptags",
+			artist=artistname,
+			track=trackname,
+			trackid=mbtrackid)
 
 def get_artist_info(artistname):
 	return _do_lastfm_query("artist.getinfo",

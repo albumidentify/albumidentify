@@ -3,7 +3,7 @@ import tag
 
 def get_tags(tags, mbalbum, mbtrack, artistname):
 	artist_tags = lastfm.get_artist_toptags(artistname)
-	track_tags =  lastfm.get_track_toptags(artistname,mbtrack.title)
+	track_tags =  lastfm.get_track_toptags(artistname,mbtrack.title,mbtrack.id)
 	taglist = [
 		i["name"][0]
 		for i in 
