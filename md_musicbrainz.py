@@ -11,6 +11,7 @@ DJ_MIX="?"
 REMASTER="http://musicbrainz.org/ns/rel-1.0#Remaster"
 COVER="http://musicbrainz.org/ns/rel-1.0#Cover"
 REMIX="http://musicbrainz.org/ns/rel-1.0#Remix"
+REVIEW="http://musicbrainz.org/ns/rel-1.0#Remix"
 MASHESUP="http://musicbrainz.org/ns/rel-1.0#MashesUp"
 
 FIRST_ALBUM_RELEASE="http://musicbrainz.org/ns/rel-1.0#FirstAlbumRelease"
@@ -65,6 +66,10 @@ def _add_album_relationship(tags, relationship):
 		print " Part of set:", relationship.getTargetId()
 	elif relationship.getType() == FIRST_ALBUM_RELEASE:
 		print " First album release:", relationship.getTargetId()
+	elif relationship.getType() == REMIX:
+		print " Remix of:", relationship.getTargetId()
+	elif relationship.getType() == REMIX:
+		print " Review:", relationship.getTargetId()
 	elif relationship.getTargetType() == mbmodel.Relation.TO_URL:
 		print "URL"
 		print " dir=",relationship.getDirection()
