@@ -53,14 +53,13 @@ def musicbrainz_retry():
                                 if (e.msg.find("503") != -1):
                                         util.update_progress("Caught musicbrainz 503, waiting 20s and trying again...")
                                 else:
-                                        raise e
+					# A bare raise will reraise the current exception
+                                        raise
                         except ws.ConnectionError,e:
                                 if (e.msg.find("urlopen error timed out") != -1):
                                         util.update_progress("Caught musicbrainz urlopen timeout. Retrying...")
                                 else:
-                                        raise e
-                        except Exception,e:
-                                raise e
+                                        raise
 
                         time.sleep(20)
                         # Reset the timer delayed uses so that we don't
