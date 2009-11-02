@@ -168,6 +168,8 @@ def get_releases_by_cdtext(title, performer, num_tracks):
 the release in musicbrainz. This method returns a list of possible results, or
 the empty list if there were no matches. """
 
+	if title == "" or performer=="":
+		return []
 	q = ws.Query()
 	filter = ws.ReleaseFilter(title=title, 
 				artistName=performer)
