@@ -197,7 +197,12 @@ def v1(tag):
 			"TRCK" : unicode(ord(tag[123])),
 		}
 		if ord(tag[124])!=0xff:
-			data["TCON"]=u"("+unicode(ord(tag[124]))+u")"+genres[ord(tag[124])]
+			genreid=ord(tag[124])
+			if genreid in genres:
+				genrename=genres[genreid]
+			else:
+				genrename=u"unknowngenre#%d" % genreid
+			data["TCON"]=u"("+unicode(ord(tag[124]))+u")"+genrename
 		return data
 	except:
 		print "genres:",`tag[124]`
