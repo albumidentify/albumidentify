@@ -505,6 +505,8 @@ def renamealbum(srcpath, options):
 		print "Performing dry-run"
 
 	util.report("Source path: " + srcpath)
+	if os.getenv("TERM") in [ "xterm","screen"]:
+		sys.stdout.write("\x1b]0;Renaming %s\x1b\\" % srcpath)
 
 	if os.path.exists(os.path.join(srcpath, "data.toc")):
                 disc = toc.Disc(cdrdaotocfile = os.path.join(srcpath, "data.toc"))
