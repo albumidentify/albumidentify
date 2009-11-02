@@ -11,7 +11,7 @@ DJ_MIX="?"
 REMASTER="http://musicbrainz.org/ns/rel-1.0#Remaster"
 COVER="http://musicbrainz.org/ns/rel-1.0#Cover"
 REMIX="http://musicbrainz.org/ns/rel-1.0#Remix"
-REVIEW="http://musicbrainz.org/ns/rel-1.0#Remix"
+REVIEW="http://musicbrainz.org/ns/rel-1.0#Review"
 MASHESUP="http://musicbrainz.org/ns/rel-1.0#MashesUp"
 
 FIRST_ALBUM_RELEASE="http://musicbrainz.org/ns/rel-1.0#FirstAlbumRelease"
