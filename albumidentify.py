@@ -9,6 +9,7 @@ import sort
 import util
 import musicfile
 import time
+import albumidentifyconfig
 
 # Strategys
 import strat_transitive
@@ -21,15 +22,9 @@ import strat_musicbrainzid
 FORCE_ORDER=True
 #FORCE_ORDER=False
 
-# Set this to None to make it keep trying until it runs out of things to do
-# (This may take a long long time), or the number of seconds after giving up
-# This is per album
-TIMELIMIT=None
 
 # trackind's are 0 based
 # tracknum's are 1 based
-
-starttime=0
 
 def duration_to_string(duration):
 	duration = duration / 1000.0 # ms -> s
@@ -311,7 +306,8 @@ def guess_album2(trackinfo):
 			)
 
 	while track_generator!={}:
-		if TIMELIMIT is not None and time.time() - start_time > TIMELIMIT:
+		timelimit = albumidentifyconfig.config.getint("albumidentify","timelimit")
+		if  timelimit > 0 and time.time() - start_time > timelimit:
 			print "TIMEOUT EXCEEDED, GIVING UP"
 			break
 		fileid = choose_track(

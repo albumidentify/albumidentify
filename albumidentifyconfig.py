@@ -9,6 +9,9 @@ def readconfig():
 	config.set("albumidentify","push_shortcut_puids","False")
 	config.set("albumidentify","genpuid_command","")
         config.set("albumidentify","musicdnskey", "")
+	# TIMELIMIT > 0 -- after this many seconds, give up.
+	# TIMELIMIT <= 0 -- try until exhausting all possibilities
+	config.set("albumidentify","timelimit", "0")
         config.set("renamealbum", "naming_scheme", "%(sortalbumartist)s - %(year)i - %(album)s/%(tracknumber)02i - %(trackartist)s - %(trackname)s")
         config.set("renamealbum", "dest_path", "")
         config.set("renamealbum", "leave_soundtrack_artist", "False")
