@@ -52,7 +52,10 @@ for d in filenames():
 	elif s.find("no releases found") != -1:
 		add_count(d,"Failed","No Release Found")
 	elif s.find("Ambiguous DiscID") != -1:
-		add_count(d,"Failed","Ambiguous DiscID")
+                if s.find("success!") == -1:
+                        add_count(d,"Failed","Ambiguous DiscID")
+                else:
+                        add_count(d,"Success","Ambiguous DiscID resolved")
 	elif s.find("Unknown year") != -1:
 		add_count(d,"Failed","Unknown Year")
 	elif s.find("This disc is part") != -1:
