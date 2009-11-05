@@ -178,6 +178,17 @@ def submit_isrcs(disc, release):
 		track = release.tracks[trackind]
 		trackid = track.id
 		isrc = disc.tracks[trackind].isrc
+                #this is for backwards compatability and can probably
+                #be remove 6 months from now Nov 6 2009
+                #if we have a cached copy of a release the doesn't contain
+                #the ISRCs field remove it from the cache and get a new copy
+                try:
+                    isrcs = track.isrcs
+                except AttributeError:
+                    memoize.remove_from_cache("delayed_get_release_by_releaseid",release.id)
+                    release = lookups.get_release_by_releaseid(release.id)
+                    isrcs = track.isrcs
+
 		# These seem to be some dummy ISRCs - let's not submit them
 		if isrc is None or isrc == 'P00000000000' or isrc == '000000000000':
 			continue
