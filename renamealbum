@@ -219,7 +219,7 @@ def get_musicbrainz_release(disc):
                 if len(results) == 1:
                         releaseid = results[0].release.id
                         util.report("Got release via discID")
-                        return (lookups.get_release_by_releaseid(results[0].release.id), "discid")
+                        return (lookups.get_release_by_releaseid(releaseid), "discid")
 
 	# Otherwise, use CD-TEXT if present to guess the release
 	if disc.performer is not None and disc.title is not None:
