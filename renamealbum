@@ -185,8 +185,10 @@ def submit_isrcs(disc, release):
                 try:
                     isrcs = track.isrcs
                 except AttributeError:
-                    memoize.remove_from_cache("delayed_get_release_by_releaseid",release.id)
+                    memocache.remove_from_cache("delayed_get_release_by_releaseid",release.id)
                     release = lookups.get_release_by_releaseid(release.id)
+                    track = release.tracks[trackind]
+                    trackid = track.id
                     isrcs = track.isrcs
 
 		# These seem to be some dummy ISRCs - let's not submit them
