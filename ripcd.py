@@ -12,7 +12,7 @@ def rip_cd(device, destpath):
         oldwd = os.getcwd()
         os.chdir(destpath)
 
-        proclist = ["cdrdao", "read-cd", "--with-cddb", "data.toc"]
+        proclist = ["cdrdao", "read-cd", "--with-cddb", "--device", device, "data.toc"]
         p = subprocess.Popen(proclist)
         p.communicate()
 
