@@ -1,5 +1,8 @@
+#!/usr/bin/python2.5
+
 import os
 import subprocess
+import sys
 
 class CDRipFailedException(Exception):
         def __init__(self,message):
@@ -34,3 +37,10 @@ def rip_cd(device, destpath):
         os.chdir(oldwd)
         return True
 
+if __name__ == "__main__":
+        if len(sys.argv) == 3:
+            rip_cd(sys.argv[1], sys.argv[2])
+        else:
+            print("Usage: "+sys.argv[0]+" <device> <destination>")
+            sys.exit(1)
+	sys.exit(0)
