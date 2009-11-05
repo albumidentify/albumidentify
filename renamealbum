@@ -325,10 +325,11 @@ def process_one_path(numargs, options, path):
 			return
 
 		# Do we need to encode the (possibly new) srcpath?
-		if path_is_raw_wavs(origsrcpath):
-			srcpath = tempfile.mkdtemp()
+		if path_is_raw_wavs(srcpath):
+			newpath = tempfile.mkdtemp()
 			util.report("Encoding to FLAC at %s. This may take some time..." % srcpath)
-			toflac.process_item(origsrcpath, srcpath, False)
+			toflac.process_item(srcpath, newpath, False)
+                        srcpath = newpath
 			deletepaths.append(srcpath)
 
 		renamealbum(srcpath, options)
