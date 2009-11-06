@@ -115,6 +115,10 @@ if __name__ == "__main__":
 
         (options,args) = opts.parse_args()
 
+        if len(args) == 0:
+            opts.print_help()
+            sys.exit(1)
+
         # Check that src paths exist
         for path in args:
                 if not os.path.exists(os.path.abspath(path)):
