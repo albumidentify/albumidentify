@@ -50,10 +50,10 @@ def release_lock():
 
 # Make sure we write it out every so often
 def _assure_memocache_open(name):
+	if not os.path.isdir(os.path.expanduser("~/.mbcache/")):
+		os.mkdir(os.path.expanduser("~/.mbcache/"))
 	acquire_lock()
 	if name not in memocache:
-		if not os.path.isdir(os.path.expanduser("~/.mbcache/")):
-			os.mkdir(os.path.expanduser("~/.mbcache/"))
 		f = os.path.expanduser("~/.mbcache/"+name)
 		memocache[name]=shelve.open(f,"c")
 
