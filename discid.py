@@ -6,7 +6,7 @@
 #
 
 import base64
-import sha
+import hashlib
 
 def discid_base64_encode(binarystring):
 	""" Encodes the binarystring into base64 (discid style).
@@ -29,7 +29,7 @@ def generate_musicbrainz_discid(first_track_num, last_track_num, track_offsets):
 		@param track_offsets Up to 100 track offsets. The first item of
 		the list should be the offset of the leadout.
 	"""
-	s = sha.new()
+	s = hashlib.sha1()
 	s.update(to_hex(first_track_num))
 	s.update(to_hex(last_track_num))
 	for o in track_offsets:
