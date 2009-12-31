@@ -210,7 +210,7 @@ def submit_isrcs(disc, release):
 		print "No ISRCs need submitting"
 		
 
-def get_musicbrainz_release(disc):
+def get_musicbrainz_release (disc, options):
 	""" Given a Disc object, try a bunch of methods to look up the release in
 	musicbrainz.  If a releaseid is specified, use this, otherwise search by
 	discid, then search by CD-TEXT and finally search by audio-fingerprinting.
@@ -280,8 +280,12 @@ def get_musicbrainz_release(disc):
 				return (release, "tagged")
 	
         # Last resort, fingerprinting
-        util.report("Trying fingerprint search")
-	return (get_release_by_fingerprints(disc), "fingerprint")
+        if options.fingerprint:
+                util.report("Trying fingerprint search")
+                return (get_release_by_fingerprints(disc), "fingerprint")
+
+        return (None, "gave up")
+
 
 def scheme_help():
         print "Naming scheme help:"
@@ -390,6 +394,18 @@ def main():
 		action="store_false",
 		default=True,
 		help="Don't embed the cover-art in each file.")
+	opts.add_option(
+		"--no-fingerprinting",
+		dest="fingerprint",
+		action="store_false",
+		default=True,
+		help="Don't use any fingerprinting.")
+	opts.add_option(
+		"--no-replay-gain",
+		dest="replaygain",
+		action="store_false",
+		default=True,
+		help="Don't apply replay gain to each file.")
 	opts.add_option(
 		"--release-asin",
 		dest="asin",
@@ -541,15 +557,15 @@ def renamealbum(srcpath, options):
                 util.report("Forcing releaseid: " + options.releaseid)
 		disc.releaseid = options.releaseid
 	
-	(release, method) = get_musicbrainz_release(disc)
+	(release, method) = get_musicbrainz_release (disc, options)
 
 	if release is None:
                 util.report("no releases found")
 		raise IdentifyFailedException()
 
-        # Look for PUIDs to submit. Don't do this if we're naming based on
-        # a discID.
-        if method != "discid":
+        # Look for PUIDs to submit. Only do this if fingerprinting is
+        # enabled and we're not naming based on a discID.
+        if options.fingerprint and method != "discid":
                 submit_puids(disc, release)
 		
 	if disc.tocfilename:
@@ -655,7 +671,7 @@ def renamealbum(srcpath, options):
         if (image_needs_unlink):
                 os.unlink(imagepath)
 
-	if not options.noact and len(destfiles) > 0 and needs_replaygain:
+	if not options.noact and options.replaygain and len(destfiles) > 0 and needs_replaygain:
 		print "Adding replaygain"
 		replaygain.add_gain(destfiles)
 
