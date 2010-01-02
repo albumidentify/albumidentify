@@ -117,3 +117,4 @@ The following people have contributed to albumidentify:
 *  Alastair Porter
 *  Matt Brown
 *  Nathan Overall
+*  Kuno Woudt
