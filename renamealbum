@@ -666,7 +666,7 @@ def renamealbum(srcpath, options):
 
 	print "disc " + str(disc.number) + " of " + str(disc.totalnumber)
 
-	(srcfiles, destfiles, needs_replaygain) = name_album(disc, release, srcpath, options.scheme, options.destprefix, imagemime, imagepath, options.embedcovers, options.noact)
+	(srcfiles, destfiles, needs_replaygain) = name_album (disc, release, srcpath, options, imagemime, imagepath)
 
         if (image_needs_unlink):
                 os.unlink(imagepath)
@@ -774,7 +774,12 @@ def calc_average_bitrate_mp3(parsed_data):
                 [ (rate*count) for (rate,count) in parsed_data["bitrates"].items() ],0)/
                         parsed_data["frames"])
 
-def name_album(disc, release, srcpath, scheme, destprefix, imagemime=None, imagepath=None, embedcovers=False, noact=False, move=False):
+def name_album(disc, release, srcpath, options, imagemime=None, imagepath=None, move=False):
+        scheme = options.scheme
+        destprefix = options.destprefix
+        embedcovers = options.embedcovers
+        noact = options.noact
+
         files = get_file_list(disc)
 
         if len(files) != len(disc.tracks):
@@ -825,7 +830,8 @@ def name_album(disc, release, srcpath, scheme, destprefix, imagemime=None, image
                 if not noact and ext.lower() != ".mp3":
                         shutil.copyfile(os.path.join(srcpath, file), entry["tmpfilename"])
                         entry["gain"] = replaygain.get_gain(entry["tmpfilename"])
-                        replaygain.remove_gain(entry["tmpfilename"])
+                        if options.replaygain:
+                                replaygain.remove_gain(entry["tmpfilename"])
                         tag.remove_tags(entry["tmpfilename"])
 
                 (track_artist, track_sort_artist, track_artist_id) = get_track_artist_info(release, track.mb_track)
@@ -876,7 +882,7 @@ def name_album(disc, release, srcpath, scheme, destprefix, imagemime=None, image
 
                 tag.tag(entry["tmpfilename"], tags, noact, image)
 
-                if entry.has_key("gain") and entry["gain"] != {}:
+                if options.replaygain and entry.has_key("gain") and entry["gain"] != {}:
                         # Re-apply old replaygain settings to the file.
                         # This will only affect FLACs.
                         replaygain.set_gain(entry["tmpfilename"], entry["gain"])
@@ -890,7 +896,8 @@ def name_album(disc, release, srcpath, scheme, destprefix, imagemime=None, image
                         (fd,tmpmp3) = tempfile.mkstemp(suffix=".mp3")
                         os.close(fd)
                         shutil.copy(srcfilepath, tmpmp3)
-                        replaygain.remove_gain(tmpmp3)
+                        if options.replaygain:
+                                replaygain.remove_gain(tmpmp3)
 
                         parsed_data = parsemp3.parsemp3(tmpmp3)
                         outtags = tag.get_mp3_tags(tags)
