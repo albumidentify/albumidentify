@@ -7,8 +7,8 @@ VERBOSE=1
 
 def clean_name(name):
 	"Clean up an mp3 name for comparison"
-    if name is None:
-        return None
+	if name is None:
+		return None
 	name = re.sub(r"\(.*\)","",name)
 	name = re.sub(r"\[.*\]","",name)
 	name = re.sub(r"\{.*\}","",name)
