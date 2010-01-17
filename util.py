@@ -6,6 +6,8 @@ import datetime
 VERBOSE=1
 
 def clean_name(name):
+    if name is None:
+        return None
 	"Clean up an mp3 name for comparison"
 	name = re.sub(r"\(.*\)","",name)
 	name = re.sub(r"\[.*\]","",name)
@@ -16,7 +18,6 @@ def clean_name(name):
 def comp_name(n1,n2):
 	"Copmare two names for equality, after applying cleanups"
 	return clean_name(n1) == clean_name(n2)
-
 
 def _combinations(func,doneargs,todoargs):
 	if todoargs==():
