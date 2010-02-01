@@ -17,6 +17,9 @@ class MusicFile:
 		self.puid = None
 		self.metadata = None
 
+	def __repr__(self):
+		return "<MusicFile %s %s>" % (self.fname,self.puid or "")
+
 	def _fetchPUID(self):
 		if self.fetchedpuid:
 			return
