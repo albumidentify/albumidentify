@@ -140,7 +140,7 @@ def submit_puids(disc, release):
 			continue
 		elif trackid not in [t.id for t in lookups.get_tracks_by_puid(puid)]:
 			flag=True
-			print "%02d:" % (trackind+1),puid,"->",release.tracks[trackind].title,"->",tracknames[trackind+1]
+			print "%02d:" % (trackind+1),puid,"->",release.tracks[trackind].title,"->",disc.tracks[trackind].filename
 			track2puid[trackid]=puid
 		elif puid not in lookups.get_track_by_id(trackid).puids:
 			# There is a mapping of puid -> trackid, but not of trackid->puid,
@@ -538,7 +538,7 @@ def calculate_discid(disc):
 
 # Find album art
 # Try to fetch from Amazon (by ASIN), if that fails, see if we already have album art and use that.
-def find_albumart(disc,options):
+def find_albumart(srcpath,disc,options):
 	imageurl = lookups.get_album_art_url_for_asin(disc.asin)
 	# Check for manual image
         imagemime = None
@@ -567,7 +567,7 @@ def find_albumart(disc,options):
                         imagepath = os.path.join(srcpath, "folder.jpg")
 	return (imagemime, imagepath, image_needs_unlink)
 
-def calculate_disc_numbering(disc, options):
+def calculate_disc_numbering(disc, release, options):
 	(albumname, discnumber, disctitle) = lookups.parse_album_name(disc.album)
 	if discnumber is None:
 		disc.number = 1
@@ -679,10 +679,10 @@ def renamealbum(srcpath, options):
 		disc.compilation = 1
 	
 	# Get album art 
-	(imagemime, imagepath, image_needs_unlink) = find_albumart(disc,options)
+	(imagemime, imagepath, image_needs_unlink) = find_albumart(srcpath, disc,options)
 
 	# Deal with disc x of y numbering
-	calculate_disc_numbering(disc, options)
+	calculate_disc_numbering(disc, release, options)
 
 	if disc.totalnumber != 1:
 		print "disc " + str(disc.number) + " of " + str(disc.totalnumber)
