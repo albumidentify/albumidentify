@@ -126,20 +126,15 @@ def get_sorted_directory(dirname):
 	return tracknames
 
 def submit_puids(disc, release):
-	if not albumidentify.FORCE_ORDER:
-		print "Not submitting: No order"
-		return
 	print "Looking up puids to submit..."
 	dirinfo = albumidentify.get_dir_info(disc.dirname)
-
-	tracknames = get_sorted_directory(disc.dirname)
 
 	flag=False
 	track2puid={}
 	print release.artist.name,"-",release.title,":"
-	for trackind in range(len(tracknames)):
-		trackid = release.tracks[trackind].id
-		puid = dirinfo[tracknames[trackind+1]].getPUID()
+	for trackind in range(len(disc.tracks)):
+		trackid=disc.tracks[trackind].mb_track.id
+		puid = dirinfo[disc.tracks[trackind].filename].getPUID()
 		if puid == None:
 			print "%02d: No PUID" % (trackind+1)
 			continue
@@ -166,16 +161,13 @@ def submit_isrcs(disc, release):
         if not lookups.SUBMIT_SUPPORT:
                 print "Not submitting shortcut isrcs: need pymusicbrainz2 > 0.7.0"
                 return
-	if not albumidentify.FORCE_ORDER:
-		print "Not submitting: No order"
-		return
 	
 	print "Looking up ISRCs to submit..."
 	tracknames = get_sorted_directory(disc.dirname)
 	track2isrc = {}
 	flag = False
 	for trackind in range(len(release.tracks)):
-		track = release.tracks[trackind]
+		track = disc.tracks[trackind]
 		trackid = track.id
 		isrc = disc.tracks[trackind].isrc
                 #this is for backwards compatability and can probably
@@ -185,11 +177,7 @@ def submit_isrcs(disc, release):
                 try:
                     isrcs = track.isrcs
                 except AttributeError:
-                    memocache.remove_from_cache("delayed_get_release_by_releaseid",release.id)
-                    release = lookups.get_release_by_releaseid(release.id)
-                    track = release.tracks[trackind]
-                    trackid = track.id
-                    isrcs = track.isrcs
+		    pass
 
 		# These seem to be some dummy ISRCs - let's not submit them
 		if isrc is None or isrc == 'P00000000000' or isrc == '000000000000':
@@ -633,15 +621,6 @@ def renamealbum(srcpath, options):
                 util.report("no releases found")
 		raise IdentifyFailedException()
 
-        # Look for PUIDs to submit. Only do this if fingerprinting is
-        # enabled and we're not naming based on a discID.
-        if options.fingerprint and method != "discid":
-                submit_puids(disc, release)
-		
-	# Submit ISRCs
-	if disc.tocfilename:
-		submit_isrcs(disc, release)
-
 	util.report("release id: %s.html" % release.id)
 
 	disc.releasetypes = release.getTypes()
@@ -663,6 +642,16 @@ def renamealbum(srcpath, options):
 	disc.set_musicbrainz_tracks(release.getTracks())
 	disc.releasedate = release.getEarliestReleaseDate()
 
+        # Look for PUIDs to submit. Only do this if fingerprinting is
+        # enabled and we're not naming based on a discID.
+        if options.fingerprint and method != "discid":
+                submit_puids(disc, release)
+		
+	# Submit ISRCs
+	if disc.tocfilename:
+		submit_isrcs(disc, release)
+
+	# Fill in dead fields
 	disc.artist = release.artist.name
         disc.sortartist = release.artist.sortName
         if not disc.sortartist:
