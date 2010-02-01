@@ -39,6 +39,7 @@ import memocache
 import glob
 import util
 import errno
+import sets
 
 import ripcd
 
@@ -467,6 +468,12 @@ def main():
 		default=albumidentifyconfig.config.getboolean("renamealbum", "leave_soundtrack_artist"),
 		help="Even if an album is classified as a Soundtrack, don't use \"Soundtrack\" as the artist name."
 		)
+	opts.add_option(
+		"--limit-extensions",
+		dest="limit_extensions",
+		default=albumidentifyconfig.config.get("renamealbum", "limit_extensions"),
+		help="Comma seperated list of music extensions to consider"
+		)
 
 	(options, args) = opts.parse_args()
 
@@ -482,7 +489,14 @@ def main():
 	force_short_album=options.force_short_album
 	"""
 	albumidentify.FORCE_ORDER = options.force_order
+	tag.supported_extensions = sets.Set(options.limit_extensions.split(",")).intersection(sets.Set(tag.supported_extensions))
 	force_short_album = options.force_short_album
+
+	if len(tag.supported_extensions)==0:
+		print "Supported:",sets.Set(tag.supported_extensions)
+		print "Configured:",sets.Set(options.limit_extensions.split(","))
+		print "No possible extensions, aborting"
+		sys.exit(1)
 
 	if options.action=="scheme-help":
 		scheme_help()

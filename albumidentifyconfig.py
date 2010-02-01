@@ -15,6 +15,7 @@ def readconfig():
         config.set("renamealbum", "naming_scheme", "%(sortalbumartist)s - %(year)i - %(album)s/%(tracknumber)02i - %(trackartist)s - %(trackname)s")
         config.set("renamealbum", "dest_path", "")
         config.set("renamealbum", "leave_soundtrack_artist", "False")
+        config.set("renamealbum", "limit_extensions", ".mp3,.ogg,.flac")
 	config.read(os.path.expanduser("~/.albumidentifyrc"))
 
 if __name__=="__main__":
