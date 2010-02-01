@@ -3,7 +3,7 @@ import sys
 import time
 import datetime
 
-VERBOSE=1
+VERBOSE=0
 
 def clean_name(name):
 	"Clean up an mp3 name for comparison"
