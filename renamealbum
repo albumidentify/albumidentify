@@ -145,7 +145,7 @@ def submit_puids(disc, release):
 			continue
 		elif trackid not in [t.id for t in lookups.get_tracks_by_puid(puid)]:
 			flag=True
-			print "%02d:" % (trackind+1),puid,"->",release.tracks[trackind].title
+			print "%02d:" % (trackind+1),puid,"->",release.tracks[trackind].title,"->",tracknames[trackind+1]
 			track2puid[trackid]=puid
 		elif puid not in lookups.get_track_by_id(trackid).puids:
 			# There is a mapping of puid -> trackid, but not of trackid->puid,
@@ -526,18 +526,8 @@ def main():
 	for path in args:
 		process_one_path(numargs, options, path)
 
-def renamealbum(srcpath, options):
-        util.report("Using naming scheme: " + options.scheme)
-        if options.destprefix:
-                util.report("Using dest prefix: " + options.destprefix)
-
-	if options.noact:
-		print "Performing dry-run"
-
-	util.report("Source path: " + srcpath)
-	if os.getenv("TERM") in [ "xterm","screen"]:
-		sys.stdout.write("\x1b]0;Renaming %s\x1b\\" % srcpath)
-
+def construct_disc(srcpath):
+	"Try and construct a Disc object, based on any TOC's found"
 	if os.path.exists(os.path.join(srcpath, "data.toc")):
                 disc = toc.Disc(cdrdaotocfile = os.path.join(srcpath, "data.toc"))
 	elif os.path.exists(os.path.join(srcpath, "TOC")):
@@ -545,85 +535,22 @@ def renamealbum(srcpath, options):
         else:
                 disc = toc.Disc()
                 disc.dirname = srcpath
+	return disc
 
+def calculate_discid(disc):
         if disc.tocfilename:
                 disc.discid = discid.generate_musicbrainz_discid(
                                 disc.get_first_track_num(),
                                 disc.get_last_track_num(),
                                 disc.get_track_offsets())
                 util.report("Found TOC, calculated discID: " + disc.discid)
-
-	if options.releaseid:
-                util.report("Forcing releaseid: " + options.releaseid)
-		disc.releaseid = options.releaseid
-	
-	(release, method) = get_musicbrainz_release (disc, options)
-
-	if release is None:
-                util.report("no releases found")
-		raise IdentifyFailedException()
-
-        # Look for PUIDs to submit. Only do this if fingerprinting is
-        # enabled and we're not naming based on a discID.
-        if options.fingerprint and method != "discid":
-                submit_puids(disc, release)
-		
-	if disc.tocfilename:
-		submit_isrcs(disc, release)
-
-	util.report("release id: %s.html" % release.id)
-
-	disc.releasetypes = release.getTypes()
-
-	# No tracks, need to load them.
-	if disc.tracks is None:
-		disc.clear_tracks()
-		tracknum=1
-		
-		dir = sort.sorted_dir(disc.dirname)
-		for i in dir:
-			fname=os.path.join(srcpath,i)
-			t = toc.Track(tracknum)
-			t.filename = fname
-			tracknum+=1
-			disc.tracks.append(t)
-
-	disc.set_musicbrainz_tracks(release.getTracks())
-	disc.releasedate = release.getEarliestReleaseDate()
-
-	disc.artist = release.artist.name
-        disc.sortartist = release.artist.sortName
-        if not disc.sortartist:
-                disc.sortartist = mp3names.FixArtist(disc.artist)
-
-	if musicbrainz2.model.Release.TYPE_SOUNDTRACK in disc.releasetypes and not options.leave_soundtrack_artist:
-		disc.artist = "Soundtrack"
-		disc.sortartist = "Soundtrack"
-
-	disc.album = release.title
-	if options.year is not None:
-		disc.year = options.year
-		disc.releasedate = options.year
-	elif disc.releasedate is not None:
-		disc.year = disc.releasedate[0:4]
 	else:
-                util.report("couldn't determine year for %s - %s" % (`disc.artist`, `disc.album`))
-		memocache.remove_from_cache("delayed_get_release_by_releaseid", release.id)
-		raise UnknownYearException(disc.artist,disc.album)
+		util.report("Skipping calculating discID")
 
-	disc.compilation = 0
-	disc.number = 0
-	disc.totalnumber = 0
-	if options.asin is not None:
-		disc.asin = options.asin
-	else:
-		disc.asin = lookups.get_asin_from_release(release, prefer=".co.uk")
-			
-	# Set the compilation tag appropriately
-	if musicbrainz2.model.Release.TYPE_COMPILATION in disc.releasetypes:
-		disc.compilation = 1
-	
-	# Get album art
+
+# Find album art
+# Try to fetch from Amazon (by ASIN), if that fails, see if we already have album art and use that.
+def find_albumart(disc,options):
 	imageurl = lookups.get_album_art_url_for_asin(disc.asin)
 	# Check for manual image
         imagemime = None
@@ -650,8 +577,9 @@ def renamealbum(srcpath, options):
 		if not options.noact:
                         imagemime="image/jpeg"
                         imagepath = os.path.join(srcpath, "folder.jpg")
+	return (imagemime, imagepath, image_needs_unlink)
 
-	# Deal with disc x of y numbering
+def calculate_disc_numbering(disc, options):
 	(albumname, discnumber, disctitle) = lookups.parse_album_name(disc.album)
 	if discnumber is None:
 		disc.number = 1
@@ -663,14 +591,121 @@ def renamealbum(srcpath, options):
 		disc.number = int(discnumber)
 		discs = lookups.get_all_releases_in_set(release.id)
 		disc.totalnumber = len(discs)
+	return disc
 
-	print "disc " + str(disc.number) + " of " + str(disc.totalnumber)
+def calculate_album_year(disc, release, options):
+	disc.album = release.title
+	if options.year is not None:
+		disc.year = options.year
+		disc.releasedate = options.year
+	elif disc.releasedate is not None:
+		disc.year = disc.releasedate[0:4]
+	else:
+                util.report("couldn't determine year for %s - %s" % (`disc.artist`, `disc.album`))
+		memocache.remove_from_cache("delayed_get_release_by_releaseid", release.id)
+		raise UnknownYearException(disc.artist,disc.album)
 
+def renamealbum(srcpath, options):
+        util.report("Using naming scheme: " + options.scheme)
+        if options.destprefix:
+                util.report("Using dest prefix: " + options.destprefix)
+
+	if options.noact:
+		print "Performing dry-run"
+
+	util.report("Source path: " + srcpath)
+	if os.getenv("TERM") in [ "xterm","screen"]:
+		sys.stdout.write("\x1b]0;Renaming %s\x1b\\" % srcpath)
+
+	disc = construct_disc(srcpath)
+
+	# Calculate discid
+	calculate_discid(disc)
+
+	if options.releaseid:
+                util.report("Forcing releaseid: " + options.releaseid)
+		disc.releaseid = options.releaseid
+	
+	# Figure out a musicbrainz release
+	(release, method) = get_musicbrainz_release (disc, options)
+
+	if release is None:
+                util.report("no releases found")
+		raise IdentifyFailedException()
+
+        # Look for PUIDs to submit. Only do this if fingerprinting is
+        # enabled and we're not naming based on a discID.
+        if options.fingerprint and method != "discid":
+                submit_puids(disc, release)
+		
+	# Submit ISRCs
+	if disc.tocfilename:
+		submit_isrcs(disc, release)
+
+	util.report("release id: %s.html" % release.id)
+
+	disc.releasetypes = release.getTypes()
+
+	# No tracks, need to load them.
+	if disc.tracks is None:
+		disc.clear_tracks()
+		tracknum=1
+		
+		dir = sort.sorted_dir(disc.dirname)
+		for i in dir:
+			fname=os.path.join(srcpath,i)
+			t = toc.Track(tracknum)
+			t.filename = fname
+			tracknum+=1
+			disc.tracks.append(t)
+
+	# ----------------------------------------------------
+	disc.set_musicbrainz_tracks(release.getTracks())
+	disc.releasedate = release.getEarliestReleaseDate()
+
+	disc.artist = release.artist.name
+        disc.sortartist = release.artist.sortName
+        if not disc.sortartist:
+                disc.sortartist = mp3names.FixArtist(disc.artist)
+
+	if musicbrainz2.model.Release.TYPE_SOUNDTRACK in disc.releasetypes and not options.leave_soundtrack_artist:
+		disc.artist = "Soundtrack"
+		disc.sortartist = "Soundtrack"
+
+	# Calculate Year of album
+	calculate_album_year(disc, release, options)
+
+	disc.compilation = 0
+	disc.number = 0
+	disc.totalnumber = 0
+
+	# Calculate ASIN
+	if options.asin is not None:
+		disc.asin = options.asin
+	else:
+		disc.asin = lookups.get_asin_from_release(release, prefer=".co.uk")
+			
+	# Set the compilation tag appropriately
+	if musicbrainz2.model.Release.TYPE_COMPILATION in disc.releasetypes:
+		disc.compilation = 1
+	
+	# Get album art 
+	(imagemime, imagepath, image_needs_unlink) = find_albumart(disc,options)
+
+	# Deal with disc x of y numbering
+	calculate_disc_numbering(disc, options)
+
+	if disc.totalnumber != 1:
+		print "disc " + str(disc.number) + " of " + str(disc.totalnumber)
+
+	# Name the album correctly
 	(srcfiles, destfiles, needs_replaygain) = name_album (disc, release, srcpath, options, imagemime, imagepath)
 
+	# Clean up image
         if (image_needs_unlink):
                 os.unlink(imagepath)
 
+	# Add replay gain
 	if not options.noact and options.replaygain and len(destfiles) > 0 and needs_replaygain:
 		print "Adding replaygain"
 		replaygain.add_gain(destfiles)
@@ -914,6 +949,8 @@ def name_album(disc, release, srcpath, options, imagemime=None, imagepath=None, 
 
 	if noact:
 		print "Not calculating bitrates - in -n mode"
+		for entry in tmpfiles:
+			print entry["srcfilepath"],"->",entry["destfilepath"]
 	else:
 		# Step 2: Compare old and new bitrates
 		old_total_bitrate = 0
