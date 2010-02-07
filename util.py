@@ -48,6 +48,16 @@ def update_progress(msg):
 		sys.stdout.write(time.strftime("%H:%M:%S ")+msg.encode("ascii","ignore")+"\x1b[K\r")
 		sys.stdout.flush()
 
+def update_verbose_progress(msg):
+	"Display some progress"
+	if type(msg) == type(''):
+		msg = msg.decode('utf8','ignore')
+	if VERBOSE:
+		print msg.encode("ascii","ignore")
+	else:
+		sys.stdout.write(msg.encode("ascii","ignore")+"\x1b[K\n")
+		sys.stdout.flush()
+
 def output_list(l):
 	"Give na list of integers, return a string with ranges collapsed"
 	if not l:

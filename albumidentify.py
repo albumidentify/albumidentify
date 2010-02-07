@@ -22,7 +22,6 @@ import strat_musicbrainzid
 FORCE_ORDER=True
 #FORCE_ORDER=False
 
-
 # trackind's are 0 based
 # tracknum's are 1 based
 
@@ -47,15 +46,15 @@ def get_dir_info(dirname):
 	lastpuid=None
 	lastfile=None
 	albumfreq={}
-	print "Examining",dirname
+	util.update_verbose_progress("Examining %s"%dirname)
 	for i in files:
-		print "",i
+		util.update_verbose_progress(" %s" % (i))
 		fname=os.path.join(dirname,i)
 		trackinfo[fname]=musicfile.MusicFile(fname)
 		# If this is a duplicate of the previous track, ignore it.
 		# Dedupe by PUID
 		if lastpuid is not None and trackinfo[fname].getPUID() == lastpuid:
-			print "WARNING: Duplicate track ignored",repr(trackinfo[fname].getFilename()),"and",repr(trackinfo[lastfile].getFilename())
+			util.update_verbose_progress("WARNING: Duplicate track ignored",repr(trackinfo[fname].getFilename()),"and",repr(trackinfo[lastfile].getFilename()))
 			del trackinfo[fname]
 			continue
 		lastpuid = trackinfo[fname].getFilename()
