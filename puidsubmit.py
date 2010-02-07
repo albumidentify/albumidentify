@@ -1,7 +1,6 @@
 #!/usr/bin/python
 import urllib2
 import urllib
-import sys
 import shelve
 import pickle
 import os
@@ -60,3 +59,15 @@ def submit_isrcs_mb(track2isrc):
 
 	for (track,isrc) in track2isrc.iteritems():
 		memocache.remove_from_cache("delayed_get_track_by_id",track)
+
+if __name__=="__main__":
+	import sys
+	if len(sys.argv[1:])>0 and len(sys.argv[1:])%2!=0:
+		print "usage: %s track puid" % (sys.argv[0])
+		sys.exit(1)
+	a = sys.argv[1:]
+	track2puid={}
+	while a!=[]:
+		track2puid[a[0]]=a[1]
+		a=a[2:]
+	submit_puids_mb(track2puid)
