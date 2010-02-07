@@ -97,9 +97,9 @@ def choose_track(possible_releases, track_generator, trackinfo):
 
 def giving_up(removed_releases,fileid):
 	if not removed_releases:
-		print "No possible releases left"
+		util.report("No possible releases left")
 		return
-	print "Possible releases:"
+	util.report("Possible releases:")
 	for releaseid in removed_releases:
 		# If this release only has one track that we found,
 		# and we have other possible releases, ignore this one.
@@ -110,31 +110,31 @@ def giving_up(removed_releases,fileid):
 			and len(removed_releases)>1:
 				continue
 		release = lookups.get_release_by_releaseid(releaseid)
-		print "%s - %s (%s)" % (
+		util.report("%s - %s (%s)" % (
 			release.artist.name,
 			release.title,
-			releaseid)
+			releaseid))
 		for trackind in range(len(release.tracks)):
 			if (trackind+1) in removed_releases[releaseid]:
 				continue
-			print " #%02d %s %s" % (
+			util.report(" #%02d %s %s" % (
 				trackind+1,
 				release.tracks[trackind].id,
-				release.tracks[trackind].title)
-		print " %s" % (
+				release.tracks[trackind].title))
+		util.report(" %s" % (
 			util.output_list(removed_releases[releaseid].keys())
-			)
+			))
 
 def end_of_track(possible_releases,impossible_releases,track_generator,trackinfo,fileid):
 	# If there are no more tracks for this
 	# skip it and try more.
 	del track_generator[fileid]
-	print "All possibilities for file",fileid,"exhausted\x1b[K"
-	print "filename",trackinfo[fileid].getFilename()
-	print "Metadata Title:",trackinfo[fileid].getMDTrackTitle()
-	print "puid:",trackinfo[fileid].getPUID()
+	util.report("All possibilities for file %s exhausted" % fileid)
+	util.report("filename: %s" % trackinfo[fileid].getFilename())
+	util.report("Metadata Title: %s" % (trackinfo[fileid].getMDTrackTitle()))
+	util.report("puid: %s" % trackinfo[fileid].getPUID())
 	removed_releases={}
-	print "Current possible releases:"
+	util.report("Current possible releases:")
 	for i in possible_releases.keys():
 		# Ignore any release that doesn't have this
 		# track, since we can no longer find it.
@@ -146,7 +146,7 @@ def end_of_track(possible_releases,impossible_releases,track_generator,trackinfo
 		giving_up(removed_releases, fileid)
 		return
 	for i in possible_releases:
-		print "",lookups.get_release_by_releaseid(i).title,"(tracks found: %s)" % (util.output_list(possible_releases[i].keys()))
+		util.report(" %s (tracks found: %s)" % (lookups.get_release_by_releaseid(i).title,util.output_list(possible_releases[i].keys())))
 
 def get_puids_for_release(releaseid):
 	puids=[]
