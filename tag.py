@@ -156,6 +156,7 @@ def remove_tags(filename, noact=False):
 	raise Exception("Don't know how to remove tags for this file (%s)!" % filename)
 
 def get_mp3_tags(tags):
+	assert tags[DATE] is not None
         id3tags= {
                 "TIT2" : tags[TITLE],
                 "TPE1" : tags[ARTIST],
