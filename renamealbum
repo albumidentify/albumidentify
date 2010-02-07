@@ -40,6 +40,7 @@ import glob
 import util
 import errno
 import sets
+import re
 
 import ripcd
 
@@ -600,12 +601,21 @@ def calculate_album_year(disc, release, options):
 	if options.year is not None:
 		disc.year = options.year
 		disc.releasedate = options.year
-	elif disc.releasedate is not None:
+		return
+
+	if disc.releasedate is not None:
 		disc.year = disc.releasedate[0:4]
-	else:
-                util.report("couldn't determine year for %s - %s" % (`disc.artist`, `disc.album`))
-		memocache.remove_from_cache("delayed_get_release_by_releaseid", release.id)
-		raise UnknownYearException(disc.artist,disc.album)
+		return
+
+	if musicbrainz2.model.Release.TYPE_BOOTLEG in release.getTypes() or musicbrainz2.model.Release.TYPE_LIVE:
+		m=re.match("^([0-9]{4})-[0-9]{2}-[0-9]{2}: .*",release.title)
+		if m:
+			disc.year = m.group(1)
+			return
+			
+	util.report("couldn't determine year for %s - %s" % (`disc.artist`, `disc.album`))
+	memocache.remove_from_cache("delayed_get_release_by_releaseid", release.id)
+	raise UnknownYearException(disc.artist,disc.album)
 
 def renamealbum(srcpath, options):
         util.report("Using naming scheme: " + options.scheme)
