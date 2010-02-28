@@ -21,10 +21,12 @@ def process_item(path, destdir=None, pathcheck=True):
         else:
                 dst = os.path.join(options.destpath, dir)
 
-        # If dest exists, skip
-        if pathcheck and os.path.exists(dst):
-                print "%s already exists" % dst
+        if os.path.exists(dst):
+            if len(os.listdir(dst))>0:
+                print "%s is not empty" % dst
                 return
+        else:
+            os.mkdir(dst)
 
         # XXX We should do some better sanity checks here. For example, if
         # the dest path exists, we should check that there is
@@ -59,10 +61,6 @@ def process_item(path, destdir=None, pathcheck=True):
                         os.unlink(f)
                 return
 
-        # Move the resulting flacs to destdir
-        if pathcheck:
-                os.mkdir(dst)
-
         for f in glob.glob(os.path.join(src, "*.flac")):
                 shutil.move(f, os.path.join(dst, os.path.basename(f)))
 
@@ -87,8 +85,6 @@ def worker():
 
 def path_arg_cb(option, opt_str, value, parser):
         path = os.path.abspath(value)
-        if not os.path.isdir(path):
-                raise optparse.OptionValueError("to %s must be a directory that exists" % path)
         setattr(parser.values, option.dest, path)
 
 if __name__ == "__main__":
