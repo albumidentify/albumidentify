@@ -110,14 +110,14 @@ def giving_up(removed_releases,fileid):
 			and len(removed_releases)>1:
 				continue
 		release = lookups.get_release_by_releaseid(releaseid)
-		util.report("%s - %s (%s)" % (
+		util.report("%s - %s (%s.html)" % (
 			release.artist.name,
 			release.title,
 			releaseid))
 		for trackind in range(len(release.tracks)):
 			if (trackind+1) in removed_releases[releaseid]:
 				continue
-			util.report(" #%02d %s %s" % (
+			util.report(" #%02d %s.html %s" % (
 				trackind+1,
 				release.tracks[trackind].id,
 				release.tracks[trackind].title))
@@ -362,7 +362,7 @@ def guess_album2(trackinfo):
 			if len(possible_releases[releaseid])==len(trackinfo) \
 					and releaseid not in completed_releases:
 				print release.title,"seems ok\x1b[K"
-				print "Musicbrainz Release Id:",release.id
+				print "Musicbrainz Release Id: %s.html" % release.id
 				yield releaseid, possible_releases[releaseid]
 				completed_releases.append(releaseid)
 			
