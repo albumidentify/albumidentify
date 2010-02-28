@@ -6,6 +6,7 @@
 # (C) 2008 Scott Raynel <scottraynel@gmail.com>
 #
 import os.path
+import sort
 
 class Disc:
 	def __init__(self, cdrdaotocfile = None, cdrecordtocfile = None):
@@ -56,6 +57,8 @@ class Disc:
 		self.tracks = []
                 self.dirname = os.path.dirname(filename)
 
+                files = sort.get_sorted_directory(self.dirname)
+
 		f = open(filename, 'r')
 
 		type = f.readline()
@@ -63,6 +66,7 @@ class Disc:
 			raise Exception("Unsupported disc type: " + type)
 
 		curtrack = None
+                tracknum = None
 		for line in f.readlines():
 			parts = line.split()
 			if line.startswith("CATALOG"):
@@ -70,7 +74,10 @@ class Disc:
 			if line.startswith("// Track"):
 				if curtrack is not None:
 					self.tracks.append(curtrack)
-				curtrack = Track(int(parts[2]))
+                                tracknum = int(parts[2])
+				curtrack = Track(tracknum)
+                                curtrack.filename = files[tracknum]
+                                curtrack.id = tracknum
 			elif line.startswith("FILE"):
 				curtrack.track_start = timestamp_to_sectors(parts[2]) + 150
 				curtrack.track_length = timestamp_to_sectors(parts[3])

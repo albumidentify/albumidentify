@@ -84,9 +84,22 @@ def comparitor(a,b):
 	""" Compare 2 numbers.  Asumes both numbers are integers """
 	return int(a)-int(b)
 
+def get_sorted_directory(dirname):
+        files = sorted_dir(dirname)
+        tracknum = 1
+        # Assumes tracks are named in a sorted order
+        tracknames = {}
+        for i in files:
+                fname=os.path.join(dirname,i)
+                tracknames[tracknum] = fname
+                tracknum+=1
+        return tracknames
+
 if __name__ == '__main__':
 	if len(sys.argv) < 2:
 		print "usage: sort <dir>"
 		sys.exit(0)
 	else:
 		print sorted_dir(sys.argv[1])
+
+
