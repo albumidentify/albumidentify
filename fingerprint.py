@@ -63,6 +63,9 @@ def fingerprint(filename):
 		raise Exception("Format not supported")
 	return result
 
+def has_fingerprint_support():
+        return "libofa" in globals()
+
 class DecodeFailed(Exception):
 	def __init__(self,fname,reason):
 		self.fname = fname

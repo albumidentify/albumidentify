@@ -41,6 +41,7 @@ import util
 import errno
 import sets
 import re
+import fingerprint
 
 import ripcd
 
@@ -259,9 +260,12 @@ def get_musicbrainz_release (disc, options):
 				return (release, "tagged")
 	
         # Last resort, fingerprinting
-        if options.fingerprint:
-                util.report("Trying fingerprint search")
-                return (get_release_by_fingerprints(disc), "fingerprint")
+        if fingerprint.has_fingerprint_support():
+                if options.fingerprint:
+                        util.report("Trying fingerprint search")
+                        return (get_release_by_fingerprints(disc), "fingerprint")
+        else:
+                print "Fingerprinting support not installed, please install libofa0"
 
         return (None, "gave up")
 
