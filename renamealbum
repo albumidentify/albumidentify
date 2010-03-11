@@ -712,7 +712,10 @@ def renamealbum(srcpath, options):
 	# Add replay gain
 	if not options.noact and options.replaygain and len(destfiles) > 0 and needs_replaygain:
 		print "Adding replaygain"
-		replaygain.add_gain(destfiles)
+                try:
+                        replaygain.add_gain(destfiles)
+                except replaygain.GainFailedException, e:
+                        print "ReplayGain Warning: " + e.reason
 
 
 def get_file_list(disc):
@@ -819,6 +822,8 @@ def name_album(disc, release, srcpath, options, imagemime=None, imagepath=None, 
         embedcovers = options.embedcovers
         noact = options.noact
 
+        replaygainwarnings = set() 
+
         files = get_file_list(disc)
 
         if len(files) != len(disc.tracks):
@@ -868,9 +873,12 @@ def name_album(disc, release, srcpath, options, imagemime=None, imagepath=None, 
 
                 if not noact and ext.lower() != ".mp3":
                         shutil.copyfile(os.path.join(srcpath, file), entry["tmpfilename"])
-                        entry["gain"] = replaygain.get_gain(entry["tmpfilename"])
-                        if options.replaygain:
-                                replaygain.remove_gain(entry["tmpfilename"])
+                        try:
+                                entry["gain"] = replaygain.get_gain(entry["tmpfilename"])
+                                if options.replaygain:
+                                        replaygain.remove_gain(entry["tmpfilename"])
+                        except replaygain.GainFailedException, e:
+                                replaygainwarnings.add(e.reason)
                         tag.remove_tags(entry["tmpfilename"])
 
                 (track_artist, track_sort_artist, track_artist_id) = get_track_artist_info(release, track.mb_track)
@@ -924,7 +932,10 @@ def name_album(disc, release, srcpath, options, imagemime=None, imagepath=None, 
                 if options.replaygain and entry.has_key("gain") and entry["gain"] != {}:
                         # Re-apply old replaygain settings to the file.
                         # This will only affect FLACs.
-                        replaygain.set_gain(entry["tmpfilename"], entry["gain"])
+                        try:
+                                replaygain.set_gain(entry["tmpfilename"], entry["gain"])
+                        except replaygain.GainFailedException, e:
+                                replaygainwarnings.add(e.reason)
                         needs_replaygain = False
 
                 # Special case mp3.. tag.tag() won't do anything with mp3 files
@@ -936,7 +947,10 @@ def name_album(disc, release, srcpath, options, imagemime=None, imagepath=None, 
                         os.close(fd)
                         shutil.copy(srcfilepath, tmpmp3)
                         if options.replaygain:
-                                replaygain.remove_gain(tmpmp3)
+                                try: 
+                                        replaygain.remove_gain(tmpmp3)
+                                except replaygain.GainFailedException, e:
+                                        replaygainwarnings.add(e.reason)
 
                         parsed_data = parsemp3.parsemp3(tmpmp3)
                         outtags = tag.get_mp3_tags(tags)
@@ -1009,6 +1023,13 @@ def name_album(disc, release, srcpath, options, imagemime=None, imagepath=None, 
         if imagepath and not noact:
                 util.report(imagepath + " -> " + os.path.join(newdir, "folder.jpg"))
                 shutil.copyfile(imagepath, os.path.join(newdir, "folder.jpg"))
+
+        if len(replaygainwarnings) > 0:
+                print "There were problems with ReplayGain:"
+                for w in replaygainwarnings:
+                        print " - ReplayGain Warning: " + w
+                print " * Either fix the problems or use --no-replay-gain"
+                needs_replaygain = False
 
         rmrf(tmpdir)
         return (srcfiles, destfiles, needs_replaygain)
