@@ -62,7 +62,6 @@ def sorted_list(list):
 
 def tag_sorted_list(list):
 	""" Sort a list of files by the track number tag """
-	return sorted(list)
 	deco = []
 	for item in list:
 		tags = tag.read_tags(item)
