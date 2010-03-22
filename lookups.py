@@ -25,7 +25,7 @@ assert map(int,mb.__version__.split(".")) >= [0,6,0], "Need python-musicbrainz2 
 SUBMIT_SUPPORT = map(int, mb.__version__.split(".")) >= [0,7,0]
 
 if SUBMIT_SUPPORT == False:
-        print "To submit PUIDs or ISRCs to the musicbrainz database you need"
+        print "To submit ISRCs to the musicbrainz database you need"
         print " python-musicbrainz2 >= v 0.7.0"
 
 
