@@ -6,6 +6,7 @@ import operator
 import re
 
 import tag
+import albumidentify
 
 class SortFailedException(Exception):
 	def __str__(self):
@@ -31,6 +32,10 @@ def sorted_list(list):
 	is not tested.
 	"""
 	if len(list) < 2:
+		return list
+
+	# If we don't mind that it's not sorted, don't sort
+	if not albumidentify.FORCE_ORDER:
 		return list
 
 	orig = [i for i in list]

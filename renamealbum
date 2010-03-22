@@ -420,7 +420,7 @@ def main():
 		"--no-force-order",
 		dest="force_order",
 		action="store_false",
-		default=True,
+		default=albumidentifyconfig.config.getboolean("renamealbum", "force_order"),
 		help="Don't require source files to be in order. Note: May cause false positives."
 		)
 	opts.add_option(
@@ -482,7 +482,7 @@ def main():
 	scheme		= options.scheme
 	force_short_album=options.force_short_album
 	"""
-	albumidentify.FORCE_ORDER = options.force_order
+	albumidentify.FORCE_ORDER = options.force_order and albumidentify.FORCE_ORDER
 	tag.supported_extensions = sets.Set(options.limit_extensions.split(",")).intersection(sets.Set(tag.supported_extensions))
 	force_short_album = options.force_short_album
 
