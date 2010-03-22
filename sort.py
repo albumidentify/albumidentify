@@ -13,10 +13,15 @@ class SortFailedException(Exception):
 
 pattern = re.compile("(\D*?)(\d+)\D*")
 
+dircache = {}
+
 def sorted_dir(dirname):
+	if dirname in dircache:
+		return dircache[dirname]
 	dir = os.listdir(dirname)
-	dir = [i for i in dir if os.path.splitext(i)[1].lower() in tag.supported_extensions]
+	dir = [os.path.join(dirname, i) for i in dir if os.path.splitext(i)[1].lower() in tag.supported_extensions]
 	dir = sorted_list(dir)
+	dircache[dirname] = dir
 	return dir
 
 def sorted_list(list):
