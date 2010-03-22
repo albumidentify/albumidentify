@@ -52,7 +52,7 @@ def sorted_list(list):
 			return tag_sorted_list(orig)
 		deco.append((item, key))
 
-	list = sorted(deco, key=operator.itemgetter(1), cmp=comparitor)
+	list = sorted(deco, key=operator.itemgetter(1), cmp=comparator)
 	return [i for i, k in list]
 
 def tag_sorted_list(list):
@@ -66,7 +66,7 @@ def tag_sorted_list(list):
 		tracknum = tags[tag.TRACK_NUMBER]
 		deco.append((item, tracknum))
 
-	list = sorted(deco, key=operator.itemgetter(1), cmp=comparitor)
+	list = sorted(deco, key=operator.itemgetter(1), cmp=comparator)
 	return [i for i, k in list]
 
 def get_key(item):
@@ -80,7 +80,7 @@ def get_key(item):
 	else:
 		return (file, "")
 
-def comparitor(a,b):
+def comparator(a,b):
 	""" Compare 2 numbers.  Asumes both numbers are integers """
 	return int(a)-int(b)
 
