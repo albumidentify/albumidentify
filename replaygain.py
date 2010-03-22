@@ -1,4 +1,5 @@
 import subprocess
+import os
 
 class GainFailedException(Exception):
 	def __init__(self, args, reason):
@@ -53,13 +54,13 @@ def remove_gain(filename):
 def add_gain(files):
 	if type(files) != type([]):
 		raise Exception("Need a list of files to add gain to")
-	exts = set([x.rsplit(".")[-1:][0].lower() for x in files])
+	exts = set([os.path.splitext(x)[1].lower() for x in files])
 	
-	if len(exts) == 1 and "mp3" in exts:
+	if len(exts) == 1 and ".mp3" in exts:
 		args = ["mp3gain", "-a", "-c"]
-	elif len(exts) == 1 and "ogg" in exts:
+	elif len(exts) == 1 and ".ogg" in exts:
 		args = ["vorbisgain", "-a"]
-	elif len(exts) == 1 and "flac" in exts:
+	elif len(exts) == 1 and ".flac" in exts:
 		args = ["metaflac", "--add-replay-gain"]
 	else:
 		raise GainFailedException(files, "unknown set of files to add gain to")
