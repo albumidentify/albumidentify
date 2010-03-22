@@ -269,7 +269,14 @@ def __read_tags_mp3(filename):
 	tags[ALBUM] = __read_tag_mp3_anyver(data,"TALB")
 	tags[YEAR] = __read_tag_mp3_anyver(data,"TYER")
 	tags[DATE] = __read_tag_mp3_anyver(data,"TDAT")
-	tags[TRACK_NUMBER] = __read_tag_mp3_anyver(data,"TRCK")
+	tag = __read_tag_mp3_anyver(data,"TRCK")
+	if tag:
+		parts = tag.strip().strip("\x00").split("/")
+		if len(parts) == 2:
+			tags[TRACK_NUMBER] = int(parts[0])
+			tags[TRACK_TOTAL] = int(parts[1])
+		else:
+			tags[TRACK_NUMBER] = tag.strip().strip("\x00")
 	tag = __read_tag_mp3_anyver(data,"TPOS")
 	if tag:
 		parts = tag.strip().strip("\x00").split("/")
@@ -277,7 +284,7 @@ def __read_tags_mp3(filename):
 			tags[DISC_NUMBER] = int(parts[0])
 			tags[DISC_TOTAL_NUMBER] = int(parts[1])
 		else:
-			tags[DISC_NUMBER] = parts
+			tags[DISC_NUMBER] = tag.strip().strip("\x00")
 	tag = __read_tag_mp3_anyver(data,"TXXX")
 	if tag:
 		if type(tag) == type([]):
