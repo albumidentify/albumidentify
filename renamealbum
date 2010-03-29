@@ -12,6 +12,7 @@
 import sys
 import os
 from datetime import timedelta
+import time
 import musicbrainz2.model
 import toc
 import discid
@@ -313,10 +314,10 @@ def process_one_path(numargs, options, path):
 			util.report("Ripping %s to %s" % (srcpath, rawpath))
 			try:
 				ripcd.rip_cd(srcpath, rawpath)
-			except:
-				util.report("Ripping of %s failed" % srcpath)
+			except Exception,e:
+				util.report("Ripping of %s failed: %s" % (srcpath, e))
 				rmrf(rawpath)
-				return
+				raise
 			srcpath = rawpath
 			deletepaths.append(srcpath)
 

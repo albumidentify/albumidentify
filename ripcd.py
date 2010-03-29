@@ -8,7 +8,7 @@ class CDRipFailedException(Exception):
         def __init__(self,message):
                 self.message=message
         def __str__(self):
-                return "CD Rip Failed: %s" % self.message
+                return self.message
 
 
 def rip_cd(device, destpath):
@@ -16,20 +16,29 @@ def rip_cd(device, destpath):
         os.chdir(destpath)
 
         proclist = ["cdrdao", "read-cd", "--with-cddb", "--device", device, "data.toc"]
-        p = subprocess.Popen(proclist)
-        p.communicate()
+	try:
+	        p = subprocess.Popen(proclist)
+	        p.communicate()
+	except OSError, e:
+		raise CDRipFailedException("cdrdao not installed. Cannot rip CD")
 
         if p.returncode != 0:
                 raise CDRipFailedException("cdrdao failed with returncode %i" % p.returncode)
 
-        p2 = subprocess.Popen(["cueconvert", "data.toc", "data.cue"])
-        p2.communicate()
+	try:
+	        p2 = subprocess.Popen(["cueconvert", "data.toc", "data.cue"])
+	        p2.communicate()
+	except OSError, e:
+		raise CDRipFailedException("cueconvert not installed. Cannot rip CD")
 
         if p2.returncode != 0:
                 raise CDRipFailedException("cueconvert failed with returncode %i" % p2.returncode)
 
-        p3 = subprocess.Popen(["bchunk", "-s", "-w", "data.bin", "data.cue", "track"])
-        p3.communicate()
+	try:
+	        p3 = subprocess.Popen(["bchunk", "-s", "-w", "data.bin", "data.cue", "track"])
+	        p3.communicate()
+	except OSError, e:
+                raise CDRipFailedException("bchunk not installed. Cannot rip CD")
 
         if p3.returncode != 0:
                 raise CDRipFailedException("bchunk failed with returncode %i" % p3.returncode)
