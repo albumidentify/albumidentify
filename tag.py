@@ -3,23 +3,7 @@ import serialisemp3
 import parsemp3
 import os
 
-apps = {".mp3": {"decode": "/usr/bin/mpg123", "tag": "/bin/true"},
-	".ogg": {"decode": "/usr/bin/oggdec", "tag": "/usr/bin/vorbiscomment"},
-	".flac": {"decode": "/usr/bin/flac", "tag": "/usr/bin/metaflac"}
-	}
-
-def check_app(ext, app):
-	if not os.path.exists(app):
-		print "Can't find %s. Won't be able to tag %s files" % (app, ext)
-		return False
-	return True
-
-supported_extensions = []
-for k,v in apps.items():
-	if check_app(k, v["decode"]) and check_app(k, v["tag"]):
-		supported_extensions.append(k)
-
-print "Supported extensions", supported_extensions
+supported_extensions = [".mp3", ".ogg", ".flac"]
 
 # http://musicbrainz.org/doc/PicardQt/TagMapping
 # http://xiph.org/vorbis/doc/v-comment.html
