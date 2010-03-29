@@ -295,6 +295,7 @@ def path_is_raw_wavs(path):
         return False
 
 def process_one_path(numargs, options, path):
+	reportfile = None
 	util.report("----renamealbum started----")
 	# Do this here so it gets written to all util.reports
 	if numargs > 1 and options.asin is not None:
@@ -310,6 +311,7 @@ def process_one_path(numargs, options, path):
 
 		# Is srcpath a block device?
 		if is_block_device(srcpath):
+			reportfile = os.path.expanduser("~/renamealbum-report-%s.txt" % time.strftime("%Y-%m-%d-%H%M%S"))
 			rawpath = tempfile.mkdtemp()
 			util.report("Ripping %s to %s" % (srcpath, rawpath))
 			try:
@@ -344,8 +346,6 @@ def process_one_path(numargs, options, path):
 		util.report("fail!")
 	except:
 		(t,v,tb) = sys.exc_info()
-		util.report(t)
-		util.report(v)
 		for i in traceback.format_exception(t,v,tb):
 			util.report(i.strip())
 		del tb
@@ -359,7 +359,9 @@ def process_one_path(numargs, options, path):
 
 	if os.path.exists(origsrcpath):
 		try:
-			util.write_report(os.path.join(origsrcpath, "report.txt"))
+			if reportfile is None:
+				reportfile = os.path.join(origsrcpath, "report.txt")
+			util.write_report(reportfile)
 		except Exception, e:
 			print "Unable to write report:",str(e)
 
