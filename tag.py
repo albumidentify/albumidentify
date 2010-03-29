@@ -67,12 +67,12 @@ flac_tag_map = {
         DISC_NAME : "DISCNAME"
 }
 
-class TagReadFailedException(Exception):
+class TagFailedException(Exception):
 	def __init__(self, reason):
 		self.reason = reason
 
 	def __str__(self):
-		return "Failed to read tags: %s" % self.reason
+		return self.reason
 
 def __gen_flac_tags(tags):
         flactags = u""
@@ -113,19 +113,26 @@ def __tag_flac(filename, tags, noact = False, image = None):
         proclist.append(filename)
 
         if not noact:
-                p = subprocess.Popen(proclist, stdin=subprocess.PIPE)
-                p.stdin.write(flactags.encode("utf8"))
-                p.stdin.close()
-                p.wait()
+		try:
+	                p = subprocess.Popen(proclist, stdin=subprocess.PIPE)
+	                p.stdin.write(flactags.encode("utf8"))
+	                p.stdin.close()
+	                p.wait()
+		except OSError, e:
+			raise TagFailedException("Could not write flac tags. Try installing metaflac")
 
 def __tag_ogg(filename, tags, noact=False, image=None):
         oggtags = __gen_flac_tags(tags)
         proclist = ["vorbiscomment", "-R", "-c", "-", "-w", filename]
 
         if not noact:
-                p = subprocess.Popen(proclist, stdin=subprocess.PIPE)
-                (stdout, stderr) = p.communicate(oggtags.encode("utf8"))
-                p.wait()
+		try:
+	                p = subprocess.Popen(proclist, stdin=subprocess.PIPE)
+	                (stdout, stderr) = p.communicate(oggtags.encode("utf8"))
+	                p.wait()
+		except OSError, e:
+			raise TagFailedException("Could not write ogg tags. Try installing vorbiscomment")
+
 
 def tag(filename, tags, noact=False, image=None):
         if filename.lower().endswith(".flac"):
@@ -137,12 +144,17 @@ def tag(filename, tags, noact=False, image=None):
 		#Tags are written out earlier
 		return
 
-        raise Exception("Don't know how to tag this file type!")
+        raise TagFailedException("Don't know how to tag this file type!")
 
 def __remove_tags_flac(filename, noact):
 	proclist = ["metaflac", "--remove", "--block-type=VORBIS_COMMENT,PICTURE", filename]
 	if not noact:
-		return subprocess.call(proclist)
+		try:
+			return subprocess.call(proclist)
+		except OSError, e:
+			raise TagFailedException("Could not read flac tags. Try installing metaflac")
+
+
 
 def remove_tags(filename, noact=False):
 	if filename.lower().endswith(".flac"):
@@ -154,7 +166,7 @@ def remove_tags(filename, noact=False):
 		# Don't bother doing anything with mp3 at the moment.
 		return
 
-	raise Exception("Don't know how to remove tags for this file (%s)!" % filename)
+	raise TagFailedException("Don't know how to remove tags for this file (%s)!" % filename)
 
 def get_mp3_tags(tags):
 	assert tags[DATE] is not None
@@ -216,11 +228,15 @@ def read_tags(filename):
 	elif filename.endswith(".ogg"):
 	        return __read_tags_ogg(filename)
  
-        raise Exception("Don't know how to read tags for this file type!")
+        raise TagFailedException("Don't know how to read tags for this file type!")
 
 def __read_tags_flac(filename):
 	args = ["metaflac", "--export-tags-to=-", filename]
-	flactags = subprocess.Popen(args, stdout=subprocess.PIPE).communicate()[0]
+	try:
+		flactags = subprocess.Popen(args, stdout=subprocess.PIPE).communicate()[0]
+	except OSError, e:
+		raise TagFailedException("Could not read flac tags. Try installing metaflac")
+
 	inverse_flac_map = dict([(v, k) for k, v in flac_tag_map.iteritems()])
 	tags = {}
 	for line in flactags.split("\n"):
@@ -240,7 +256,7 @@ def __read_tags_ogg(filename):
 	try:
 		oggtags = subprocess.Popen(args, stdout=subprocess.PIPE).communicate()[0]
 	except:
-		raise TagReadFailedException("Could not execute vorbiscomment")
+		raise TagFailedException("Could not read ogg tags. Try installing vorbiscomment")
 	inverse_flac_map = dict([(v, k) for k, v in flac_tag_map.iteritems()])
 	tags = {}
 	for line in oggtags.split("\n"):
