@@ -321,6 +321,8 @@ def process_one_path(numargs, options, path):
 				raise
 			srcpath = rawpath
 			deletepaths.append(srcpath)
+			if options.destprefix == "":
+				options.destprefix = os.getcwd()
 
 		if not os.path.isdir(srcpath):
 			print "Skipping non directory",srcpath
