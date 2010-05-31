@@ -6,14 +6,32 @@ Tools to identify and manage music albums.
 
 ## Installation ##
 
-You don't really have to install anything if you don't want to. You can run all
-of the scripts straight from the source directory. If you do want to install
-albumidentify, use:
+### Dependencies ###
+In order to run renamealbum you will need the following dependencies:
+
+    python-musicbrainz2 libofa
+
+Depending on what filetypes you want to rename, you will need some additional
+dependencies.
+
+MP3:
+    mpg123 mp3gain
+
+flac:
+    flac
+
+ogg:
+    vorbis-tools vorgisgain
+
+Ripping CDs:
+    cdrdao cueconvert bchunk flac
+
+To install albumidentify, run:
 
     $ sudo python setup.py install
 
-Make sure you have the python-musicbrainz2 package installed from your
-distribution. libofa is also required for audio fingerprinting.
+If you don't want to install it, you can run all of the files from the
+directory you downloaded it to.
 
 ## Renaming albums (basic) ##
 
@@ -78,24 +96,27 @@ lots of CDs at once, it can be more efficient to do it in steps.
 
 We've included a couple of scripts to make ripping and encoding CDs a bit
 easier. These are python scripts that rely on several binaries that will need to
-be installed through your distribution. They are:
+be installed through your distribution. See the list at the beginning of
+this document to ensure you have them all.
 
-*  cdrdao
-*  cueconvert
-*  bchunk
-*  flac
+To rip CDs, run
+    $ ripcd.py /dev/cdrom destdir
 
-To rip CDs, run the ripcd.py command. Then use the toflac.py command to convert
-the files to flacs. The important part of this process is keeping the CD's
+Then use the toflac.py command to convert the files to flacs.
+    $ mkdir flacs
+    $ toflac.py -d flacs destdir
+
+The important part of this process is keeping the CD's
 Table of Contents (TOC) so that renamealbum can make a much more precise guess
 as to what the album is.
 
 Once you have a directory of flacs you can pass these to renamealbum as you
 would any other album.
+    $ renamealbum flacs/destdir
 
 If an album cannot be identified, you can add it to MusicBrainz. Run
 
-    submit.py <flac directory>
+    $ submit.py <flac directory>
 
 to get a URL to submit to. renamealbum may give you a URL to use if it
 identifies the album with a different method. This allows you to connect the
