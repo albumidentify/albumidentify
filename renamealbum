@@ -40,7 +40,6 @@ import memocache
 import glob
 import util
 import errno
-import sets
 import re
 import fingerprint
 
@@ -486,12 +485,12 @@ def main():
 	force_short_album=options.force_short_album
 	"""
 	albumidentify.FORCE_ORDER = options.force_order and albumidentify.FORCE_ORDER
-	tag.supported_extensions = sets.Set(options.limit_extensions.split(",")).intersection(sets.Set(tag.supported_extensions))
+	tag.supported_extensions = set(options.limit_extensions.split(",")).intersection(set(tag.supported_extensions))
 	force_short_album = options.force_short_album
 
 	if len(tag.supported_extensions)==0:
-		print "Supported:",sets.Set(tag.supported_extensions)
-		print "Configured:",sets.Set(options.limit_extensions.split(","))
+		print "Supported:",set(tag.supported_extensions)
+		print "Configured:",set(options.limit_extensions.split(","))
 		print "No possible extensions, aborting"
 		sys.exit(1)
 

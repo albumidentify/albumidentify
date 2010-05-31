@@ -1,7 +1,6 @@
 #
 # Strategy:
 #  Look up PUID's -> Track -> PUID's transitively.
-import sets
 import lookups
 
 def generate_track_puid_possibilities(tracks):
@@ -18,8 +17,8 @@ def generate_track_puid_possibilities(tracks):
 		TrackB too...
 	"""
 	tracks = tracks[:]
-	done_track_ids = sets.Set()
-	done_puids=sets.Set()
+	done_track_ids = set()
+	done_puids=set()
 
 	# Don't return the tracks that were passed in.
 	for track in tracks:
