@@ -26,7 +26,7 @@ def process_item(path, destdir=None, pathcheck=True):
                 print "%s is not empty" % dst
                 return
         else:
-            os.mkdir(dst)
+            os.makedirs(dst)
 
         # XXX We should do some better sanity checks here. For example, if
         # the dest path exists, we should check that there is
