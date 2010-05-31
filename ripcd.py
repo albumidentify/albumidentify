@@ -3,6 +3,7 @@
 import os
 import subprocess
 import sys
+import time
 
 class CDRipFailedException(Exception):
         def __init__(self,message):
@@ -13,6 +14,7 @@ class CDRipFailedException(Exception):
 
 def rip_cd(device, destpath):
         oldwd = os.getcwd()
+        print "ripping device %s to %s" % (device, destpath)
         os.chdir(destpath)
 
         proclist = ["cdrdao", "read-cd", "--with-cddb", "--device", device, "data.toc"]
@@ -47,9 +49,12 @@ def rip_cd(device, destpath):
         return True
 
 if __name__ == "__main__":
-        if len(sys.argv) == 3:
-            rip_cd(sys.argv[1], sys.argv[2])
-        else:
-            print("Usage: "+sys.argv[0]+" <device> <destination>")
-            sys.exit(1)
-	sys.exit(0)
+    if len(sys.argv) == 3:
+        rip_cd(sys.argv[1], sys.argv[2])
+    elif len(sys.argv) == 2:
+	dest = "cd-%s" % (time.strftime("%Y%m%d%H%M%S"),)
+        os.mkdir(dest)
+        rip_cd(sys.argv[1], dest)
+    else:
+        print("Usage: %s <device> [destination]" % (sys.argv[0],))
+        sys.exit(1)
