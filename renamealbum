@@ -214,6 +214,9 @@ def get_musicbrainz_release (disc, options):
                         util.report("Got release via discID")
                         return (lookups.get_release_by_releaseid(releaseid), "discid")
 
+	# There wasn't a lookup, so remove from the cache in case we add it
+	memocache.remove_from_cache("delayed_get_releases_by_discid", disc.discid)
+
 	# Otherwise, use CD-TEXT if present to guess the release
 	if disc.performer is not None and disc.title is not None:
 		util.report("Trying to look up release via CD-TEXT")
