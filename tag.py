@@ -21,8 +21,8 @@ TRACK_ID = "MUSICBRAINZ_TRACKID"
 DISC_ID = "MUSICBRAINZ_DISCID"
 YEAR = "YEAR"
 DATE = "DATE"
-SORT_ARTIST = "SORTARTIST"
-SORT_ALBUM_ARTIST = "SORTALBUMARTIST"
+ARTIST_SORT = "ARTISTSORT"
+ALBUM_ARTIST_SORT = "ALBUMARTISTSORT"
 COMPILATION = "COMPILATION"
 ISRC = "ISRC"
 MCN = "MCN"
@@ -59,8 +59,10 @@ flac_tag_map = {
         DISC_ID : "MUSICBRAINZ_DISCID",
         YEAR : "YEAR",
         DATE : "DATE",
-        SORT_ARTIST : "SORTARTIST",
-        SORT_ALBUM_ARTIST : "SORTALBUMARTIST",
+	# These sort tags are used by taglib-sharp, gstreamer,
+	#  and musicbrainz
+        ARTIST_SORT : "ARTISTSORT",
+        ALBUM_ARTIST_SORT : "ALBUMARTISTSORT",
         COMPILATION : "COMPILATION",
         ISRC : "ISRC",
         MCN : "MCN",
@@ -191,10 +193,10 @@ def get_mp3_tags(tags):
                 # TSST -- Set subtitle
                 "COMM" : [('Tags',tags[TAGS])],
                 }
-	if SORT_ARTIST in tags:
-		id3tags["TSOP"] = tags[SORT_ARTIST]
-	if SORT_ALBUM_ARTIST in tags:
-		id3tags["TSO2"] = tags[SORT_ALBUM_ARTIST]
+	if ARTIST_SORT in tags:
+		id3tags["TSOP"] = tags[ARTIST_SORT]
+	if ALBUM_ARTIST_SORT in tags:
+		id3tags["TSO2"] = tags[ALBUM_ARTIST_SORT]
 	if MOOD in tags:
 		id3tags["TMOO"] = tags[MOOD]
 	if GENRE in tags:

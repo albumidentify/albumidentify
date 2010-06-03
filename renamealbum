@@ -909,8 +909,8 @@ def name_album(disc, release, srcpath, options, imagemime=None, imagepath=None, 
                 tags[tag.TRACK_ID] = os.path.basename(mbtrack.id)
                 tags[tag.DATE] = disc.releasedate
                 tags[tag.YEAR] = disc.year
-                tags[tag.SORT_ARTIST] = track_sort_artist
-                tags[tag.SORT_ALBUM_ARTIST] = disc.sortartist
+                tags[tag.ARTIST_SORT] = track_sort_artist
+                tags[tag.ALBUM_ARTIST_SORT] = disc.sortartist
 
                 if disc.discid:
                         tags[tag.DISC_ID] = disc.discid
