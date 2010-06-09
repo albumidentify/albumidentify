@@ -42,9 +42,8 @@ def _do_raw_lastfm_query(url):
 	f.add_header('User-Agent','AlbumIdentify v1.0')
 	try:
 		f = urllib2.urlopen(f)
-	except Exception, e:
-		print e.msg
-		print e.fp.read()
+	except urllib2.URLError, e:
+		print e.reason
 		raise
 
 	tree = xml.etree.ElementTree.ElementTree(file=f)
