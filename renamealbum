@@ -160,7 +160,7 @@ def submit_isrcs(disc, release):
 	flag = False
 	for trackind in range(len(release.tracks)):
 		track = disc.tracks[trackind]
-		trackid = track.id
+		trackid=disc.tracks[trackind].mb_track.id
 		isrc = disc.tracks[trackind].isrc
                 #this is for backwards compatability and can probably
                 #be remove 6 months from now Nov 6 2009
