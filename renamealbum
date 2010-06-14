@@ -44,7 +44,6 @@ import re
 import fingerprint
 
 import ripcd
-
 import toflac
 
 # metadata plugins
@@ -555,10 +554,7 @@ def calculate_discid(disc):
 # Try to fetch from Amazon (by ASIN), if that fails, see if we already have album art and use that.
 def find_albumart(srcpath,disc,options):
 	imageurl = lookups.get_album_art_url_for_asin(disc.asin)
-	# Check for manual image
-        imagemime = None
-        imagepath = None
-        image_needs_unlink = False
+	images = []
 	if imageurl is not None:
                 print "Downloading album art from %s" % imageurl
 		if not options.noact:
@@ -572,15 +568,42 @@ def find_albumart(srcpath,disc,options):
                                 else:
                                         imagemime = h.gettype()
                                         imagepath = tmpfile
-                                        image_needs_unlink = True
-                        except:
+					images.append((imagepath, imagemime, True))
+			except:
                                 print "WARNING: Failed to retrieve coverart (%s)" % imageurl
-	elif os.path.exists(os.path.join(srcpath, "folder.jpg")):
-		print "Using existing image"
-		if not options.noact:
-                        imagemime="image/jpeg"
-                        imagepath = os.path.join(srcpath, "folder.jpg")
-	return (imagemime, imagepath, image_needs_unlink)
+	if os.path.exists(os.path.join(srcpath, "folder.jpg")):
+		print "Found existing image"
+                imagemime="image/jpeg"
+                imagepath = os.path.join(srcpath, "folder.jpg")
+		images.append((imagepath, imagemime, False))
+	
+	best = find_best_image(images)[0]
+	if best[0] is not None:
+		print "Best cover image: %s" % best[0]
+	return best
+
+def find_best_image(images):
+	""" images = [(path, mime, need_unlink)]
+	    Given a list of image paths, choose the biggest one.
+	    Try with image dimensions, otherwise use filesize.
+	    Returns a filename to use. """
+	if len(images) == 0:
+		return (None, None, False)
+	elif len(images) == 1:
+		return images
+
+	dec = []
+	try:
+		import Image
+		for (fname, mime, need_unlink) in images:
+			i = Image.open(fname)
+			dec.append((fname, mime, need_unlink, i.size[0]))
+	except ImportError, e:
+		for (fname, mime, need_unlink) in images:
+			dec.append((fname, mime, need_unlink, os.path.getsize(fname)))
+
+	sortimages = sorted(dec, key=operator.itemgetter(3), reverse=True)
+	return [(p, m, d) for (p, m, d, s) in sortimages]
 
 def calculate_disc_numbering(disc, release, options):
 	(albumname, discnumber, disctitle) = lookups.parse_album_name(disc.album)
@@ -705,7 +728,7 @@ def renamealbum(srcpath, options):
 		disc.compilation = 1
 	
 	# Get album art 
-	(imagemime, imagepath, image_needs_unlink) = find_albumart(srcpath, disc,options)
+	(imagepath, imagemime, image_needs_unlink) = find_albumart(srcpath, disc,options)
 
 	# Deal with disc x of y numbering
 	calculate_disc_numbering(disc, release, options)
