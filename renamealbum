@@ -577,6 +577,15 @@ def find_albumart(srcpath,disc,options):
                 imagepath = os.path.join(srcpath, "folder.jpg")
 		images.append((imagepath, imagemime, False))
 	
+	dir = sort.sorted_dir(srcpath)
+	filetags = tag.read_tags(dir[0])
+	if tag.IMAGE in filetags:
+		print "Found image embedded in file"
+                (fd,tmpfile) = tempfile.mkstemp(suffix = ".jpg")
+		os.write(fd, filetags[tag.IMAGE])
+                os.close(fd)
+		images.append((tmpfile, "image/jpeg", True))
+
 	best = find_best_image(images)[0]
 	if best[0] is not None:
 		print "Best cover image: %s" % best[0]

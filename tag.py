@@ -34,6 +34,7 @@ DISC_NAME = "DISCNAME"
 GENRE = "GENRE"
 MOOD = "MOOD"
 TAGS = "TAGS"
+IMAGE = "IMAGE"
 URL_OFFICIAL_RELEASE_SITE = "URL_OFFICIAL_RELEASE_SITE"
 URL_DISCOGS_RELEASE_SITE = "URL_DISCOGS_RELEASE_SITE"
 URL_WIKIPEDIA_RELEASE_SITE = "URL_WIKIPEDIA_RELEASE_SITE"
@@ -251,6 +252,14 @@ def __read_tags_flac(filename):
 			tags[DISC_NUMBER] = v
 		elif k == "DISCC":
 			tags[DISC_TOTAL_NUMBER] = v
+
+	args = ["metaflac", "--export-picture-to=-", filename]
+	try:
+		image = subprocess.Popen(args, stdout=subprocess.PIPE).communicate()[0]
+		tags[IMAGE] = image
+	except OSError, e:
+		raise TagFailedException("Could not read flac tags. Try installing metaflac")
+
 	return tags
 
 def __read_tags_ogg(filename):
@@ -280,6 +289,19 @@ def __read_tag_mp3_anyver(mp3tags,tagname):
 		return mp3tags["v1"][tagname]
 	return None
 
+def __read_image_mp3(image):
+	encoding = image[0]
+	image = image[1:]
+	i = image.find("\x00")
+	mime = image[0:i]
+	image = image[i+1:]
+	pictype = image[0]
+	image = image[1:]
+	i = image.find("\x00")
+	desc = image[0:i]
+	imagedata = image[i+1:]
+	return (encoding, mime, pictype, desc, imagedata)
+
 def __read_tags_mp3(filename):
 	data = parsemp3.readid3(filename)
 	tags = {}
@@ -288,6 +310,11 @@ def __read_tags_mp3(filename):
 	tags[ALBUM] = __read_tag_mp3_anyver(data,"TALB")
 	tags[YEAR] = __read_tag_mp3_anyver(data,"TYER")
 	tags[DATE] = __read_tag_mp3_anyver(data,"TDAT")
+	if "APIC" in data["v2"]:
+		image = data["v2"]["APIC"]
+		(encoding, mime, pictype, desc, imagedata) = __read_image_mp3(image)
+		tags[IMAGE] = imagedata
+
 	tag = __read_tag_mp3_anyver(data,"TRCK")
 	if tag:
 		parts = tag.strip().strip("\x00").split("/")
