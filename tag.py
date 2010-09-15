@@ -255,8 +255,12 @@ def __read_tags_flac(filename):
 
 	args = ["metaflac", "--export-picture-to=-", filename]
 	try:
-		image = subprocess.Popen(args, stdout=subprocess.PIPE).communicate()[0]
-		tags[IMAGE] = image
+		process = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()
+		image = process[0]
+		err = process[1]
+		# metaflac writes to stderr if there is no image
+		if err == "":
+			tags[IMAGE] = image
 	except OSError, e:
 		raise TagFailedException("Could not read flac tags. Try installing metaflac")
 
