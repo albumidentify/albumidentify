@@ -291,7 +291,7 @@ def path_arg_cb(option, opt_str, value, parser):
 def path_is_raw_wavs(path):
         if not os.path.isdir(path):
                 return False
-	return set(os.path.splitext(i)[1] for i in os.listdir(path)) == set([".wav"])
+	return ".wav" in set(os.path.splitext(i)[1] for i in os.listdir(path))
 
 def process_one_path(numargs, options, path):
 	reportfile = None
