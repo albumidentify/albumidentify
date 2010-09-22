@@ -585,7 +585,7 @@ def find_albumart(srcpath,disc,options):
 		images.append((tmpfile, "image/jpeg", True, "embedded tag"))
 
 	best = find_best_image(images)[0]
-	if best is not None:
+	if best[0] is not None:
 		util.report("Best cover image: %s (from %s)" % (best[0], best[3]))
 	return best
 
@@ -595,7 +595,7 @@ def find_best_image(images):
 	    Try with image dimensions, otherwise use filesize.
 	    Returns a filename to use. """
 	if len(images) == 0:
-		return (None, None, False, None)
+		return [(None, None, False, None)]
 	elif len(images) == 1:
 		return images
 
