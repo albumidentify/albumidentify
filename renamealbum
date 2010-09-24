@@ -608,6 +608,9 @@ def find_best_image(images):
 	except ImportError, e:
 		for (fname, mime, need_unlink, source) in images:
 			dec.append((fname, mime, need_unlink, source, os.path.getsize(fname)))
+	except IOError, e:
+		# Error doing Image.open
+		pass
 
 	sortimages = sorted(dec, key=operator.itemgetter(4), reverse=True)
 	return [(p, m, d, so) for (p, m, d, so, si) in sortimages]

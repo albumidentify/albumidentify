@@ -317,7 +317,8 @@ def __read_tags_mp3(filename):
 	if "APIC" in data["v2"]:
 		image = data["v2"]["APIC"]
 		(encoding, mime, pictype, desc, imagedata) = __read_image_mp3(image)
-		tags[IMAGE] = imagedata
+		if len(imagedata) > 0:
+			tags[IMAGE] = imagedata
 
 	tag = __read_tag_mp3_anyver(data,"TRCK")
 	if tag:
