@@ -87,7 +87,7 @@ def path_arg_cb(option, opt_str, value, parser):
         path = os.path.abspath(value)
         setattr(parser.values, option.dest, path)
 
-if __name__ == "__main__":
+def main():
         opts = optparse.OptionParser(usage="%s [options] <srcdirs>" % sys.argv[0])
         opts.add_option(
                 "-d", "--dest-path",
@@ -137,4 +137,5 @@ if __name__ == "__main__":
         q.join()
         print "All worker threads finished"
 
-
+if __name__ == "__main__":
+	main()
