@@ -48,7 +48,7 @@ def rip_cd(device, destpath):
         os.chdir(oldwd)
         return True
 
-if __name__ == "__main__":
+def main():
     if len(sys.argv) == 3:
         rip_cd(sys.argv[1], sys.argv[2])
     elif len(sys.argv) == 2:
@@ -58,3 +58,6 @@ if __name__ == "__main__":
     else:
         print("Usage: %s <device> [destination]" % (sys.argv[0],))
         sys.exit(1)
+
+if __name__ == "__main__":
+	main()

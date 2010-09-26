@@ -2,7 +2,7 @@
 
 Tools to identify and manage music albums.
 
-(c) 2008-2009 The albumidentify team.
+(c) 2008-2010 The albumidentify team.
 
 ## Installation ##
 
@@ -103,11 +103,11 @@ be installed through your distribution. See the list at the beginning of
 this document to ensure you have them all.
 
 To rip CDs, run
-    $ ripcd.py /dev/cdrom destdir
+    $ ripcd /dev/cdrom destdir
 
 Then use the toflac.py command to convert the files to flacs.
     $ mkdir flacs
-    $ toflac.py -d flacs destdir
+    $ toflac -d flacs destdir
 
 The important part of this process is keeping the CD's
 Table of Contents (TOC) so that renamealbum can make a much more precise guess

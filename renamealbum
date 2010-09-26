@@ -11,45 +11,48 @@
 
 import sys
 import os
-from datetime import timedelta
 import time
-import musicbrainz2.model
-import toc
-import discid
 import shutil
 import urllib
-import mp3names
-import submit #musicbrainz_submission_url()
-import lookups
-import albumidentify
-import albumidentifyconfig
 import operator
-import tag
-import parsemp3
-import serialisemp3
-import replaygain
 import tempfile
 import traceback
 import datetime
 import optparse
-import puidsubmit
-import sort
 import socket
 import stat
-import memocache
-import glob
-import util
 import errno
 import re
-import fingerprint
 
-import ripcd
-import toflac
+from datetime import timedelta
+import musicbrainz2.model
 
+srcdir = os.path.abspath(os.path.join(os.path.dirname(sys.argv[0]), "src"))
+if os.path.exists(srcdir):
+	sys.path.insert(0, srcdir)
+
+from renamealbum import toc
+from renamealbum import discid
+from renamealbum import mp3names
+from renamealbum import submit #musicbrainz_submission_url()
+from renamealbum import lookups
+from renamealbum import albumidentify
+from renamealbum import albumidentifyconfig
+from renamealbum import tag
+from renamealbum import parsemp3
+from renamealbum import serialisemp3
+from renamealbum import replaygain
+from renamealbum import puidsubmit
+from renamealbum import sort
+from renamealbum import memocache
+from renamealbum import util
+from renamealbum import fingerprint
+from renamealbum import ripcd
+from renamealbum import toflac
 # metadata plugins
-import md_lastfm
-import md_musicbrainz
-import md_genre
+from renamealbum import md_lastfm
+from renamealbum import md_musicbrainz
+from renamealbum import md_genre
 
 # Catch connections timing out
 socket.setdefaulttimeout(10)
