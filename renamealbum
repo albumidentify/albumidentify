@@ -27,8 +27,8 @@ import re
 from datetime import timedelta
 import musicbrainz2.model
 
-srcdir = os.path.join(os.path.dirname(os.path.abspath(sys.argv[0])), "..", "src")
-if os.path.exists(srcdir): 
+srcdir = os.path.abspath(os.path.join(os.path.dirname(sys.argv[0]), "src"))
+if os.path.exists(srcdir):
 	sys.path.insert(0, srcdir)
 
 from renamealbum import toc
