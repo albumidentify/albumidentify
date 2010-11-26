@@ -2,6 +2,7 @@
 import os
 import tempfile
 import urllib
+import operator
 
 import sort
 import lookups
