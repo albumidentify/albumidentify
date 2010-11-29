@@ -43,7 +43,10 @@ def _do_raw_lastfm_query(url):
 	try:
 		f = urllib2.urlopen(f)
 	except urllib2.URLError, e:
-		print e.reason
+		if (hasattr(e, 'reason')):
+			print e.reason
+		else:
+			print str(e) + ' returned from ' + url
 		raise
 
 	tree = xml.etree.ElementTree.ElementTree(file=f)
