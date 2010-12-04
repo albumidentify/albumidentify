@@ -69,7 +69,8 @@ more quickly, create a file ~/.albumidentifyrc with contents:
     username=<your mb username>
     password=<your mb password>
 
-This requires the genpuid command to be installed and a musicDNS key.
+This requires the [genpuid](http://ftp.musicbrainz.org/pub/musicbrainz/genpuid/)
+command to be installed and a musicDNS key.
 
 ### Custom Naming Schemes ###
 
