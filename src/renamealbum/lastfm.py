@@ -3,6 +3,7 @@ import urllib
 import urlparse
 import xml.etree.ElementTree
 import re
+import lookups
 import memocache
 from htmlentitydefs import name2codepoint
 
@@ -37,6 +38,8 @@ def _etree_to_dict(etree):
 	return result
 
 @memocache.memoify()
+@lookups.timeout_retry("lastfm")
+@lookups.delayed("lastfm")
 def _do_raw_lastfm_query(url):
 	f = urllib2.Request(url)
 	f.add_header('User-Agent','AlbumIdentify v1.0')
@@ -104,3 +107,4 @@ if __name__=="__main__":
 	import pprint
 	pprint.pprint(get_track_info('Pearl Jam','Even Flow',))
 
+# vim: set sw=8 tabstop=8 noexpandtab :

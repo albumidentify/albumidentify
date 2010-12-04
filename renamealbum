@@ -1018,3 +1018,5 @@ def name_album(disc, release, srcpath, options, imagemime=None, imagepath=None, 
 if __name__ == "__main__":
 	main()
 	sys.exit(0)
+
+# vim: set sw=8 tabstop=8 noexpandtab :

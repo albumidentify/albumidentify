@@ -30,6 +30,9 @@ if SUBMIT_SUPPORT == False:
 
 
 webservices = {
+	"lastfm" : { 
+		"freequeries" : 1,
+	},
 	"musicdns" : { 
 		"freequeries" : 1,
 	},
@@ -38,12 +41,13 @@ webservices = {
 	},
 }
 
-def musicbrainz_retry():
-        """ Decorator to retry failures in musicbrainz calls.
+def timeout_retry(webservice="default"):
+        """ Decorator to retry failures in web service calls.
 
             For example, a 503 will result in a 20 second cooldown. A urlopen timeout
             will simply be tried again.
         """
+        assert webservice in webservices,"Unknown webservice"
         def ws_backoff(func):
                 def backoff_func(*args, **kwargs):
                         global lastwsquery
@@ -51,13 +55,13 @@ def musicbrainz_retry():
                                 return func(*args,**kwargs)
                         except ws.WebServiceError,e:
                                 if (e.msg.find("503") != -1):
-                                        util.update_progress("Caught musicbrainz 503, waiting 20s and trying again...")
+                                        util.update_progress("Caught " +webservice+ " 503, waiting 20s and trying again...")
                                 else:
 					# A bare raise will reraise the current exception
                                         raise
                         except ws.ConnectionError,e:
                                 if (e.msg.find("urlopen error timed out") != -1):
-                                        util.update_progress("Caught musicbrainz urlopen timeout. Retrying...")
+                                        util.update_progress("Caught " +webservice+ " urlopen timeout. Retrying...")
                                 else:
                                         raise
 
@@ -65,7 +69,7 @@ def musicbrainz_retry():
                         # Reset the timer delayed uses so that we don't
                         # end up with a bunch of queries causing
                         # another 503
-                        lastwsquery["musicbrainz"]=time.time()
+                        lastwsquery[webservice]=time.time()
                         # Retry the call
                         return func(*args,**kwargs)
 
@@ -116,7 +120,7 @@ if SUBMIT_SUPPORT:
 	trackincludes["isrcs"]=True
 	
 @memocache.memoify()
-@musicbrainz_retry()
+@timeout_retry("musicbrainz")
 @delayed("musicbrainz")
 def get_tracks_by_puid(puid):
 	""" Lookup a list of musicbrainz tracks by PUID. Returns a list of Track
@@ -130,7 +134,7 @@ def get_tracks_by_puid(puid):
 	return results
 
 @memocache.memoify()
-@musicbrainz_retry()
+@timeout_retry("musicbrainz")
 @delayed("musicbrainz")
 def get_track_by_id(id):
 	q = ws.Query()
@@ -141,7 +145,7 @@ def get_track_by_id(id):
 	return t
 
 @memocache.memoify()
-@musicbrainz_retry()
+@timeout_retry("musicbrainz")
 @delayed("musicbrainz")
 def get_release_by_releaseid(releaseid):
 	""" Given a musicbrainz release-id, fetch the release from musicbrainz. """
@@ -161,7 +165,7 @@ def get_release_by_releaseid(releaseid):
 	return q.getReleaseById(id_ = releaseid, include=includes)
 
 @memocache.memoify()
-@musicbrainz_retry()
+@timeout_retry("musicbrainz")
 @delayed("musicbrainz")
 def get_releases_by_cdtext(title, performer, num_tracks):
 	""" Given the performer, title and number of tracks on a disc, lookup
@@ -183,7 +187,7 @@ the empty list if there were no matches. """
 		]
 
 @memocache.memoify()
-@musicbrainz_retry()
+@timeout_retry("musicbrainz")
 @delayed("musicbrainz")
 def get_releases_by_discid(discid):
         """ Given a musicbrainz disc-id, fetch a list of possible releases. """
@@ -202,7 +206,7 @@ def track_number(tracks, track):
 	return -1
 
 @memocache.memoify()
-@musicbrainz_retry()
+@timeout_retry("musicbrainz")
 @delayed("musicbrainz")
 def get_track_artist_for_track(track):
 	""" Returns the musicbrainz Artist object for the given track. This may
@@ -323,4 +327,4 @@ def parse_album_name(albumname):
 	g = m.groups()
 	return (g[0].strip(), g[2], g[4])
 
-
+# vim: set sw=8 tabstop=8 noexpandtab :

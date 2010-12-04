@@ -15,6 +15,7 @@ musicdns_host = 'ofa.musicdns.org'
 musicdns_port = 80
 
 @memocache.memoify()
+@lookups.timeout_retry("musicdns")
 @lookups.delayed("musicdns")
 def lookup_fingerprint(fingerprint, duration, musicdns_key):
 	""" Given a fingerprint and duration, lookup the track using the 
@@ -57,3 +58,5 @@ def lookup_fingerprint(fingerprint, duration, musicdns_key):
 def sanitize_tree(tree):
 	for el in tree.getiterator():
 		el.tag = re.sub('{.*}', '', el.tag) 
+
+# vim: set sw=8 tabstop=8 noexpandtab :
