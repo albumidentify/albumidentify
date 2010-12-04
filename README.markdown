@@ -133,6 +133,8 @@ fork the repository and submit pull requests with new features, bug fixes, etc.
 
 Issues are tracked with [GitHub Issues](http://github.com/scottr/albumidentify/issues)
 
+Visit us on IRC, irc.undernet.org #albumidentify
+
 ## Contributors ##
 
 The following people have contributed to albumidentify:
