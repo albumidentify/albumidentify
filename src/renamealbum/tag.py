@@ -294,16 +294,28 @@ def __read_tag_mp3_anyver(mp3tags,tagname):
 	return None
 
 def __read_image_mp3(image):
-	encoding = image[0]
-	image = image[1:]
+
+	#if we have more than one image pick the first image (ignore the rest?)
+	if type(image) is list:
+		image = image[0]
+		
+	i = image.find("\x00")
+	encoding = image[0:i]	
+	image = image[i+1:]
+	
 	i = image.find("\x00")
 	mime = image[0:i]
 	image = image[i+1:]
-	pictype = image[0]
-	image = image[1:]
+	
+	i = image.find("\x00")
+	pictype = image[0:i]
+	image = image[i+1:]
+
 	i = image.find("\x00")
 	desc = image[0:i]
+	
 	imagedata = image[i+1:]
+
 	return (encoding, mime, pictype, desc, imagedata)
 
 def __read_tags_mp3(filename):
