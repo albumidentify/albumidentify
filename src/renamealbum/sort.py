@@ -36,7 +36,7 @@ def sorted_list(list):
 
 	# If we don't mind that it's not sorted, don't sort
 	if not albumidentify.FORCE_ORDER:
-		return list
+		return sorted(list)
 
 	orig = [i for i in list]
 
