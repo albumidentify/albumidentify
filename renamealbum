@@ -494,6 +494,10 @@ def main():
 	tag.supported_extensions = set(options.limit_extensions.split(",")).intersection(set(tag.supported_extensions))
 	force_short_album = options.force_short_album
 
+	if options.releaseid is not None and not albumidentify.FORCE_ORDER:
+		print "Using -r and --no-force-order is prohibited. Bad things will happen."
+		sys.exit(1)
+
 	if len(tag.supported_extensions)==0:
 		print "Supported:",set(tag.supported_extensions)
 		print "Configured:",set(options.limit_extensions.split(","))
