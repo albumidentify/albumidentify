@@ -12,7 +12,7 @@ In order to run renamealbum you will need the following dependencies:
     python-musicbrainz2 libofa
 
 And these optional dependencies:
-    python-imaging
+    python-imaging libsndfile sndfile-programs
 
 Depending on what filetypes you want to rename, you will need some additional
 dependencies.
