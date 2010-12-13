@@ -131,6 +131,8 @@ computed discID with the actual release.
 Our project page is [here](http://github.com/scottr/albumidentify). Feel free to
 fork the repository and submit pull requests with new features, bug fixes, etc.
 
+To enable correct tabbing in vim ensure you have modeline enabled.
+
 Issues are tracked with [GitHub Issues](http://github.com/scottr/albumidentify/issues)
 
 Visit us on IRC, irc.undernet.org #albumidentify
