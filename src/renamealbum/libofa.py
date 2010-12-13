@@ -4,13 +4,10 @@
 # (C) 2008 Scott Raynel <scottraynel@gmail.com>
 #
 
-from ctypes import *
+from ctypes import * 
+from ctypes.util import find_library
 
-try:
-	__libofa = CDLL("libofa.so.0")
-except:
-	__libofa = CDLL("libofa.dll")
-
+__libofa = CDLL(find_library('ofa'))
 __create_print = __libofa.ofa_create_print
 __create_print.argtypes = [c_char_p, c_int, c_long, c_int, c_int]
 __create_print.restype = c_char_p

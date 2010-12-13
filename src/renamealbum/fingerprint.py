@@ -21,6 +21,15 @@ import stat
 import albumidentifyconfig
 import time
 
+def fingerprint(filename):
+	if "libofa" not in globals():
+		raise Exception("Fingerprinting not supported")
+	if filename.endswith(".wav"):
+		result = fingerprint_wave(filename)
+	else:
+		raise Exception("Format not supported")
+	return result
+
 def fingerprint_wave(file):
 	""" Take a WAVE filename (or an open File object) and use libofa to
 	determine its fingerprint.  Returns a tuple of the fingerprint and the
@@ -38,7 +47,7 @@ def fingerprint_wave(file):
 	width = wav.getsampwidth()
 	if width != 2:
 		wav.close()
-		raise Exception("Only 16-bit sample widths supported")
+		raise Exception("Only 16-bit sample widths are supported unless libsndfile is installed")
 
 	srate = wav.getframerate()	
 
@@ -54,15 +63,6 @@ def fingerprint_wave(file):
 
 	return (fprint, ms)
 
-def fingerprint(filename):
-	if "libofa" not in globals():
-		raise Exception("Fingerprinting not supported")
-	if filename.endswith(".wav"):
-		result = fingerprint_wave(filename)
-	else:
-		raise Exception("Format not supported")
-	return result
-
 def has_fingerprint_support():
         return "libofa" in globals()
 
@@ -73,6 +73,28 @@ class DecodeFailed(Exception):
 
 	def __str__(self):
 		return "Failed to decode file %s (%s)" % (repr(self.fname),self.reason)
+
+def _ensure_16bit_wave(filename):
+	""" Check the 'width' of a given WAVE file and ensure it is 16-bit."""
+	wav = wave.open(filename, 'rb')
+	width = wav.getsampwidth()
+	wav.close()
+	if width != 2:
+		newfile = filename + ".16bit.wav"
+		try:
+			util.update_progress("Forcing WAV file to 16 bit pcm")
+			args = ["sndfile-convert", "-pcm16", filename, newfile]
+			ret = subprocess.call(args)
+			if ret != 0:
+				raise DecodeFailed(filename, "Subprocess returned %d" % ret)
+			if os.path.exists(filename):
+				os.unlink(filename)
+				os.rename(newfile, filename)
+		except OSError,e:
+			raise Exception("Only 16-bit sample widths are supported unless libsndfile is installed")
+		finally:
+			if os.path.exists(newfile):
+				os.unlink(newfile)
 
 def _decode(fromname, towavname):
         if fromname.lower().endswith(".mp3"):
@@ -87,13 +109,18 @@ def _decode(fromname, towavname):
 	try:
 		util.update_progress("Decoding file")
 		ret = subprocess.call(args)
+		if ret != 0:
+			raise DecodeFailed(fromname, "Subprocess returned %d" % ret)
 	except OSError,e:
 		raise DecodeFailed(fromname, "Cannot find decoder %s" % args[0])
-	if ret != 0:
-		raise DecodeFailed(fromname, "Subprocess returned %d" % ret)
+	try:
+		# ensure 16-bit decoded wav at this point so both libofa and genpuid receive the same file
+		_ensure_16bit_wave(towavname)
+	except Exception,e:
+		raise DecodeFailed(fromname, e)
 
 def fingerprint_any(filename):
-	"Decode an music file to wav, then fingerprint it, returning (fp,dur), or raising an exception"
+	"""Decode a given music file to wav, then fingerprint it using ofa, returning (fp,dur) or raising an exception"""
 	(fd,toname)=tempfile.mkstemp(suffix=".wav")
 	os.close(fd)
 	try:
@@ -104,6 +131,7 @@ def fingerprint_any(filename):
 			os.unlink(toname)
 
 def upload_fingerprint_any(filename,genpuidcmd,musicdnskey):
+	"""Decode a given music file to wav, then analyse it using genpuid and hence submit to the MusicDNS service for future matching by PUID"""
 	(fd,toname)=tempfile.mkstemp(suffix=".wav")
 	os.close(fd)
 	try:
@@ -132,3 +160,4 @@ def populate_fingerprint_cache(fname):
 	util.update_progress("Looking up fingerprint for "+os.path.basename(fname))
 	return fingerprint_any(fname)
 
+# vim: set sw=8 tabstop=8 noexpandtab :
