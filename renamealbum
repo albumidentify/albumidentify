@@ -977,27 +977,13 @@ def name_album(disc, release, srcpath, options, imagemime=None, imagepath=None, 
 		for entry in tmpfiles:
 			print entry["srcfilepath"],"->",entry["destfilepath"]
 	else:
-		# Step 2: Compare old and new bitrates
-		old_total_bitrate = 0
-		new_total_bitrate = 0
-		
-		supported_files = []
-		base = os.path.dirname(tmpfiles[0]["destfilepath"])
-		for i in os.listdir(base):
-			if '.'+i.split('.')[-1] in tag.supported_extensions:
-				supported_files.append(os.path.join(base,i))
-
-		for entry in supported_files:
-			old_total_bitrate += calc_average_bitrate(entry)
-
-		for entry in tmpfiles:
-			new_total_bitrate += calc_average_bitrate(entry["tmpfilename"])
 
 		# Here we try to be careful about what to do with existing files.
 		# Check the number of files in the destination and source directories
 		# match before contemplating overwriting.
+		dest = os.path.dirname(tmpfiles[0]["destfilepath"])
 
-		if not os.path.isdir(os.path.dirname(tmpfiles[0]["destfilepath"])):
+		if not os.path.isdir(os.path.dirname(dest)):
 			#destination doesn't exist, create it and create files
 			util.report("Destination files do not exist, creating")
 		else:
@@ -1005,11 +991,16 @@ def name_album(disc, release, srcpath, options, imagemime=None, imagepath=None, 
 				#destination is empty, create files
 				util.report("Destination files do not exist, creating")
 			else:
+				supported_files = []
+				for i in os.listdir(dest):
+					if '.'+i.split('.')[-1] in tag.supported_extensions:
+						supported_files.append(os.path.join(base,i))
+
 				#dst exists and has supported files in it
 				if len(supported_files) != len(tmpfiles):
 					error = "Files in source and destination directories do not match. "
 					error += "Probably not the same album. Delete the destination files to continue: "
-					error += "\"%s\"" % base
+					error += "\"%s\"" % dest
 					util.report(error)
 					#dst has a different number of files to src
 					newfilecount = len(tmpdir)
@@ -1032,14 +1023,24 @@ def name_album(disc, release, srcpath, options, imagemime=None, imagepath=None, 
 						if i.lower().endswith('.flac'):
 							contains_flac = True;
 					
+					# Compare old and new bitrates
+					old_total_bitrate = 0
+					new_total_bitrate = 0
+
+					for entry in supported_files:
+						old_total_bitrate += calc_average_bitrate(entry)
+			
+					for entry in tmpfiles:
+						new_total_bitrate += calc_average_bitrate(entry["tmpfilename"])
+
+
 					#flac in src and another format in dst - special case - pick flac
 					if contains_flac:
 						util.report("New files are flac")
 						if no_dest:
 							util.report("no dest set, purging old files")
 							for i in supported_files:
-								os.remove(i)
-					
+								os.remove(i)	
 					#another supported format in src and dst - compare quality and pick the best
 					elif old_total_bitrate == new_total_bitrate:
 						util.report("Bitrates are the same, ignoring")
