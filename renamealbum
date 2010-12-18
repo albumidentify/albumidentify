@@ -484,6 +484,13 @@ def main():
 		default=albumidentifyconfig.config.getboolean("renamealbum", "no_dest"),
 		help="Remove conflicting files before rename to avoid duplicates"
 		)
+	opts.add_option(
+		"-R","--recursive",
+		dest="recursive",
+		action="store_true",
+		default=False,
+		help="Process subdirectories recursively",
+		)
 		
 
 	(options, args) = opts.parse_args()
@@ -505,6 +512,7 @@ def main():
 	leave-soundtrack-artist		= options.leave_soundtrack_artist
 	limit-extensions		= options.limit_extensions
 	no-dest				= options.no_dest
+	recursive			= options.recursive
 	"""
 	albumidentify.FORCE_ORDER = options.force_order and albumidentify.FORCE_ORDER
 	tag.supported_extensions = set(options.limit_extensions.split(",")).intersection(set(tag.supported_extensions))
@@ -541,6 +549,14 @@ def main():
 		print "Naming scheme error: " + e.args[0]
 		print "Scheme:",repr(options.scheme)
 		sys.exit(1)
+
+	if options.recursive:
+		recurse = args[:]
+		args = []
+		for i in recurse:
+			for (dirpath, dirnames, filenames) in os.walk(i):
+				args.append(dirpath)
+
 
 	# Check all paths first
 	for path in args:
