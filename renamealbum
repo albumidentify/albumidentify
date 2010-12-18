@@ -999,19 +999,19 @@ def name_album(disc, release, srcpath, options, imagemime=None, imagepath=None, 
 		# match before contemplating overwriting.
 		dest = os.path.dirname(tmpfiles[0]["destfilepath"])
 
-		if not os.path.isdir(os.path.dirname(dest)):
+		if not os.path.isdir(dest):
 			#destination doesn't exist, create it and create files
 			util.report("Destination files do not exist, creating")
 		else:
+			supported_files = []
+			for i in os.listdir(dest):
+				if '.'+i.split('.')[-1] in tag.supported_extensions:
+					supported_files.append(os.path.join(dest,i))
+
 			if len(supported_files) == 0:
 				#destination is empty, create files
 				util.report("Destination files do not exist, creating")
 			else:
-				supported_files = []
-				for i in os.listdir(dest):
-					if '.'+i.split('.')[-1] in tag.supported_extensions:
-						supported_files.append(os.path.join(base,i))
-
 				#dst exists and has supported files in it
 				if len(supported_files) != len(tmpfiles):
 					error = "Files in source and destination directories do not match. "
