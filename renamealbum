@@ -626,7 +626,7 @@ def calculate_album_year(disc, release, options):
 
 			
 	util.report("couldn't determine year for %s - %s" % (`disc.artist`, `disc.album`))
-	util.report("Use --year or add a year to the release on mb")
+	util.report("Use --year or add a year to the release on musicbrainz: %s.html" % release.id)
 	memocache.remove_from_cache("delayed_get_release_by_releaseid", release.id)
 	raise UnknownYearException(disc.artist,disc.album)
 
