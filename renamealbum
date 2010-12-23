@@ -642,6 +642,9 @@ def renamealbum(srcpath, options):
 	if os.getenv("TERM") in [ "xterm","screen"]:
 		sys.stdout.write("\x1b]0;Renaming %s\x1b\\" % srcpath)
 
+	if options.no_dest:
+		util.report("no dest enabled: lower quality destination files will be replaced")
+
 	disc = construct_disc(srcpath)
 
 	# Calculate discid
