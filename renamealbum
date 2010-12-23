@@ -541,8 +541,8 @@ def main():
 		opts.print_help()
 		sys.exit(1)
 
-	if len(args) > 1 and options.releaseid is not None:
-		print "Cannot specify a release id and more than 1 source"
+	if ( len(args) > 1 or options.recursive ) and options.releaseid:
+		print "Cannot specify a release id and more than 1 source or recursive mode"
 		sys.exit(2)
 
 	try:
