@@ -335,7 +335,7 @@ def process_one_path(numargs, options, path):
 		if path_is_raw_wavs(srcpath):
 			newpath = tempfile.mkdtemp()
 			util.report("Encoding to FLAC at %s. This may take some time..." % srcpath)
-			toflac.process_item(srcpath, newpath, False)
+			toflac.process_item(srcpath, newpath)
 			srcpath = newpath
 			deletepaths.append(srcpath)
 
