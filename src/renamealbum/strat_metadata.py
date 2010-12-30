@@ -35,4 +35,6 @@ def generate_from_metadata(file, num_tracks):
 				if util.comp_name(rtrackname,t):
 					print "Using album based text comparison for",artist.strip(),album.strip(),"'s track",trackind+1,`rtrackname`
 					yield lookups.get_track_by_id(release.tracks[trackind].id)
+				else:
+					print "Failed text lookup for %s" % t
 
