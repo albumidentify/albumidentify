@@ -571,7 +571,7 @@ def main():
 	for path in args:
 		process = False
 		for i in os.listdir(os.path.abspath(path)):
-			if '.'+i.split('.')[-1] in tag.supported_extensions:
+			if os.path.splitext(i)[1] in tag.supported_extensions:
 				process = True
 		if process:
 			process_one_path(numargs, options, path)
@@ -1018,7 +1018,7 @@ def name_album(disc, release, srcpath, options, imagemime=None, imagepath=None, 
 		else:
 			supported_files = []
 			for i in os.listdir(dest):
-				if '.'+i.split('.')[-1] in tag.supported_extensions:
+				if os.path.splitext(i)[1] in tag.supported_extensions:
 					supported_files.append(os.path.join(dest,i))
 
 			if len(supported_files) == 0:
