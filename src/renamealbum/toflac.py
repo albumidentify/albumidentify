@@ -73,7 +73,7 @@ def worker():
         t = threading.currentThread()
         while not q.empty():
                 item = q.get()
-                print "%s encoding %s" % (t.name, item[0])
+                print "%s encoding %s to %s" % (t.name, item[0], item[1])
                 process_item(item[0],item[1])
                 q.task_done()
 
