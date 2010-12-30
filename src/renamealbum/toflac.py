@@ -119,7 +119,7 @@ def main():
         # Queue paths for work
         for path in args:
                 if os.path.isdir(path):
-                        q.put((path, options.destpath))
+                        q.put((os.path.abspath(path), os.path.join(options.destpath, os.path.basename(os.path.abspath(path)))))
 
         # Spawn worker threads to deal with the work
         for i in range(options.numcpus):
