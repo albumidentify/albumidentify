@@ -11,8 +11,7 @@ import glob
 
 q = Queue.Queue()
 
-def process_item(path, destdir, pathcheck=True):
-        dir = os.path.basename(path)
+def process_item(path, destdir):
         src = path
         dst = os.path.abspath(destdir)
 
