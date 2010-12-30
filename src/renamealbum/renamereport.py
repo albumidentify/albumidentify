@@ -56,7 +56,7 @@ for d in filenames():
                         add_count(d,"Failed","Ambiguous DiscID")
                 else:
                         add_count(d,"Success","Ambiguous DiscID resolved")
-	elif s.find("Unknown year") != -1:
+	elif s.find("couldn't determine year") != -1:
 		add_count(d,"Failed","Unknown Year")
 	elif s.find("This disc is part") != -1:
 		add_count(d,"Failure","Multi Disc")
