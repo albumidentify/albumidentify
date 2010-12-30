@@ -39,7 +39,6 @@ def process_item(path, destdir):
                     "--qlp-coeff-precision-search",
                     "--padding=131027",
                     "--totally-silent",
-					"--output-prefix=%s/" % dst
                     ]
 
         for f in glob.glob(os.path.join(src, "*.wav")):
