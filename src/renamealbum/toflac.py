@@ -11,15 +11,10 @@ import glob
 
 q = Queue.Queue()
 
-def process_item(path, destdir=None, pathcheck=True):
+def process_item(path, destdir, pathcheck=True):
         dir = os.path.basename(path)
         src = path
-        dst = ""
-
-        if destdir:
-                dst = os.path.abspath(destdir)
-        else:
-                dst = os.path.join(options.destpath, dir)
+        dst = os.path.abspath(destdir)
 
         if os.path.exists(dst):
             if len(os.listdir(dst))>0:
@@ -44,7 +39,8 @@ def process_item(path, destdir=None, pathcheck=True):
                     "--rice-partition-order=6",
                     "--qlp-coeff-precision-search",
                     "--padding=131027",
-                    "--totally-silent"
+                    "--totally-silent",
+					"--output-prefix=%s/" % dst
                     ]
 
         for f in glob.glob(os.path.join(src, "*.wav")):
@@ -79,8 +75,8 @@ def worker():
         t = threading.currentThread()
         while not q.empty():
                 item = q.get()
-                print "%s encoding %s" % (t.name, item)
-                process_item(item)
+                print "%s encoding %s" % (t.name, item[0])
+                process_item(item[0],item[1])
                 q.task_done()
 
 def path_arg_cb(option, opt_str, value, parser):
@@ -125,7 +121,7 @@ def main():
         # Queue paths for work
         for path in args:
                 if os.path.isdir(path):
-                        q.put(path)
+                        q.put((path, options.destpath))
 
         # Spawn worker threads to deal with the work
         for i in range(options.numcpus):
