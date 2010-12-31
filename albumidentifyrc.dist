@@ -1,0 +1,60 @@
+# This is an example config file for albumidentify. Place a copy of this file 
+# named ".albumidentifyrc" in your home directory so that albumidentify can
+# find it. This file currently contains the default values for each config
+# option commented out. Simple uncomment them and modify to suit your needs.
+
+[renamealbum]
+
+# Default naming scheme for renamed files. Please see 
+# "renamealbum --scheme-help" for an up to date list of options
+# The default naming scheme will produce something similar to the following:
+# Lavigne, Avril - 2007 - The Best Damn Thing/01 - Avril Lavigne - Girlfriend
+#naming_scheme=%(sortalbumartist)s - %(year)i - %(album)s/%(tracknumber)02i - %(trackartist)s - %(trackname)s
+
+# Default destination location for renamed albums
+#dest_path=
+
+# By default renamealbum will put soundtracks in a folder called soundtracks
+# in the destination directory. Enabling this option stops this feature.
+#leave_soundtrack_artist=False
+
+# When set to True tracks must be found in order. Otherwise tracks can be found
+# in alternate orders but may produce false positives of similar albums
+#force_order=True
+
+# When this option is set to true renamealbum will ensure that only 1 album is
+# written to a directory. This prevents double ups of flac and mp3 albums in 
+# the same folders.
+#no_dest=False
+
+# Controls what filetypes renamealbum acts upon, provided as a comma separated 
+# list of extensions. Currently only mp3, ogg and flac are supported.
+#limit_extensions=.mp3,.ogg,.flac
+
+[albumidentify]
+
+# Submit PUIDs for newly identified tracks
+#push_shortcut_puids=False
+
+# Location of the genpuid program which generates puids when the audio track
+# fails to return a puid
+#genpuid_command=
+
+# This key enables genpuid to work. At this point no-one knows where to get
+# one. Politics seems to be preventing people from being able to generate
+# new keys. Join the channel #albumidentify on Undernet if you have a lot
+# of tracks you have no puids for.
+#musicdnskey=
+
+# Limit the time renamealbum spends trying to rename a single album. If this is
+# set to a number greater than 0 then albumidentify will try renaming each 
+# album for the specified number of seconds. Otherwise it will try until 
+# exhausting all possibilities
+#timelimit=0
+
+[musicbrainz]
+
+# Username and password of a musicbrainz account to enable submitting new data
+# to the musicbrainz database
+#username=
+#password=
