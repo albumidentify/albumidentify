@@ -55,10 +55,16 @@ if it were an audio CD and encode it to FLAC before naming the album.
 There are a lot of advanced options for renaming albums, and you can view a list
 of them with with "renamealbum --help".
 
+### Config File ###
+
+A detailed example config file is included with albumidentify in the root 
+directory. Simple copy albumidentifyrc.dist to your home directory and rename 
+it ".albumidentifyrc". Then edit it to your hearts content.
+
 ### Submitting PUIDs ###
 
 To submit PUIDs back to MusicBrainz and help other people rename their music
-more quickly, create a file ~/.albumidentifyrc with contents:
+more quickly, create a config file (see above) with contents:
 
     [albumidentify]
     push_shortcut_puids=True
@@ -87,8 +93,8 @@ If you specify a scheme which results in directories being created per-track,
 the coverart and cd-toc will be placed in the last directory created. This
 might change in the future. 
 
-You can also specify the default naming scheme to use in the ~/.albumidentifyrc
-file, using the naming_scheme key in the renamealbum section:
+You can also specify the default naming scheme to use in the config file
+(see above), using the naming_scheme key in the renamealbum section:
 
     [renamealbum]
     naming_scheme=%(album)s - %(trackname)s
@@ -125,6 +131,13 @@ If an album cannot be identified, you can add it to MusicBrainz. Run
 to get a URL to submit to. renamealbum may give you a URL to use if it
 identifies the album with a different method. This allows you to connect the
 computed discID with the actual release.
+
+## Other Miscelaneous Scripts Provided ##
+
+build-albums.sh - link different filetype source folders into 1 folder
+build-todo-page.sh - output a html summary of a renamed folder
+fetch-artist-art - finds an image for a specified artist
+moveflac.sh - move flac files into folders named after their SORTALBUMARTIST tag
 
 ## Bug reports / Contribute ##
 
