@@ -11,7 +11,8 @@
 # Lavigne, Avril - 2007 - The Best Damn Thing/01 - Avril Lavigne - Girlfriend
 #naming_scheme=%(sortalbumartist)s - %(year)i - %(album)s/%(tracknumber)02i - %(trackartist)s - %(trackname)s
 
-# Default destination location for renamed albums
+# Default destination location for renamed albums. If nothing is specified
+# the current working directory will be used
 #dest_path=
 
 # By default renamealbum will put soundtracks in a folder called soundtracks
