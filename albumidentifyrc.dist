@@ -38,7 +38,8 @@
 #push_shortcut_puids=False
 
 # Location of the genpuid program which generates puids when the audio track
-# fails to return a puid
+# fails to return a puid. The program is available from:
+# http://ftp.musicbrainz.org/pub/musicbrainz/genpuid/
 #genpuid_command=
 
 # This key enables genpuid to work. At this point no-one knows where to get
