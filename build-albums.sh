@@ -1,8 +1,10 @@
 #!/bin/sh
 
 # Must be run from inside ..../albums
-# Musc provide relative arguments
-
+# Must provide relative arguments
+# Call this script with the list of filetype root folders you have
+# it will link those folders together so the different filetypes
+# appear in one folder.
 
 for filetype in "$@"; do
 	for artist in "$filetype"/*; do
