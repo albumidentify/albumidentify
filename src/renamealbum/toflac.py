@@ -58,6 +58,7 @@ def process_file(filename):
                     "--rice-partition-order=6",
                     "--qlp-coeff-precision-search",
                     "--padding=131027",
+		    "--force"
                     ]
 	proclist.append(filename)
         p = subprocess.Popen(proclist, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
