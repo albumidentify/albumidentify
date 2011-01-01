@@ -63,11 +63,13 @@ def process_file(filename):
         p = subprocess.Popen(proclist, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         error = p.communicate()[1]
 		
-	print "%s completed with returncode %i" % (filename, p.returncode)
 
-        if (p.returncode != 0):
+        if (p.returncode == 0):
+		print "%s completed successfully" % filename
+	else:
                 # Clean up any mess that flac left
                 os.unlink(filename.replace('.wav','.flac'))
+		print "ERROR: An error occurred converting %s" % filename
 		print error
 
 def worker():
