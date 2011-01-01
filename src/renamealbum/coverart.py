@@ -31,7 +31,7 @@ def find_albumart(srcpath,disc,options):
 			except:
                                 print "WARNING: Failed to retrieve coverart (%s)" % imageurl
 	if os.path.exists(os.path.join(srcpath, "folder.jpg")):
-		print "Found existing image"
+		print "Found existing image file"
                 imagemime="image/jpeg"
                 imagepath = os.path.join(srcpath, "folder.jpg")
 		images.append((imagepath, imagemime, False, "local file"))
@@ -39,11 +39,22 @@ def find_albumart(srcpath,disc,options):
 	dir = sort.sorted_dir(srcpath)
 	filetags = tag.read_tags(dir[0])
 	if tag.IMAGE in filetags:
-		print "Found image embedded in file"
-                (fd,tmpfile) = tempfile.mkstemp(suffix = ".jpg")
-		os.write(fd, filetags[tag.IMAGE])
-                os.close(fd)
-		images.append((tmpfile, "image/jpeg", True, "embedded tag"))
+		for image in filetags[tag.IMAGE]:
+			print "Found image embedded in file"
+			if image['mime'] == "image/jpeg":
+				suffix = ".jpg"
+			elif image['mime'] == "image/png":
+				suffix = ".png"
+			else:
+				print "Embeded Image is of unknown Mime Type"
+				continue
+			if image['pictype'] != 3:
+				print "Embeded Image not coverart"
+				continue
+			(fd,tmpfile) = tempfile.mkstemp(suffix)
+			os.write(fd, image['imagedata'])
+			os.close(fd)
+			images.append((tmpfile, image['mime'], True, "embedded tag"))
 
 	best = find_best_image(images)[0]
 	if best[0] is not None:

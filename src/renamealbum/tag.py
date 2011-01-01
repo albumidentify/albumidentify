@@ -2,6 +2,7 @@ import subprocess
 import serialisemp3
 import parsemp3
 import os
+import re
 
 supported_extensions = [".mp3", ".ogg", ".flac"]
 
@@ -253,14 +254,42 @@ def __read_tags_flac(filename):
 		elif k == "DISCC":
 			tags[DISC_TOTAL_NUMBER] = v
 
-	args = ["metaflac", "--export-picture-to=-", filename]
 	try:
+		args = ["metaflac", "--list", filename]
 		process = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()
-		image = process[0]
-		err = process[1]
-		# metaflac writes to stderr if there is no image
-		if err == "":
-			tags[IMAGE] = image
+		blockdata = process[0].split('METADATA block #')
+		
+		picblocks = []
+		for block in blockdata:
+		    if block.find("type: 6 (PICTURE)") > -1:
+		        block = block.split('\n')
+		        blocknum = block[0]
+		        encoding = ""
+		        mime = ""
+		        desc = ""
+		        pictype = ""
+		        for i in block:
+		                match = re.match("  MIME type: (.*)", i)
+		                if match:
+		                        mime = match.group(1)
+		                match = re.match("  description: (.*)", i)
+		                if match:
+		                        desc = match.group(1)
+		                match = re.match("  type: ([0-9]*)", i)
+		                if match:
+		                        pictype = int(match.group(1))
+		        picblocks.append({'blocknum':blocknum,'encoding':encoding,'mime':mime,'desc':desc,'pictype':pictype})
+
+		images = []
+		for block in picblocks:
+			args = ["metaflac", "--block-number=%s" % block['blocknum'], "--export-picture-to=-", filename]
+			process = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()
+			image = process[0]
+			err = process[1]
+			# metaflac writes to stderr if there is no image
+			if err == "":
+				images.append({'encoding':block['encoding'], 'mime':block['mime'], 'pictype':block['pictype'], 'desc':block['desc'], 'imagedata':image})
+		tags[IMAGE] = images
 	except OSError, e:
 		raise TagFailedException("Could not read flac tags. Try installing metaflac")
 
@@ -293,30 +322,33 @@ def __read_tag_mp3_anyver(mp3tags,tagname):
 		return mp3tags["v1"][tagname]
 	return None
 
-def __read_image_mp3(image):
+def __read_image_mp3(images):
 
-	#if we have more than one image pick the first image (ignore the rest?)
-	if type(image) is list:
-		image = image[0]
+	if type(images) is not list:
+		images = [images]
+
+	processed = []
+	for image in images:
+		i = image.find("\x00")
+		encoding = image[0:i]	
+		image = image[i+1:]
 		
-	i = image.find("\x00")
-	encoding = image[0:i]	
-	image = image[i+1:]
+		i = image.find("\x00")
+		mime = image[0:i]
+		image = image[i+1:]
+		
+		i = image.find("\x00")
+		pictype = ord(image[0:i])
+		image = image[i+1:]
 	
-	i = image.find("\x00")
-	mime = image[0:i]
-	image = image[i+1:]
-	
-	i = image.find("\x00")
-	pictype = image[0:i]
-	image = image[i+1:]
+		i = image.find("\x00")
+		desc = image[0:i]
+		
+		imagedata = image[i+1:]
+		
+		processed.append({'encoding':encoding, 'mime':mime, 'pictype':pictype, 'desc':desc, 'imagedata':imagedata})
 
-	i = image.find("\x00")
-	desc = image[0:i]
-	
-	imagedata = image[i+1:]
-
-	return (encoding, mime, pictype, desc, imagedata)
+	return processed
 
 def __read_tags_mp3(filename):
 	data = parsemp3.readid3(filename)
@@ -327,10 +359,10 @@ def __read_tags_mp3(filename):
 	tags[YEAR] = __read_tag_mp3_anyver(data,"TYER")
 	tags[DATE] = __read_tag_mp3_anyver(data,"TDAT")
 	if "APIC" in data["v2"]:
-		image = data["v2"]["APIC"]
-		(encoding, mime, pictype, desc, imagedata) = __read_image_mp3(image)
-		if len(imagedata) > 0:
-			tags[IMAGE] = imagedata
+		images = data["v2"]["APIC"]
+		images = __read_image_mp3(images)
+		if len(images) > 0:
+			tags[IMAGE] = images
 
 	tag = __read_tag_mp3_anyver(data,"TRCK")
 	if tag:
