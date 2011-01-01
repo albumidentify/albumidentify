@@ -332,6 +332,14 @@ def process_one_path(numargs, options, path):
 		if not os.path.isdir(srcpath):
 			print "Skipping non directory",srcpath
 			return
+	
+		process = False
+		for i in os.listdir(os.path.abspath(path)):
+			if os.path.splitext(i)[1] in options.limit_extensions:
+				process=True
+		if not process:			
+			print "%s has no supported files, ignoring" % path
+			return
 
 		# Do we need to encode the (possibly new) srcpath?
 		if path_is_raw_wavs(srcpath):
@@ -586,14 +594,7 @@ def main():
 	
 	numargs = len(args)
 	for path in args:
-		process = False
-		for i in os.listdir(os.path.abspath(path)):
-			if os.path.splitext(i)[1] in options.limit_extensions:
-				process = True
-		if process:
-			process_one_path(numargs, options, path)
-		else:
-			print "%s has no supported files, ignoring" % path
+		process_one_path(numargs, options, path)
 
 def construct_disc(srcpath):
 	"Try and construct a Disc object, based on any TOC's found"
