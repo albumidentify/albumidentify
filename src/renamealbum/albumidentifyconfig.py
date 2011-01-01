@@ -17,7 +17,7 @@ def readconfig():
 	config.set("renamealbum", "naming_scheme", "%(sortalbumartist)s - %(year)i - %(album)s/%(tracknumber)02i - %(trackartist)s - %(trackname)s")
 	config.set("renamealbum", "dest_path", "")
 	config.set("renamealbum", "leave_soundtrack_artist", "False")
-	config.set("renamealbum", "limit_extensions", ".mp3,.ogg,.flac")
+	config.set("renamealbum", "limit_extensions", ".mp3,.ogg,.flac,.wav")
 	config.set("renamealbum", "force_order", "True")
 	config.set("renamealbum", "no_dest", "False")
 
