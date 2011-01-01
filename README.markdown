@@ -59,7 +59,8 @@ of them with with "renamealbum --help".
 
 A detailed example config file is included with albumidentify in the root 
 directory. Simple copy albumidentifyrc.dist to your home directory and rename 
-it ".albumidentifyrc". Then edit it to your hearts content.
+it ".albumidentifyrc". Then edit it to your hearts content. Be aware these
+options will be overridden by any command line options provided at runtime.
 
 ### Submitting PUIDs ###
 
