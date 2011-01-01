@@ -10,27 +10,33 @@
 # "renamealbum --scheme-help" for an up to date list of options
 # The default naming scheme will produce something similar to the following:
 # Lavigne, Avril - 2007 - The Best Damn Thing/01 - Avril Lavigne - Girlfriend
+# COMMAND LINE OPTION: --scheme
 #naming_scheme=%(sortalbumartist)s - %(year)i - %(album)s/%(tracknumber)02i - %(trackartist)s - %(trackname)s
 
 # Default destination location for renamed albums. If nothing is specified
 # the current working directory will be used
+# COMMAND LINE OPTION: --dest-path
 #dest_path=
 
 # By default renamealbum will put soundtracks in a folder called soundtracks
 # in the destination directory. Enabling this option stops this feature.
+# COMMAND LINE OPTION: --leave-soundtrack-artist
 #leave_soundtrack_artist=False
 
 # When set to True tracks must be found in order. Otherwise tracks can be found
 # in alternate orders but may produce false positives of similar albums
+# COMMAND LINE OPTION: --no-force-order
 #force_order=True
 
 # When this option is set to true renamealbum will ensure that only 1 album is
 # written to a directory. This prevents double ups of flac and mp3 albums in 
 # the same folders.
+# COMMAND LINE OPTION: --no-dest
 #no_dest=False
 
 # Controls what filetypes renamealbum acts upon, provided as a comma separated 
 # list of extensions. Currently only mp3, ogg and flac are supported.
+# COMMAND LINE OPTION: --limit-extensions
 #limit_extensions=.mp3,.ogg,.flac
 
 [albumidentify]
@@ -58,6 +64,7 @@
 # Specifies the number of threads to use when applicable. At the moment this
 # only affects converting from wav to flac files. If 0 or less is specified
 # then the number of cpus/cores will be autodetected
+# COMMAND LINE OPTION: -j or --threads
 #threads=1
 
 [musicbrainz]
