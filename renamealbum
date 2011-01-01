@@ -310,9 +310,11 @@ def process_one_path(numargs, options, path):
 	origsrcpath = srcpath
 	try:
 		deletepaths = []
+		blockdevice=False
 
 		# Is srcpath a block device?
 		if is_block_device(srcpath):
+			blockdevice=True
 			reportfile = os.path.expanduser("~/renamealbum-report-%s.txt" % time.strftime("%Y-%m-%d-%H%M%S"))
 			rawpath = tempfile.mkdtemp()
 			util.report("Ripping %s to %s" % (srcpath, rawpath))
@@ -341,7 +343,9 @@ def process_one_path(numargs, options, path):
 		                numcpus = multiprocessing.cpu_count()
 			toflac.process_paths([srcpath], newpath, numcpus)
 			srcpath = newpath
-			deletepaths.append(srcpath)
+			#only delete wavs we've created
+			if blockdevice:
+				deletepaths.append(srcpath)
 
 		renamealbum(srcpath, options)
 
