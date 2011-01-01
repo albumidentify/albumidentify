@@ -9,10 +9,11 @@ import shutil
 import threading
 import glob
 
+import albumidentifyconfig
+
 q = Queue.Queue()
 
-def process_item(path, destdir):
-        src = path
+def prepare_folder(path, destdir):
         dst = os.path.abspath(destdir)
 
         if os.path.exists(dst):
@@ -28,6 +29,25 @@ def process_item(path, destdir):
         #  b) that the flacs verify
         #  c) that the flac dir has a tocfile
 
+        for f in glob.glob(os.path.join(path, "*.wav")):
+		q.put(f)
+
+def finish_folder(path, destdir):
+        for f in glob.glob(os.path.join(path, "*.flac")):
+                shutil.move(f, os.path.join(destdir, os.path.basename(f)))
+
+        # Copy the tocfile if it exists
+        tocfilename = ""
+        if os.path.exists(os.path.join(path, "TOC")):
+                tocfilename = os.path.join(src, "TOC")
+        if os.path.exists(os.path.join(path, "data.toc")):
+                tocfilename = os.path.join(path, "data.toc")
+
+        if tocfilename:
+                shutil.copy(tocfilename, os.path.join(dst, "data.toc"))
+        
+
+def process_file(filename):
         proclist = ["flac",
                     "--verify",
                     "--replay-gain",
@@ -38,44 +58,54 @@ def process_item(path, destdir):
                     "--rice-partition-order=6",
                     "--qlp-coeff-precision-search",
                     "--padding=131027",
-                    "--totally-silent",
                     ]
-
-        for f in glob.glob(os.path.join(src, "*.wav")):
-                proclist.append(f)
-
-        p = subprocess.Popen(proclist)
-        p.communicate()
-
-        print "%s completed with returncode %i" % (src, p.returncode)
+	proclist.append(filename)
+        p = subprocess.Popen(proclist, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        error = p.communicate()[1]
+		
+	print "%s completed with returncode %i" % (filename, p.returncode)
 
         if (p.returncode != 0):
                 # Clean up any mess that flac left
-                for f in glob.glob(os.path.join(src, "*.flac")):
-                        os.unlink(f)
-                return
-
-        for f in glob.glob(os.path.join(src, "*.flac")):
-                shutil.move(f, os.path.join(dst, os.path.basename(f)))
-
-        # Copy the tocfile if it exists
-        tocfilename = ""
-        if os.path.exists(os.path.join(src, "TOC")):
-                tocfilename = os.path.join(src, "TOC")
-        if os.path.exists(os.path.join(src, "data.toc")):
-                tocfilename = os.path.join(src, "data.toc")
-
-        if tocfilename:
-                shutil.copy(tocfilename, os.path.join(dst, "data.toc"))
-        
+                os.unlink(filename.replace('.wav','.flac'))
+		print error
 
 def worker():
         t = threading.currentThread()
         while not q.empty():
                 item = q.get()
-                print "%s encoding %s to %s" % (t.name, item[0], item[1])
-                process_item(item[0],item[1])
+                print "%s encoding %s" % (t.name, item)
+                process_file(item)
                 q.task_done()
+
+def process_paths(paths, destpath, numcpus=1):
+        # Check that src paths exist
+        for path in paths:
+                if not os.path.exists(os.path.abspath(path)):
+                        print("%s doesn't exist!" % path)
+                        opts.print_help()
+                        sys.exit(1)
+
+        # Queue paths for work
+        for path in paths:
+                if os.path.isdir(path):
+                        prepare_folder(os.path.abspath(path), os.path.join(destpath, os.path.basename(os.path.abspath(path))))
+
+        # Spawn worker threads to deal with the work
+        for i in range(numcpus):
+                t = threading.Thread(target=worker)
+                t.setDaemon(True)
+                t.start()
+        
+	# Wait until all threads have finished (queue is processed)
+        q.join()
+	
+
+        for path in paths:
+                if os.path.isdir(path):
+                        finish_folder(os.path.abspath(path), os.path.join(destpath, os.path.basename(os.path.abspath(path))))
+
+        print "All worker threads finished"
 
 def path_arg_cb(option, opt_str, value, parser):
         path = os.path.abspath(value)
@@ -98,7 +128,7 @@ def main():
                 "-j",
                 type="int",
                 dest="numcpus",
-                default=1,
+                default=albumidentifyconfig.config.get("albumidentify", "threads"),
                 metavar="THREADS",
                 help="Spawn multipled THREADS for encoding"
         )
@@ -109,27 +139,12 @@ def main():
             opts.print_help()
             sys.exit(1)
 
-        # Check that src paths exist
-        for path in args:
-                if not os.path.exists(os.path.abspath(path)):
-                        print("%s doesn't exist!" % path)
-                        opts.print_help()
-                        sys.exit(1)
+	numcpus = options.numcpus
+	if numcpus < 1:
+		import multiprocessing
+		numcpus = multiprocessing.cpu_count()
 
-        # Queue paths for work
-        for path in args:
-                if os.path.isdir(path):
-                        q.put((os.path.abspath(path), os.path.join(options.destpath, os.path.basename(os.path.abspath(path)))))
-
-        # Spawn worker threads to deal with the work
-        for i in range(options.numcpus):
-                t = threading.Thread(target=worker)
-                t.setDaemon(True)
-                t.start()
-
-        # Wait until all threads have finished (queue is processed)
-        q.join()
-        print "All worker threads finished"
+	process_paths(args, options.destpath, numcpus)
 
 if __name__ == "__main__":
 	main()
