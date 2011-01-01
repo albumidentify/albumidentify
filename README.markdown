@@ -135,10 +135,10 @@ computed discID with the actual release.
 
 ## Other Miscelaneous Scripts Provided ##
 
-build-albums.sh - link different filetype source folders into 1 folder
-build-todo-page.sh - output a html summary of a renamed folder
-fetch-artist-art - finds an image for a specified artist
-moveflac.sh - move flac files into folders named after their SORTALBUMARTIST tag
+*  build-albums.sh - link different filetype source folders into 1 folder
+*  build-todo-page.sh - output a html summary of a renamed folder
+*  fetch-artist-art - finds an image for a specified artist
+*  moveflac.sh - move flac files into folders named after their SORTALBUMARTIST tag
 
 ## Bug reports / Contribute ##
 
