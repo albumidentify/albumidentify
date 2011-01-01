@@ -2,6 +2,7 @@
 # named ".albumidentifyrc" in your home directory so that albumidentify can
 # find it. This file currently contains the default values for each config
 # option commented out. Simple uncomment them and modify to suit your needs.
+# Any of these options can be overridden at runtime by command line options.
 
 [renamealbum]
 
