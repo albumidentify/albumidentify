@@ -77,7 +77,7 @@ def find_best_image(images):
 		for (fname, mime, need_unlink, source) in images:
 			try:
 				i = Image.open(fname)
-				dec.append((fname, mime, need_unlink, source, i.size[0]))
+				dec.append((fname, mime, need_unlink, source, i.size[0]*i.size[1]))
 			except IOError, e:
 				pass
 	except ImportError, e:
