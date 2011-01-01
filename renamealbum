@@ -571,7 +571,7 @@ def main():
 	for path in args:
 		process = False
 		for i in os.listdir(os.path.abspath(path)):
-			if os.path.splitext(i)[1] in tag.supported_extensions:
+			if os.path.splitext(i)[1] in options.limit_extensions:
 				process = True
 		if process:
 			process_one_path(numargs, options, path)
