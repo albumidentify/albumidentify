@@ -55,6 +55,11 @@
 # exhausting all possibilities
 #timelimit=0
 
+# Specifies the number of threads to use when applicable. At the moment this
+# only affects converting from wav to flac files. If 0 or less is specified
+# then the number of cpus/cores will be autodetected
+#threads=1
+
 [musicbrainz]
 
 # Username and password of a musicbrainz account to enable submitting new data

@@ -335,7 +335,11 @@ def process_one_path(numargs, options, path):
 		if path_is_raw_wavs(srcpath):
 			newpath = tempfile.mkdtemp()
 			util.report("Encoding to FLAC at %s. This may take some time..." % srcpath)
-			toflac.process_item(srcpath, newpath)
+		        numcpus = options.numcpus
+		        if numcpus < 1:
+		                import multiprocessing
+		                numcpus = multiprocessing.cpu_count()
+			toflac.process_paths([srcpath], newpath, numcpus)
 			srcpath = newpath
 			deletepaths.append(srcpath)
 
@@ -493,6 +497,15 @@ def main():
 		default=False,
 		help="Process subdirectories recursively",
 		)
+	opts.add_option(
+		"-j","--threads",
+                type="int",
+		dest="numcpus",
+                default=albumidentifyconfig.config.get("albumidentify", "threads"),
+                metavar="THREADS",
+                help="Spawn multipled THREADS for encoding"
+		)
+
 		
 
 	(options, args) = opts.parse_args()

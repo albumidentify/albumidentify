@@ -13,6 +13,9 @@ def readconfig():
 	# TIMELIMIT > 0 -- after this many seconds, give up.
 	# TIMELIMIT <= 0 -- try until exhausting all possibilities
 	config.set("albumidentify","timelimit", "0")
+	# THREADS > 0 -- produce this many threads when applicable
+	# THREADS <= 0 -- auto detect based on number of cpus/cores
+	config.set("albumidentify", "threads", "1")
 
 	config.set("renamealbum", "naming_scheme", "%(sortalbumartist)s - %(year)i - %(album)s/%(tracknumber)02i - %(trackartist)s - %(trackname)s")
 	config.set("renamealbum", "dest_path", "")
@@ -20,6 +23,7 @@ def readconfig():
 	config.set("renamealbum", "limit_extensions", ".mp3,.ogg,.flac,.wav")
 	config.set("renamealbum", "force_order", "True")
 	config.set("renamealbum", "no_dest", "False")
+
 
 	config.read(os.path.expanduser("~/.albumidentifyrc"))
 
