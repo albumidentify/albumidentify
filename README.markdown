@@ -58,9 +58,14 @@ of them with with "renamealbum --help".
 ### Config File ###
 
 A detailed example config file is included with albumidentify in the root 
-directory. Simple copy albumidentifyrc.dist to your home directory and rename 
-it ".albumidentifyrc". Then edit it to your hearts content. Be aware these
-options will be overridden by any command line options provided at runtime.
+directory. Simple copy albumidentifyrc.dist to either your home directory 
+and rename it ".albumidentifyrc" or "/etc/albumidentifyrc". Options specified 
+in the local config file will overide those provided in the global config file. 
+Beware however of login information accessible from these files if you don't 
+restrict access to them. It is recomended that if you have a need for a global 
+config file you don't store login information in it and instead include that 
+in your personal config file. Also be aware that any options provided in config 
+files will be overridden by command line options provided at runtime.
 
 ### Submitting PUIDs ###
 

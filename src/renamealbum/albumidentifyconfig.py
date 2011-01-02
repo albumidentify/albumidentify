@@ -25,7 +25,7 @@ def readconfig():
 	config.set("renamealbum", "no_dest", "False")
 
 
-	config.read(os.path.expanduser("~/.albumidentifyrc"))
+	config.read(["/etc/albumidentifyrc",os.path.expanduser("~/.albumidentifyrc")])
 
 if __name__=="__main__":
 	readconfig()
