@@ -255,30 +255,29 @@ def __read_tags_flac(filename):
 			tags[DISC_TOTAL_NUMBER] = v
 
 	try:
-		args = ["metaflac", "--list", filename]
+		args = ["metaflac", "--block-type=PICTURE", "--list", filename]
 		process = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()
 		blockdata = process[0].split('METADATA block #')
 		
 		picblocks = []
 		for block in blockdata:
-		    if block.find("type: 6 (PICTURE)") > -1:
-		        block = block.split('\n')
-		        blocknum = block[0]
-		        encoding = ""
-		        mime = ""
-		        desc = ""
-		        pictype = ""
-		        for i in block:
-		                match = re.match("  MIME type: (.*)", i)
-		                if match:
-		                        mime = match.group(1)
-		                match = re.match("  description: (.*)", i)
-		                if match:
-		                        desc = match.group(1)
-		                match = re.match("  type: ([0-9]*)", i)
-		                if match:
-		                        pictype = int(match.group(1))
-		        picblocks.append({'blocknum':blocknum,'encoding':encoding,'mime':mime,'desc':desc,'pictype':pictype})
+			block = block.split('\n')
+			blocknum = block[0]
+			encoding = ""
+			mime = ""
+			desc = ""
+			pictype = ""
+			for i in block:
+				match = re.match("  MIME type: (.*)", i)
+				if match:
+					mime = match.group(1)
+				match = re.match("  description: (.*)", i)
+				if match:
+					desc = match.group(1)
+				match = re.match("  type: ([0-9]*)", i)
+				if match:
+					pictype = int(match.group(1))
+			picblocks.append({'blocknum':blocknum,'encoding':encoding,'mime':mime,'desc':desc,'pictype':pictype})
 
 		images = []
 		for block in picblocks:
