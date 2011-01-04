@@ -337,6 +337,8 @@ def __read_image_mp3(images):
 		image = image[i+1:]
 		
 		i = image.find("\x00")
+		if i == 0:
+			continue
 		pictype = ord(image[0:i])
 		image = image[i+1:]
 	
