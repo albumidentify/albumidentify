@@ -231,10 +231,10 @@ def add_new_track(release, possible_releases, fileid, track, trackinfo, impossib
 		return
 	else:
 		possible_releases[releaseid]={found_tracknumber:fileid}
-		print "Considering new %s - %s (found track %d)\x1b[K" % (
+		util.update_progress("Considering new %s - %s (found track %d)" % (
 			release.artist.name,
 			release.title,
-			found_tracknumber)
+			found_tracknumber))
 
 	# Right, lets see if we can find some other tracks quick smart
 	for trackind in range(len(release.tracks)):
