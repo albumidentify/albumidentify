@@ -27,7 +27,16 @@ def find_albumart(srcpath,disc,options):
                                 else:
                                         imagemime = h.gettype()
                                         imagepath = tmpfile
-					images.append((imagepath, imagemime, True, "amazon"))
+					try:
+						import Image
+						i = Image.open(imagepath)
+						# Sometimes amazon will give us a 1x1 gif as an image.  Ignore.
+						if i.size[0] != 1:
+							images.append((imagepath, imagemime, True, "amazon"))
+					except ImportError, e:
+						# If the image library isn't there, check the filesize of the 1x1
+						if os.path.getsize(imagepath) != 807:
+							images.append((imagepath, imagemime, True, "amazon"))
 			except:
                                 print "WARNING: Failed to retrieve coverart (%s)" % imageurl
 	if os.path.exists(os.path.join(srcpath, "folder.jpg")):
