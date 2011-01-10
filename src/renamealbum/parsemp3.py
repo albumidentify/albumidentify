@@ -725,10 +725,15 @@ if __name__=="__main__":
 				print "TAG: ID3v2:"
 				for i in data["v2"]:
 					if i == "APIC":
-						print "\t%s: Picture attached:" % (i)
-						print "\t\tMIME: %s  pictype: %d" % (data["v2"][i]["mime"], ord(data["v2"][i]["pictype"]))
-						print "\t\tDescription: %s" % (data["v2"][i]["desc"])
-						print "\t\tsize: %d bytes" % (len(data["v2"][i]["imagedata"]))
+						if isinstance(data["v2"][i], list):
+							imgs = data["v2"][i]
+						else:
+							imgs = [data["v2"][i]]
+						for img in imgs:
+							print "\t%s: Picture attached:" % (i)
+							print "\t\tMIME: %s  pictype: %d" % (img["mime"], img["pictype"])
+							print "\t\tDescription: %s" % (img["desc"])
+							print "\t\tsize: %d bytes" % (len(img["imagedata"]))
 					elif i == "TXXX" or i == "UFID" or i == "TMCL" or i == "TIPL":
 						print "\t%s:" % i
 						infos = data["v2"][i]
