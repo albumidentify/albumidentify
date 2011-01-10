@@ -183,6 +183,18 @@ def parse_unicode(x):
 		st=st[1:]
 	return st
 
+
+def decode_text(encoding, text):
+	if encoding =="\x00": # latin-1
+		return text.decode("ISO-8859-1")
+	elif tagdata[0]=="\x01": # utf16
+		return parse_unicode(text)
+	elif tagdata[0]=="\x03": # utf8
+		return text.decode("utf8")
+	else:
+		raise "Unknown Encoding",`encoding`
+
+
 # How many bloody versions of id3 do we REALLY need?!
 
 def v1(tag):
@@ -202,7 +214,7 @@ def v1(tag):
 				genrename=genres[genreid]
 			else:
 				genrename=u"unknowngenre#%d" % genreid
-			data["TCON"]=u"("+unicode(ord(tag[124]))+u")"+genrename
+		data["TCON"]=u"("+unicode(ord(tag[124]))+u")"+genrename
 		return data
 	except:
 		print "genres:",`tag[124]`
@@ -252,6 +264,20 @@ def v2_2_0(tag):
 			else:
 				raise "Unknown encoding"
 			tagdata=(commenttype,commentdata)
+		elif tagid == "PIC":
+			# v2.2 PIC tag is quite different to 2.3 APIC
+			encoding = tagdata[0]
+			imgformat = tagdata[1:4]
+			if imgformat.lower() == "png":
+				mime = "image/png"
+			elif imgformat.lower() == "jpg":
+				mime = "image/jpeg"
+			ptype = ord(tagdata[4])
+			i = tagdata.find('\x00', 4)
+			desc = decode_text(encoding, tagdata[5:i])
+			img = tagdata[i+1:]
+			tagdata = {'mime': mime, 'pictype': ptype, 'desc': desc, 'imagedata': img}
+
 		#print "tag:",`tagid`,"(",v2_2_0_to_v2_4_0[tagid],")"
 		#print "taglen:",taglen
 		#print "data:",`tagdata`
@@ -282,20 +308,28 @@ def v2_3_0(tag, version):
 		#print "got tagid %s, taglen is %d (version %s)" % (tagid, taglen, version)
 		tag=tag[10+taglen:]
 		if tagid.startswith("T"):
-			if tagdata[0]=="\x00": # latin-1
-				#if "\x00" in tagdata:
-				#	tagdata=tagdata[:tagdata.index("\x00")]
-				tagdata=tagdata[1:].decode("ISO-8859-1")
-			elif tagdata[0]=="\x01": # utf16
-				#if "\x00\x00" in tagdata:
-				#	tagdata=tagdata[:tagdata.index("\x00\x00")]
-				tagdata=parse_unicode(tagdata[1:])
-			elif tagdata[0]=="\x03": # utf8
-				#if "\x00" in tagdata:
-				#	tagdata=tagdata[:tagdata.index("\x00")]
-				tagdata=tagdata[1:].decode("utf8")
-			else:
-				raise "Unknown Encoding",`tagdata[0]`
+			tagdata = decode_text(tagdata[0], tagdata[1:])
+		if tagid == "APIC":
+			image = tagdata
+			encoding = image[0]
+			image = image[1:]
+
+			i = image.find("\x00")
+			mime = image[0:i]
+			if mime.find("image/") == -1:
+				mime = "image/" + mime
+			mime = mime.lower()
+
+			image = image[i+1:]
+
+			pictype = ord(image[0])
+
+			i = image.find("\x00", 1)
+			desc = image[1:i]
+
+			img = image[i+1:]
+			tagdata = {'mime': mime, 'pictype': pictype, 'desc': desc, 'imagedata': img}
+
 		if tagid in data and type(data[tagid]) == type([]):
 			data[tagid].append(tagdata)
 		elif tagid in data and data[tagid] != tagdata:
@@ -691,7 +725,10 @@ if __name__=="__main__":
 				print "TAG: ID3v2:"
 				for i in data["v2"]:
 					if i == "APIC":
-						print "\t%s: Picture attached (%d bytes)" % (i,len(data["v2"][i]))
+						print "\t%s: Picture attached:" % (i)
+						print "\t\tMIME: %s  pictype: %d" % (data["v2"][i]["mime"], ord(data["v2"][i]["pictype"]))
+						print "\t\tDescription: %s" % (data["v2"][i]["desc"])
+						print "\t\tsize: %d bytes" % (len(data["v2"][i]["imagedata"]))
 					elif i == "TXXX" or i == "UFID" or i == "TMCL" or i == "TIPL":
 						print "\t%s:" % i
 						infos = data["v2"][i]

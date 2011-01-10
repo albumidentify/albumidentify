@@ -263,7 +263,6 @@ def __read_tags_flac(filename):
 		for block in blockdata:
 			block = block.split('\n')
 			blocknum = block[0]
-			encoding = ""
 			mime = ""
 			desc = ""
 			pictype = ""
@@ -277,7 +276,7 @@ def __read_tags_flac(filename):
 				match = re.match("  type: ([0-9]*)", i)
 				if match:
 					pictype = int(match.group(1))
-			picblocks.append({'blocknum':blocknum,'encoding':encoding,'mime':mime,'desc':desc,'pictype':pictype})
+			picblocks.append({'blocknum':blocknum,'mime':mime,'desc':desc,'pictype':pictype})
 
 		images = []
 		for block in picblocks:
@@ -287,7 +286,7 @@ def __read_tags_flac(filename):
 			err = process[1]
 			# metaflac writes to stderr if there is no image
 			if err == "":
-				images.append({'encoding':block['encoding'], 'mime':block['mime'], 'pictype':block['pictype'], 'desc':block['desc'], 'imagedata':image})
+				images.append({'mime':block['mime'], 'pictype':block['pictype'], 'desc':block['desc'], 'imagedata':image})
 		tags[IMAGE] = images
 	except OSError, e:
 		raise TagFailedException("Could not read flac tags. Try installing metaflac")
@@ -321,36 +320,6 @@ def __read_tag_mp3_anyver(mp3tags,tagname):
 		return mp3tags["v1"][tagname]
 	return None
 
-def __read_image_mp3(images):
-
-	if type(images) is not list:
-		images = [images]
-
-	processed = []
-	for image in images:
-		i = image.find("\x00")
-		encoding = image[0:i]	
-		image = image[i+1:]
-		
-		i = image.find("\x00")
-		mime = image[0:i]
-		image = image[i+1:]
-		
-		i = image.find("\x00")
-		if i == 0:
-			continue
-		pictype = ord(image[0:i])
-		image = image[i+1:]
-	
-		i = image.find("\x00")
-		desc = image[0:i]
-		
-		imagedata = image[i+1:]
-		
-		processed.append({'encoding':encoding, 'mime':mime, 'pictype':pictype, 'desc':desc, 'imagedata':imagedata})
-
-	return processed
-
 def __read_tags_mp3(filename):
 	data = parsemp3.readid3(filename)
 	tags = {}
@@ -359,11 +328,7 @@ def __read_tags_mp3(filename):
 	tags[ALBUM] = __read_tag_mp3_anyver(data,"TALB")
 	tags[YEAR] = __read_tag_mp3_anyver(data,"TYER")
 	tags[DATE] = __read_tag_mp3_anyver(data,"TDAT")
-	if "APIC" in data["v2"]:
-		images = data["v2"]["APIC"]
-		images = __read_image_mp3(images)
-		if len(images) > 0:
-			tags[IMAGE] = images
+	tags[IMAGE] =  __read_tag_mp3_anyver(data,"APIC")
 
 	tag = __read_tag_mp3_anyver(data,"TRCK")
 	if tag:
@@ -409,3 +374,7 @@ def __read_tags_mp3(filename):
 					tags[TRACK_ID] = v.encode("ascii", "ignore")
 
 	return tags
+
+if __name__ == "__main__":
+	import sys
+	print read_tags(sys.argv[1])

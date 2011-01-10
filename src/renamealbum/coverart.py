@@ -48,7 +48,11 @@ def find_albumart(srcpath,disc,options):
 	dir = sort.sorted_dir(srcpath)
 	filetags = tag.read_tags(dir[0])
 	if tag.IMAGE in filetags:
-		for image in filetags[tag.IMAGE]:
+		# Yuck
+		tagdata = filetags[tag.IMAGE]
+		if not isinstance(tagdata, list):
+			tagdata = [tagdata]
+		for image in tagdata:
 			print "Found image embedded in file"
 			if image['mime'] == "image/jpeg":
 				suffix = ".jpg"
