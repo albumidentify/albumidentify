@@ -214,7 +214,7 @@ def v1(tag):
 				genrename=genres[genreid]
 			else:
 				genrename=u"unknowngenre#%d" % genreid
-		data["TCON"]=u"("+unicode(ord(tag[124]))+u")"+genrename
+			data["TCON"]=u"("+unicode(ord(tag[124]))+u")"+genrename
 		return data
 	except:
 		print "genres:",`tag[124]`
