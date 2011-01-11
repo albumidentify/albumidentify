@@ -328,7 +328,8 @@ def __read_tags_mp3(filename):
 	tags[ALBUM] = __read_tag_mp3_anyver(data,"TALB")
 	tags[YEAR] = __read_tag_mp3_anyver(data,"TYER")
 	tags[DATE] = __read_tag_mp3_anyver(data,"TDAT")
-	tags[IMAGE] =  __read_tag_mp3_anyver(data,"APIC")
+	if "APIC" in data["v2"]:
+		tags[IMAGE] = data["v2"]["APIC"]
 
 	tag = __read_tag_mp3_anyver(data,"TRCK")
 	if tag:
