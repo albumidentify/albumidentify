@@ -254,7 +254,7 @@ def add_new_track(release, possible_releases, fileid, track, trackinfo, impossib
 						fileid,
 						track):
 					possible_releases[releaseid][trackind+1]=fileid
-					print " Also found track %02d: %s" % (trackind+1,release.tracks[trackind].title)
+					util.update_progress(" Also found track %02d: %s" % (trackind+1,release.tracks[trackind].title))
 					break
 	print " Found tracks: %s" % (
 		util.output_list(possible_releases[releaseid].keys())),
