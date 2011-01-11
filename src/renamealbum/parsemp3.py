@@ -185,11 +185,11 @@ def parse_unicode(x):
 
 
 def decode_text(encoding, text):
-	if encoding =="\x00": # latin-1
+	if encoding == "\x00": # latin-1
 		return text.decode("ISO-8859-1")
-	elif tagdata[0]=="\x01": # utf16
+	elif encoding == "\x01": # utf16
 		return parse_unicode(text)
-	elif tagdata[0]=="\x03": # utf8
+	elif encoding == "\x03": # utf8
 		return text.decode("utf8")
 	else:
 		raise "Unknown Encoding",`encoding`
