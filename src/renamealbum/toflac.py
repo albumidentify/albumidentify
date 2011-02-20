@@ -91,8 +91,14 @@ def process_paths(paths, destpath, numcpus=1):
 
         # Queue paths for work
         for path in paths:
+		path = os.path.abspath(path)
+		if len(paths) > 1:
+			dest = os.path.join(destpath, os.path.basename(path))
+		else:
+			dest = destpath
                 if os.path.isdir(path):
-                        prepare_folder(os.path.abspath(path), os.path.join(destpath, os.path.basename(os.path.abspath(path))))
+			print "Encoding \"%s\" to \"%s\"" % (os.path.basename(path), dest)
+			prepare_folder(os.path.abspath(path), dest) 
 
         # Spawn worker threads to deal with the work
         for i in range(numcpus):
@@ -105,8 +111,13 @@ def process_paths(paths, destpath, numcpus=1):
 	
 
         for path in paths:
+		path = os.path.abspath(path)
+		if len(paths) > 1:
+			dest = os.path.join(destpath, os.path.basename(path))
+		else:
+			dest = destpath
                 if os.path.isdir(path):
-                        finish_folder(os.path.abspath(path), os.path.join(destpath, os.path.basename(os.path.abspath(path))))
+			finish_folder(os.path.abspath(path), dest) 
 
         print "All worker threads finished"
 
