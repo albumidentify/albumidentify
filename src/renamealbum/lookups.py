@@ -53,11 +53,16 @@ def timeout_retry(webservice="default"):
                         global lastwsquery
                         try:
                                 return func(*args,**kwargs)
+                        except IOError,e:
+                                if (str(e.strerror).find("timed out") != -1):
+                                        util.update_progress("Caught " +webservice+ " IO timeout, waiting 20s and trying again...")
+                                else:
+                                        # A bare raise will reraise the current exception
+                                        raise
                         except ws.WebServiceError,e:
                                 if (e.msg.find("503") != -1):
                                         util.update_progress("Caught " +webservice+ " 503, waiting 20s and trying again...")
                                 else:
-					# A bare raise will reraise the current exception
                                         raise
                         except ws.ConnectionError,e:
                                 if (e.msg.find("urlopen error timed out") != -1):
