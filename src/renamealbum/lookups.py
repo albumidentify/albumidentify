@@ -8,6 +8,8 @@ import pickle
 import os
 import memocache
 import util
+import errno
+from urllib2 import URLError
 
 AMAZON_LICENSE_KEY='1WQQTEA14HEA9AERDMG2'
 
@@ -16,6 +18,7 @@ AMAZON_LICENSE_KEY='1WQQTEA14HEA9AERDMG2'
 # 2 = Delay and webquery time
 PROFILE=2
 MINDELAY=1.25
+WSATTEMPTS=3
 
 startup = time.time()
 lastwsquery = {}
@@ -51,32 +54,40 @@ def timeout_retry(webservice="default"):
         def ws_backoff(func):
                 def backoff_func(*args, **kwargs):
                         global lastwsquery
-                        try:
-                                return func(*args,**kwargs)
-                        except IOError,e:
-                                if (str(e.strerror).find("timed out") != -1):
-                                        util.update_progress("Caught " +webservice+ " IO timeout, waiting 20s and trying again...")
-                                else:
-                                        # A bare raise will reraise the current exception
-                                        raise
-                        except ws.WebServiceError,e:
-                                if (e.msg.find("503") != -1):
-                                        util.update_progress("Caught " +webservice+ " 503, waiting 20s and trying again...")
-                                else:
-                                        raise
-                        except ws.ConnectionError,e:
-                                if (e.msg.find("urlopen error timed out") != -1):
-                                        util.update_progress("Caught " +webservice+ " urlopen timeout. Retrying...")
-                                else:
-                                        raise
+			for i in xrange(WSATTEMPTS):
+	                        try:
+	                                return func(*args,**kwargs)
+	                        except ws.WebServiceError,e:
+	                                if (e.msg.find("503") != -1):
+	                                        util.update_progress("Caught " +webservice+ " 503, waiting 20s and trying again...")
+	                                else:
+	                                        raise
+	                        except ws.ConnectionError,e:
+	                                if (e.msg.find("urlopen error timed out") != -1):
+	                                        util.update_progress("Caught " +webservice+ " urlopen timeout. Retrying...")
+						continue
+	                                else:
+	                                        raise
+				except URLError, e:
+					# Some kinda of connection error. Let's retry (this will catch timeouts)
+					util.update_progress("Caught %s error. Retrying in 20s..." % e.reason)
+				# This is a very broad error so it should go last (other errors inherit from IOError)
+	                        except IOError,e:
+					if (e.errno == errno.ETIMEDOUT):
+	                                        util.update_progress("Caught " +webservice+ " IO timeout, waiting 20s and trying again...")
+	                                else:
+	                                        # A bare raise will reraise the current exception
+	                                        raise
 
-                        time.sleep(20)
-                        # Reset the timer delayed uses so that we don't
-                        # end up with a bunch of queries causing
-                        # another 503
-                        lastwsquery[webservice]=time.time()
-                        # Retry the call
-                        return func(*args,**kwargs)
+	                        time.sleep(20)
+				util.update_progress("20 second backoff is over. Retrying now...")
+	                        # Reset the timer delayed uses so that we don't
+	                        # end up with a bunch of queries causing
+	                        # another 503
+	                        lastwsquery[webservice]=time.time()
+
+			print "Giving up on call to %s after %d tries." % (webservice, WSATTEMPTS)
+			raise
 
                 backoff_func.__name__=func.__name__
                 return backoff_func
