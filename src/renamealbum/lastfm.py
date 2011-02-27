@@ -43,14 +43,7 @@ def _etree_to_dict(etree):
 def _do_raw_lastfm_query(url):
 	f = urllib2.Request(url)
 	f.add_header('User-Agent','AlbumIdentify v1.0')
-	try:
-		f = urllib2.urlopen(f)
-	except urllib2.URLError, e:
-		if (hasattr(e, 'reason')):
-			print e.reason
-		else:
-			print str(e) + ' returned from ' + url
-		raise
+	f = urllib2.urlopen(f)
 
 	tree = xml.etree.ElementTree.ElementTree(file=f)
 	result=_etree_to_dict(tree.getroot()[0])
