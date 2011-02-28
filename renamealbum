@@ -64,6 +64,8 @@ integer_expandos = ["tracknumber", "year"]
 force_short_album = False
 srcpath=None
 
+successes=0
+
 class IdentifyFailedException(Exception):
 	def __str__(self):
 		return "Couldn't find a matching release"
@@ -297,6 +299,7 @@ def path_is_raw_wavs(path):
 	return ".wav" in set(os.path.splitext(i)[1] for i in os.listdir(path))
 
 def process_one_path(numargs, options, path):
+	global successes
 	reportfile = None
 	util.report("----renamealbum started----")
 	# Do this here so it gets written to all util.reports
@@ -375,6 +378,7 @@ def process_one_path(numargs, options, path):
 		del tb
 		util.report("fail!")
 	else:
+		successes += 1
 		util.report("success!")
 
 	for path in deletepaths:
@@ -550,21 +554,21 @@ def main():
 
 	if options.releaseid is not None and not albumidentify.FORCE_ORDER:
 		print "Using -r and --no-force-order is prohibited. Bad things will happen."
-		sys.exit(1)
+		sys.exit(2)
 
 	if len(tag.supported_extensions)==0:
 		print "Supported:",set(tag.supported_extensions)
 		print "Configured:",set(options.limit_extensions.split(","))
 		print "No possible extensions, aborting"
-		sys.exit(1)
+		sys.exit(2)
 
 	if options.action=="scheme-help":
 		scheme_help()
-		sys.exit(1)
+		sys.exit(2)
 		
 	if len(args) < 1:
 		opts.print_help()
-		sys.exit(1)
+		sys.exit(2)
 
 	if ( len(args) > 1 or options.recursive ) and options.releaseid:
 		print "Cannot specify a release id and more than 1 source or recursive mode"
@@ -575,7 +579,7 @@ def main():
 	except Exception, e:
 		print "Naming scheme error: " + e.args[0]
 		print "Scheme:",repr(options.scheme)
-		sys.exit(1)
+		sys.exit(2)
 
 	if options.recursive:
 		recurse = args[:]
@@ -595,6 +599,13 @@ def main():
 	numargs = len(args)
 	for path in args:
 		process_one_path(numargs, options, path)
+
+	if successes == 0:
+		sys.exit(2)
+	elif successes < numargs:
+		sys.exit(1)
+	else:
+		sys.exit(0)
 
 def construct_disc(srcpath):
 	"Try and construct a Disc object, based on any TOC's found"
@@ -1149,7 +1160,6 @@ def name_album(disc, release, srcpath, options, imagemime=None, imagepath=None, 
 	
 
 if __name__ == "__main__":
-	main()
-	sys.exit(0)
+	sys.exit(main())
 
 # vim: set sw=8 tabstop=8 softtabstop=8 noexpandtab :
