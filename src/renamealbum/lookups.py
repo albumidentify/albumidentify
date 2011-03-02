@@ -9,6 +9,7 @@ import os
 import memocache
 import util
 import errno
+import socket
 from urllib2 import URLError
 
 AMAZON_LICENSE_KEY='1WQQTEA14HEA9AERDMG2'
@@ -68,6 +69,9 @@ def timeout_retry(webservice="default"):
 						continue
 	                                else:
 	                                        raise
+				except socket.error, e:
+					# Some kinda of socket error. Let's retry (this will catch timeouts)
+					util.update_progress("Caught %s error. Retrying in 20s..." % e.reason)
 				except URLError, e:
 					# Some kinda of connection error. Let's retry (this will catch timeouts)
 					util.update_progress("Caught %s error. Retrying in 20s..." % e.reason)
