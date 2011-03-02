@@ -601,11 +601,11 @@ def main():
 		process_one_path(numargs, options, path)
 
 	if successes == 0:
-		sys.exit(2)
+		return 2
 	elif successes < numargs:
-		sys.exit(1)
+		return 1
 	else:
-		sys.exit(0)
+		return 0
 
 def construct_disc(srcpath):
 	"Try and construct a Disc object, based on any TOC's found"
