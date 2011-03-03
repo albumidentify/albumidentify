@@ -101,10 +101,12 @@ def report(message):
 
 def write_report(reportpath):
 	global report_entries
-        f = open(reportpath, "w")
-        for r in report_entries:
-                f.write(r.encode("utf8"))
-                f.write("\n")
-	report_entries = []
-        f.close()
+	f = open(reportpath, "w")
+	try:
+	        for r in report_entries:
+	                f.write(r.encode("utf8"))
+	                f.write("\n")
+	finally:
+		f.close()
+		report_entries = []
 
