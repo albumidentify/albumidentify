@@ -72,6 +72,13 @@ def timeout_retry(webservice="default"):
 				except socket.error, e:
 					# Some kinda of socket error. Let's retry (this will catch timeouts)
 					util.update_progress("Caught %s error. Retrying in 20s..." % e.reason)
+				except HTTPError, e:
+					# Misc http errors -> should probably deal with these on a case by case basis
+					if e.code == 400:
+						util.update.progress("Error code 400. Possible malformed URL: %s" % e.filename)
+						raise
+					else:
+						raise
 				except URLError, e:
 					# Some kinda of connection error. Let's retry (this will catch timeouts)
 					util.update_progress("Caught %s error. Retrying in 20s..." % e.reason)
