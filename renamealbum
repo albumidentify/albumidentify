@@ -50,6 +50,7 @@ from renamealbum import fingerprint
 from renamealbum import ripcd
 from renamealbum import toflac
 from renamealbum import coverart
+from renamealbum import renamereport
 # metadata plugins
 from renamealbum import md_lastfm
 from renamealbum import md_musicbrainz
@@ -599,6 +600,9 @@ def main():
 	numargs = len(args)
 	for path in args:
 		process_one_path(numargs, options, path)
+
+	if numargs > 1:
+		renamereport.main(args)
 
 	if successes == 0:
 		return 2
