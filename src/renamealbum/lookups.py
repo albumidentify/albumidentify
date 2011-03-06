@@ -11,6 +11,7 @@ import util
 import errno
 import socket
 from urllib2 import URLError
+from urllib2 import HTTPError
 
 AMAZON_LICENSE_KEY='1WQQTEA14HEA9AERDMG2'
 
@@ -75,7 +76,7 @@ def timeout_retry(webservice="default"):
 				except HTTPError, e:
 					# Misc http errors -> should probably deal with these on a case by case basis
 					if e.code == 400:
-						util.update.progress("Error code 400. Possible malformed URL: %s" % e.filename)
+						util.update_progress("Error code 400. Possible malformed URL: %s" % e.filename)
 						raise
 					else:
 						raise
