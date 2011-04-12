@@ -70,8 +70,8 @@ def timeout_retry(webservice="default"):
 						continue
 	                                else:
 	                                        raise
-				except socket.error, e:
-					# Some kinda of socket error. Let's retry (this will catch timeouts)
+				except (URLError, socket.error), e:
+					# Some kinda of connection error. Let's retry (this will catch timeouts)
 					util.update_progress("Caught %s error. Retrying in 20s..." % e.reason)
 				except HTTPError, e:
 					# Misc http errors -> should probably deal with these on a case by case basis
@@ -80,9 +80,6 @@ def timeout_retry(webservice="default"):
 						raise
 					else:
 						raise
-				except URLError, e:
-					# Some kinda of connection error. Let's retry (this will catch timeouts)
-					util.update_progress("Caught %s error. Retrying in 20s..." % e.reason)
 				# This is a very broad error so it should go last (other errors inherit from IOError)
 	                        except IOError,e:
 					#url lib converts socket errors to cryptic IOErrors for some strange reason
