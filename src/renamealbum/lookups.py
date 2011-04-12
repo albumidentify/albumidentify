@@ -86,7 +86,7 @@ def timeout_retry(webservice="default"):
 				# This is a very broad error so it should go last (other errors inherit from IOError)
 	                        except IOError,e:
 					#url lib converts socket errors to cryptic IOErrors for some strange reason
-					if e.errno == "socket error" and e.strerror == "timed out":
+					if e.errno == "socket error" and e.strerror.args[0] == "timed out":
 	                                        util.update_progress("Caught " +webservice+ " IO timeout, waiting 20s and trying again...")
 	                                else:
 	                                        # A bare raise will reraise the current exception
