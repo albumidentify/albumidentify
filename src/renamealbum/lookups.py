@@ -56,40 +56,52 @@ def timeout_retry(webservice="default"):
         def ws_backoff(func):
                 def backoff_func(*args, **kwargs):
                         global lastwsquery
-			for i in xrange(WSATTEMPTS):
+			i = 0
+			while True:
 	                        try:
 	                                return func(*args,**kwargs)
-	                        except ws.WebServiceError,e:
-	                                if (e.msg.find("503") != -1):
-	                                        util.update_progress("Caught " +webservice+ " 503, waiting 20s and trying again...")
-	                                else:
-	                                        raise
-	                        except ws.ConnectionError,e:
-	                                if (e.msg.find("urlopen error timed out") != -1):
-	                                        util.update_progress("Caught " +webservice+ " urlopen timeout. Retrying...")
-						continue
-	                                else:
-	                                        raise
-				except (URLError, socket.error), e:
-					# Some kinda of connection error. Let's retry (this will catch timeouts)
-					util.update_progress("Caught %s error. Retrying in 20s..." % e.reason)
+				#musicbrainz2 error (child of WebServiceError)
+				except ws.ConnectionError,e:
+					#e.reason is the as a urllib2.URLError
+					print ("Caught %s error" % e.reason.reason)
+				#musicbrainz2 error
+				except ws.WebServiceError,e:
+					#e.reason is a urllib2.HTTPError
+					if e.reason.code == 503:
+						print ("Caught " +webservice+ " 503")
+					else:
+						raise
+				#urllib2 error (child of URLError)
 				except HTTPError, e:
 					# Misc http errors -> should probably deal with these on a case by case basis
 					if e.code == 400:
-						util.update_progress("Error code 400. Possible malformed URL: %s" % e.filename)
+						print ("Error code 400. Possible malformed URL: %s" % e.filename)
 						raise
 					else:
 						raise
+				#urllib2 error (child of IOError)
+				except URLError, e:
+					print ("Caught %s error" % e.reason)
+				#socket error (child of IOError)
+				except socket.error, e:
+					print ("Caught %s error" % str(e))
 				# This is a very broad error so it should go last (other errors inherit from IOError)
-	                        except IOError,e:
+				except IOError,e:
 					#url lib converts socket errors to cryptic IOErrors for some strange reason
 					if e.errno == "socket error" and e.strerror.args[0] == "timed out":
-	                                        util.update_progress("Caught " +webservice+ " IO timeout, waiting 20s and trying again...")
-	                                else:
-	                                        # A bare raise will reraise the current exception
-	                                        raise
+						print ("Caught " +webservice+ " IO timeout")
+					else:
+						# A bare raise will reraise the current exception
+						raise
 
-	                        time.sleep(20)
+				#bail if we've made enough attempts
+				if i >= WSATTEMPTS:
+					break
+				else:
+					i+=1
+
+	                        util.update_progress("waiting 20 seconds and trying again...")
+				time.sleep(20)
 				util.update_progress("20 second backoff is over. Retrying now...")
 	                        # Reset the timer delayed uses so that we don't
 	                        # end up with a bunch of queries causing
