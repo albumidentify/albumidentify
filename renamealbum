@@ -338,7 +338,7 @@ def process_one_path(numargs, options, path):
 			return
 	
 		process = False
-		for i in os.listdir(os.path.abspath(path)):
+		for i in os.listdir(srcpath):
 			if os.path.splitext(i)[1] in options.limit_extensions.split(','):
 				process=True
 		if not process:			
