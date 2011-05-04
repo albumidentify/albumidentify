@@ -44,7 +44,7 @@ def finish_folder(path, destdir):
                 tocfilename = os.path.join(path, "data.toc")
 
         if tocfilename:
-                shutil.copy(tocfilename, os.path.join(dst, "data.toc"))
+                shutil.copy(tocfilename, os.path.join(destdir, "data.toc"))
         
 
 def process_file(filename):
