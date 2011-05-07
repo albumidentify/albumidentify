@@ -332,6 +332,8 @@ def __read_tags_mp3(filename):
 		tags[IMAGE] = data["v2"]["APIC"]
 
 	tag = __read_tag_mp3_anyver(data,"TRCK")
+	if type(tag) == []:
+		tag = tag[0]
 	if tag:
 		parts = tag.strip().strip("\x00").split("/")
 		if len(parts) == 2:
