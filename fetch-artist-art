@@ -1,11 +1,17 @@
 #!/usr/bin/python
-import lastfm
-import sys
-import optparse
-import albumidentifyconfig
-import mp3names
+
 import urllib2
 import os
+import sys
+import optparse
+
+srcdir = os.path.abspath(os.path.join(os.path.dirname(sys.argv[0]), "src"))
+if os.path.exists(srcdir):
+	        sys.path.insert(0, srcdir)
+
+from renamealbum import lastfm
+from renamealbum import albumidentifyconfig
+from renamealbum import mp3names
 
 def path_arg_cb(option, opt_str, value, parser):
         path = os.path.abspath(value)
