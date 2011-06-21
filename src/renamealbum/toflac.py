@@ -66,12 +66,11 @@ def process_file(filename):
 		
 
         if (p.returncode == 0):
-		print "%s completed successfully" % filename
+		sys.stdout.write("%s completed successfully\n" % filename)
 	else:
                 # Clean up any mess that flac left
                 os.unlink(filename.replace('.wav','.flac'))
-		print "ERROR: An error occurred converting %s" % filename
-		print error
+		sys.stdout.write("ERROR: An error occurred converting %s\n%s\n" % (filename,error))
 
 def worker():
         t = threading.currentThread()
