@@ -4,7 +4,7 @@ import os
 import subprocess
 import sys
 import time
-import CD
+import blockdevice
 
 class CDRipFailedException(Exception):
         def __init__(self,message):
@@ -70,35 +70,34 @@ def main():
 
     device = args[0]
 
-    if not options.continuous:
-	dest = os.path.join(destdir,("cd-%s" % (time.strftime("%Y%m%d%H%M%S"),)))
-	if not os.path.exists(dest):
-		os.mkdir(dest)
-	rip_cd(device,dest)
-    else:
-	try:
-		CD.status(device)
-	except CD.PlatformNotSupportedException, e:
-		print "-c is not currently supported on your platform"
-		sys.exit(1)
-	print "Press Ctrl+c to exit"
-	while True:
-		if CD.status(device) == 1:
-			dest = os.path.join(destdir,("cd-%s" % (time.strftime("%Y%m%d%H%M%S"),)))
-			if not os.path.exists(dest):
-				os.mkdir(dest)
-			# backoff an extra 2 seconds
-			try:
-				time.sleep(2)
-			except KeyboardInterrupt, e:
-				sys.exit(0)
-			rip_cd(device,dest)
-			CD.eject(device)
-		else:
-			try:
-				time.sleep(2)
-			except KeyboardInterrupt, e:
-				sys.exit(0)
+    try:
+        cd = blockdevice.GetDevice(device)
+    except blockdevice.PlatformNotSupportedException, e:
+        print "-c is not currently supported on your platform"
+        sys.exit(1)
+    looping = True
+    while looping:
+	print "Waiting for media to rip"
+        print "Press Ctrl+c to exit"
+        while not cd.is_ready():
+            try:
+                time.sleep(2)
+            except KeyboardInterrupt, e:
+                sys.exit(0)
+        print "Device ready, preparing..."
+        dest = os.path.join(destdir,("cd-%s" % (time.strftime("%Y%m%d%H%M%S"),)))
+        if not os.path.exists(dest):
+            os.mkdir(dest)
+        # backoff an extra 2 seconds
+        try:
+            time.sleep(2)
+        except KeyboardInterrupt, e:
+            sys.exit(0)
+        print "Beginning Rip..."
+        rip_cd(device,dest)
+        cd.eject()
+        if not options.continuous:
+            looping = False
 
 if __name__ == "__main__":
     main()
