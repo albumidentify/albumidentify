@@ -4,6 +4,12 @@ import parsemp3
 import os
 import re
 
+try:
+        import tag_flac
+except Exception,e:
+        print "Sorry, I couldn't find libFLAC. We're not going to get much further without it..."
+        raise e
+
 supported_extensions = [".mp3", ".ogg", ".flac"]
 
 # http://musicbrainz.org/doc/PicardQt/TagMapping
@@ -235,61 +241,31 @@ def read_tags(filename):
         raise TagFailedException("Don't know how to read tags for this file type!")
 
 def __read_tags_flac(filename):
-	args = ["metaflac", "--export-tags-to=-", filename]
-	try:
-		flactags = subprocess.Popen(args, stdout=subprocess.PIPE).communicate()[0]
-	except OSError, e:
-		raise TagFailedException("Could not read flac tags. Try installing metaflac")
+        
+        flactags = tag_flac.get_vorbis_comments(filename)
 
 	inverse_flac_map = dict([(v, k) for k, v in flac_tag_map.iteritems()])
+        inverse_flac_map['DISC'] = DISC_NUMBER
+        inverse_flac_map['DISCC'] = DISC_TOTAL_NUMBER
 	tags = {}
-	for line in flactags.split("\n"):
-		if line == "": break
-		k = line.split("=")[0]
-		v = line.split("=")[1]
-		if k in inverse_flac_map.keys():
-			tags[inverse_flac_map[k]] = v
-		elif k == "DISC":
-			tags[DISC_NUMBER] = v
-		elif k == "DISCC":
-			tags[DISC_TOTAL_NUMBER] = v
 
-	try:
-		args = ["metaflac", "--block-type=PICTURE", "--list", filename]
-		process = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()
-		blockdata = process[0].split('METADATA block #')
-		
-		picblocks = []
-		for block in blockdata:
-			block = block.split('\n')
-			blocknum = block[0]
-			mime = ""
-			desc = ""
-			pictype = ""
-			for i in block:
-				match = re.match("  MIME type: (.*)", i)
-				if match:
-					mime = match.group(1)
-				match = re.match("  description: (.*)", i)
-				if match:
-					desc = match.group(1)
-				match = re.match("  type: ([0-9]*)", i)
-				if match:
-					pictype = int(match.group(1))
-			picblocks.append({'blocknum':blocknum,'mime':mime,'desc':desc,'pictype':pictype})
+        for k in flactags.keys():
+                if k not in inverse_flac_map.keys():
+                        continue
 
-		images = []
-		for block in picblocks:
-			args = ["metaflac", "--block-number=%s" % block['blocknum'], "--export-picture-to=-", filename]
-			process = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()
-			image = process[0]
-			err = process[1]
-			# metaflac writes to stderr if there is no image
-			if err == "":
-				images.append({'mime':block['mime'], 'pictype':block['pictype'], 'desc':block['desc'], 'imagedata':image})
-		tags[IMAGE] = images
-	except OSError, e:
-		raise TagFailedException("Could not read flac tags. Try installing metaflac")
+                if len(flactags[k]) == 1:
+                        v = flactags[k][0]
+                        if k in inverse_flac_map.keys():
+                                tags[inverse_flac_map[k]] = v
+                        continue
+
+                for v in flactags[k]:
+                        if k in inverse_flac_map.keys():
+                                if not tags.has_key(inverse_flac_map[k]):
+                                        tags[inverse_flac_map[k]] = []
+                                tags[inverse_flac_map[k]].append(v)
+
+        tags[IMAGE] = tag_flac.get_pictures(filename)
 
 	return tags
 
