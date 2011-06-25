@@ -61,12 +61,12 @@ def main():
 	(options, args) = opts.parse_args()
 
 	if len(args) == 2:
-	destdir = args[1]
+	        destdir = args[1]
 	elif len(args) == 1:
-	destdir = os.getcwd()
+	        destdir = os.getcwd()
 	else:
-	opts.print_help()
-	sys.exit(2)
+	        opts.print_help()
+	        sys.exit(2)
 
 	device = args[0]
 
@@ -77,7 +77,7 @@ def main():
 		sys.exit(1)
 	looping = True
 	while looping:
-	print "Waiting for media to rip"
+	        print "Waiting for media to rip"
 		print "Press Ctrl+c to exit"
 		while not cd.is_ready():
 			try:
