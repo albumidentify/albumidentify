@@ -111,9 +111,9 @@ def get_pictures(filename):
 
         pic =  { 
                  "mime" : picture.mime_type,
-                 "description" : picture.description,
-                 "picture_type" : picture.type,
-                 "data" : buffer(string_at(picture.data, picture.data_length),0, picture.data_length)
+                 "desc" : picture.description,
+                 "pictype" : picture.type,
+                 "imagedata" : buffer(string_at(picture.data, picture.data_length),0, picture.data_length)
         }
 
         __libflac.FLAC__metadata_object_delete(pi)
