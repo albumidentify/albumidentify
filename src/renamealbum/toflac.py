@@ -7,11 +7,18 @@ import subprocess
 import os
 import shutil
 import threading
-import glob
 
 import albumidentifyconfig
 
 q = Queue.Queue()
+
+def list_files(path, extension):
+        """ Replacement for glob.glob() which we used to list files matching
+            an extension. However, glob.glob() would expand characters in the
+            path such as [ ] and fail. Seeing as we don't need this behaviour,
+            we provide our own directory listing/matching function here.
+        """
+        return [ os.path.join(path, x) for x in os.listdir(path) if x.endswith(extension) ]
 
 def prepare_folder(path, destdir):
         dst = os.path.abspath(destdir)
@@ -29,11 +36,11 @@ def prepare_folder(path, destdir):
         #  b) that the flacs verify
         #  c) that the flac dir has a tocfile
 
-        for f in glob.glob(os.path.join(path, "*.wav")):
+        for f in list_files(path, ".wav"):
 		q.put(f)
 
 def finish_folder(path, destdir):
-        for f in glob.glob(os.path.join(path, "*.flac")):
+        for f in list_files(path, ".flac"):
                 shutil.move(f, os.path.join(destdir, os.path.basename(f)))
 
         # Copy the tocfile if it exists
