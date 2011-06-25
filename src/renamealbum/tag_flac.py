@@ -8,8 +8,9 @@
 #
 
 from ctypes import *
+from ctypes.util import find_library
 
-__libflac = CDLL("libFLAC.so")
+__libflac = CDLL(find_library("FLAC"))
 
 class _StreamMetadata_VorbisComment_Entry(Structure):
         _fields_ = [ ("length", c_uint),
