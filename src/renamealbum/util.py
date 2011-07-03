@@ -104,8 +104,11 @@ def write_report(reportpath):
 	f = open(reportpath, "w")
 	try:
 	        for r in report_entries:
-	                f.write(r.encode("utf8"))
-	                f.write("\n")
+			try:
+				f.write(r)
+			except UnicodeDecodeError, e:
+				f.write(r.encode("utf8"))
+			f.write("\n")
 	finally:
 		f.close()
 		report_entries = []
