@@ -55,9 +55,9 @@ class Disc:
 
 		self.mcn = None
 		self.tracks = []
-                self.dirname = os.path.dirname(filename)
+		self.dirname = os.path.dirname(filename)
 
-                files = sort.get_sorted_directory(self.dirname)
+		files = sort.get_sorted_directory(self.dirname)
 
 		f = open(filename, 'r')
 
@@ -66,7 +66,7 @@ class Disc:
 			raise Exception("Unsupported disc type: " + type)
 
 		curtrack = None
-                tracknum = None
+		tracknum = None
 		for line in f.readlines():
 			parts = line.split()
 			if line.startswith("CATALOG"):
@@ -74,10 +74,10 @@ class Disc:
 			if line.startswith("// Track"):
 				if curtrack is not None:
 					self.tracks.append(curtrack)
-                                tracknum = int(parts[2])
+				tracknum = int(parts[2])
 				curtrack = Track(tracknum)
-                                curtrack.filename = files[tracknum]
-                                curtrack.id = tracknum
+				curtrack.filename = files[tracknum]
+				curtrack.id = tracknum
 			elif line.startswith("FILE"):
 				curtrack.track_start = timestamp_to_sectors(parts[2]) + 150
 				curtrack.track_length = timestamp_to_sectors(parts[3])
@@ -190,3 +190,4 @@ def parse_cdrecord_toc(tocfilename):
 	return (first_track_num, last_track_num, offsets)
 
 
+# vim: set sw=8 tabstop=8 softtabstop=8 noexpandtab :
