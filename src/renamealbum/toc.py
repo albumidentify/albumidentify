@@ -30,6 +30,8 @@ class Disc:
 	def get_first_track_num(self):
 		if self.tracks is None:
 			raise Exception("disc.tracks is None")
+		if self.tracks[0] is None:
+			raise Exception("disc.tracks[0] is None")
 		return int(self.tracks[0].track_num)
 	
 	def get_last_track_num(self):
@@ -78,9 +80,9 @@ class Disc:
 				curtrack = Track(tracknum)
 				curtrack.filename = files[tracknum]
 				curtrack.id = tracknum
-			elif line.startswith("FILE"):
-				curtrack.track_start = timestamp_to_sectors(parts[2]) + 150
-				curtrack.track_length = timestamp_to_sectors(parts[3])
+			elif line.strip().startswith("FILE") or line.strip().startswith("AUDIOFILE"):
+				curtrack.track_start = timestamp_to_sectors(parts[-2]) + 150
+				curtrack.track_length = timestamp_to_sectors(parts[-1])
 			elif line.startswith("START"):
 				curtrack.track_offset = timestamp_to_sectors(parts[1])
 			elif line.startswith("ISRC"):
