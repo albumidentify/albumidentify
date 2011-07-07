@@ -38,5 +38,7 @@ if __name__ == "__main__":
 	disctoc=parse_toc(sys.argv[1])
 	print "Title:",disctoc.title
 	print "Performer:",disctoc.performer
+	print "Tracks:",len(disctoc.get_track_offsets())
+	print "Offsets:",disctoc.get_track_offsets()
 	print musicbrainz_submission_url(disctoc)
 
