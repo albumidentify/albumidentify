@@ -339,7 +339,7 @@ def process_one_path(numargs, options, path):
 	
 		process = False
 		for i in os.listdir(srcpath):
-			if os.path.splitext(i)[1] in options.limit_extensions.split(','):
+			if os.path.splitext(i)[1].lower() in options.limit_extensions.split(','):
 				process=True
 		if not process:			
 			print "%s has no supported files, ignoring" % path
