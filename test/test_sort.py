@@ -1,7 +1,9 @@
 import unittest
 import os
 import sys
-sys.path.append(os.path.abspath(".."))
+srcdir = os.path.join(os.path.abspath(os.path.join(os.path.dirname( os.path.realpath( __file__ ) ),"..")), "src")
+if os.path.exists(srcdir):
+	        sys.path.insert(0, srcdir)
 from renamealbum import sort
 
 class SortTest(unittest.TestCase):
