@@ -26,24 +26,28 @@ MUSICMOZ="http://musicbrainz.org/ns/rel-1.0#Musicmoz"
 IMDB="http://musicbrainz.org/ns/rel-1.0#IMDb"
 REVIEW="http://musicbrainz.org/ns/rel-1.0#Review"
 
+VERBOSE=0
 
 def _add_track_relationship(tags, relationship):
 	if relationship.getTargetType() == mbmodel.Relation.TO_URL:
-		print "URL"
-		print " dir=",relationship.getDirection()
-		print " target=",relationship.getTarget()
-		print " targetid=",relationship.getTargetId()
-		print " targettype=",relationship.getTargetType()
-		print " type=",relationship.getType()
+		if VERBOSE:
+			print "URL"
+			print " dir=",relationship.getDirection()
+			print " target=",relationship.getTarget()
+			print " targetid=",relationship.getTargetId()
+			print " targettype=",relationship.getTargetType()
+			print " type=",relationship.getType()
 	elif relationship.getTargetType() == mbmodel.Relation.TO_RELEASE:
-		print "RELEASE"
-		print " dir=",relationship.getDirection()
-		print " target=",relationship.getTarget()
-		print " targetid=",relationship.getTargetId()
-		print " targettype=",relationship.getTargetType()
-		print " type=",relationship.getType()
+		if VERBOSE:
+			print "RELEASE"
+			print " dir=",relationship.getDirection()
+			print " target=",relationship.getTarget()
+			print " targetid=",relationship.getTargetId()
+			print " targettype=",relationship.getTargetType()
+			print " type=",relationship.getType()
 	else:
-		print "Unknown type:",relationship.getTargetType()
+		if VERBOSE:
+			print "Unknown type:",relationship.getTargetType()
 	
 def _add_album_relationship(tags, relationship):
 	if relationship.getType() == ASIN:
@@ -62,31 +66,39 @@ def _add_album_relationship(tags, relationship):
 		#print " Discogs:",relationship.getTargetId()
 		tags[tag.URL_IMDB_RELEASE_SITE] = relationship.getTargetId()
 	elif relationship.getType() == REMASTER:
-		print " Remaster of", relationship.getTargetId()
+		if VERBOSE:
+			print " Remaster of", relationship.getTargetId()
 	elif relationship.getType() == PART_OF_SET:
-		print " Part of set:", relationship.getTargetId()
+		if VERBOSE:
+			print " Part of set:", relationship.getTargetId()
 	elif relationship.getType() == FIRST_ALBUM_RELEASE:
-		print " First album release:", relationship.getTargetId()
+		if VERBOSE:
+			print " First album release:", relationship.getTargetId()
 	elif relationship.getType() == REMIX:
-		print " Remix of:", relationship.getTargetId()
+		if VERBOSE:
+			print " Remix of:", relationship.getTargetId()
 	elif relationship.getType() == REVIEW:
-		print " Review:", relationship.getTargetId()
+		if VERBOSE:
+			print " Review:", relationship.getTargetId()
 	elif relationship.getTargetType() == mbmodel.Relation.TO_URL:
-		print "URL"
-		print " dir=",relationship.getDirection()
-		print " target=",relationship.getTarget()
-		print " targetid=",relationship.getTargetId()
-		print " targettype=",relationship.getTargetType()
-		print " type=",relationship.getType()
+		if VERBOSE:
+			print "URL"
+			print " dir=",relationship.getDirection()
+			print " target=",relationship.getTarget()
+			print " targetid=",relationship.getTargetId()
+			print " targettype=",relationship.getTargetType()
+			print " type=",relationship.getType()
 	elif relationship.getTargetType() == mbmodel.Relation.TO_RELEASE:
-		print "RELEASE"
-		print " dir=",relationship.getDirection()
-		print " target=",relationship.getTarget()
-		print " targetid=",relationship.getTargetId()
-		print " targettype=",relationship.getTargetType()
-		print " type=",relationship.getType()
+		if VERBOSE:
+			print "RELEASE"
+			print " dir=",relationship.getDirection()
+			print " target=",relationship.getTarget()
+			print " targetid=",relationship.getTargetId()
+			print " targettype=",relationship.getTargetType()
+			print " type=",relationship.getType()
 	else:
-		print "Unknown type:",relationship.getTargetType()
+		if VERBOSE:
+			print "Unknown type:",relationship.getTargetType()
 
 def get_tags(tags, mbrelease, mbtrack, artistname):
 	# Fetch tags
