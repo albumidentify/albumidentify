@@ -1,7 +1,11 @@
 #!/usr/bin/env python
 
-from distutils.core import setup
-from distutils.core import Command
+try:
+       from setuptools import setup
+       from setuptools import Command
+except:
+       from distutils.core import setup
+       from distutils.core import Command
 
 class test(Command):
     description = "run automated tests"
