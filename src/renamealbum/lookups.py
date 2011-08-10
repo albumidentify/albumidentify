@@ -74,7 +74,7 @@ def timeout_retry(webservice="default"):
 				#urllib2 error (child of URLError)
 				except HTTPError, e:
 					# Misc http errors -> should probably deal with these on a case by case basis
-					if e.code == 400:
+					if e.code == 400 and func.__name__ is not "_do_raw_lastfm_query":
 						print ("Error code 400. Possible malformed URL: %s" % e.filename)
 						raise
 					else:
