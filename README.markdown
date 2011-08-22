@@ -24,7 +24,7 @@ flac:
     flac
 
 ogg:
-    vorbis-tools vorgisgain
+    vorbis-tools vorbisgain
 
 Ripping CDs:
     cdrdao cueconvert bchunk flac
