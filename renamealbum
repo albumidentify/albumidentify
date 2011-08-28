@@ -205,19 +205,19 @@ def get_musicbrainz_release (disc, options):
 		return (lookups.get_release_by_releaseid(disc.releaseid), "manual")
 
 	# Otherwise, lookup the releaseid using the discid as a key
-		if disc.discid is not None:
-				results = lookups.get_releases_by_discid(disc.discid)
-				if len(results) > 1:
-						for result in results:
-								util.report(result.release.id + ".html")
-						util.report("Ambiguous DiscID, trying fingerprint matching")
-						return (get_release_by_fingerprints(disc), "fingerprint")
+	if disc.discid is not None:
+		results = lookups.get_releases_by_discid(disc.discid)
+		if len(results) > 1:
+			for result in results:
+				util.report(result.release.id + ".html")
+			util.report("Ambiguous DiscID, trying fingerprint matching")
+			return (get_release_by_fingerprints(disc), "fingerprint")
 
-				# DiscID lookup gave us an exact match. Use this!
-				if len(results) == 1:
-						releaseid = results[0].release.id
-						util.report("Got release via discID")
-						return (lookups.get_release_by_releaseid(releaseid), "discid")
+		# DiscID lookup gave us an exact match. Use this!
+		if len(results) == 1:
+			releaseid = results[0].release.id
+			util.report("Got release via discID")
+			return (lookups.get_release_by_releaseid(releaseid), "discid")
 
 	# There wasn't a lookup, so remove from the cache in case we add it
 	memocache.remove_from_cache("delayed_get_releases_by_discid", disc.discid)
