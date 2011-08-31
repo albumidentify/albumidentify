@@ -349,10 +349,10 @@ def process_one_path(numargs, options, path):
 		if path_is_raw_wavs(srcpath):
 			newpath = tempfile.mkdtemp()
 			util.report("Encoding to FLAC at %s. This may take some time..." % srcpath)
-		        numcpus = options.numcpus
-		        if numcpus < 1:
-		                import multiprocessing
-		                numcpus = multiprocessing.cpu_count()
+			numcpus = options.numcpus
+			if numcpus < 1:
+				import multiprocessing
+				numcpus = multiprocessing.cpu_count()
 			toflac.process_paths([srcpath], newpath, numcpus)
 			srcpath = newpath
 			#only delete wavs we've created
@@ -516,11 +516,11 @@ def main():
 		)
 	opts.add_option(
 		"-j","--threads",
-                type="int",
+		 type="int",
 		dest="numcpus",
-                default=albumidentifyconfig.config.get("albumidentify", "threads"),
-                metavar="THREADS",
-                help="Spawn multipled THREADS for encoding"
+		default=albumidentifyconfig.config.get("albumidentify", "threads"),
+		metavar="THREADS",
+		help="Spawn multipled THREADS for encoding"
 		)
 
 		
