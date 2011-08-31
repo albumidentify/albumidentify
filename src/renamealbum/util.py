@@ -59,7 +59,7 @@ def update_verbose_progress(msg):
 		sys.stdout.flush()
 
 def output_list(l):
-	"Give na list of integers, return a string with ranges collapsed"
+	"Given a list of integers, return a string with ranges collapsed"
 	if not l:
 		return "[]"
 	l.sort()
