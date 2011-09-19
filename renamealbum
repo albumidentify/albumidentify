@@ -289,7 +289,7 @@ def scheme_help():
 			print " " + i + " (integer)"
 
 def path_arg_cb(option, opt_str, value, parser):
-	path = os.path.abspath(value)
+	path = os.path.abspath(os.path.expanduser(value))
 	if not os.path.isdir(path):
 		raise optparse.OptionValueError("to %s must be a directory that exists" % value)
 	setattr(parser.values, option.dest, path)
