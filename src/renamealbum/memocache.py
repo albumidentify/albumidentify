@@ -57,23 +57,40 @@ def _assure_memocache_open(name):
 		f = os.path.expanduser("~/.mbcache/"+name)
 		memocache[name]=shelve.open(f,"c")
 
+# Move corrupted memocache file out of the way
+def _move_corrupt_memocache(name):
+        if not os.path.isdir(os.path.expanduser("~/.mbcache/")):
+                os.mkdir(os.path.expanduser("~/.mbcache/"))
+        if name in memocache:
+                # Don't close the memocache, just throw it away
+                memocache[name] = None
+        f = os.path.expanduser("~/.mbcache/" + name)
+        n = f + "_" + time.strftime("%Y%m%d%H%M%S")
+        print "WARNING: Possible cache corruption detected at %s" % (f)
+        print "WARNING: Moving corrupt cache file to %s and retrying with clean cache" % (n)
+        os.rename(f,n)
+
 # This is a function, that returns a decorator, that returns a function,
 # that caches the return value from a forth function.
 def memoify(mappingfunc=lambda a,b:(a,b), cacheok=lambda arg,kwargs,ret:True):
 	def memoify_decorator(func):
 		def memoify_replacement(*args,**kwargs):
-			_assure_memocache_open(func.__name__)
-			dbkey=pickle.dumps(mappingfunc(args,kwargs))
-			if dbkey not in memocache[func.__name__]:
-				ret=func(*args,**kwargs)
-				if cacheok(args,kwargs,ret):
-					_assure_memocache_open(func.__name__)
-					memocache[func.__name__][dbkey]=ret
-					memocache[func.__name__].sync()
-			else:
-				ret = memocache[func.__name__][dbkey]
+                        try:
+                                _assure_memocache_open(func.__name__)
+                                dbkey=pickle.dumps(mappingfunc(args,kwargs))
+                                if dbkey not in memocache[func.__name__]:
+                                        ret=func(*args,**kwargs)
+                                        if cacheok(args,kwargs,ret):
+                                                _assure_memocache_open(func.__name__)
+                                                memocache[func.__name__][dbkey]=ret
+                                                memocache[func.__name__].sync()
+                                else:
+                                        ret = memocache[func.__name__][dbkey]
 
-			return ret
+                                return ret
+                        except:
+                                _move_corrupt_memocache(func.__name__)
+                                return memoify_replacement(*args, **kwargs)
 		return memoify_replacement
 	return memoify_decorator
 
