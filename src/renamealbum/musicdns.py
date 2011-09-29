@@ -44,13 +44,13 @@ def lookup_fingerprint(fingerprint, duration, musicdns_key):
 	f = urllib.urlopen(url, data)
 	tree = ElementTree.parse(f)
 	sanitize_tree(tree)
-	el = tree.find('//title')
+	el = tree.find('.//title')
 	title = el.text if el is not None else None
 
-	el = tree.find('//artist/name')
+	el = tree.find('.//artist/name')
 	artist = el.text if el is not None else None
 
-	el = tree.find('//puid')
+	el = tree.find('.//puid')
 	puid = el.attrib['id'] if el is not None else None
 
 	return (title, artist, puid)
