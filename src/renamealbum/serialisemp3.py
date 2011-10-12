@@ -58,6 +58,10 @@ def _id3v2(f,data):
 	outp+=_texttag("TYER",data["TYER"])
 	outp+=_texttag("TDAT",data["TDAT"])
 	outp+=_texttag("TRCK",data["TRCK"])
+	if "TPOS" in data:
+		outp+=_texttag("TPOS", data["TPOS"])
+	if "TCMP" in data:
+		outp+=_texttag("TCMP", data["TCMP"])
 	if "UFID" in data:
 		# UFID doesn't get encoded so uses tag not texttag
 		assert type(data["UFID"][0]) == type("")
