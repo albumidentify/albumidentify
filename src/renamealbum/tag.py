@@ -195,6 +195,15 @@ def get_mp3_tags(tags):
                 # TSST -- Set subtitle
                 "COMM" : [('Tags',tags[TAGS])],
                 }
+	if DISC_NUMBER in tags:
+		if DISC_TOTAL_NUMBER in tags:
+			t = "%s/%s" % (tags[DISC_NUMBER], tags[DISC_TOTAL_NUMBER])
+		else:
+			t = "%s" % (tags[DISC_NUMBER])
+		id3tags["TPOS"] = t
+	# iTunes has made up a tag to represent compilations. Add it
+	if COMPILATION in tags:
+		id3tags["TCMP"] = "%s" % tags[COMPILATION]
 	if ARTIST_SORT in tags:
 		id3tags["TSOP"] = tags[ARTIST_SORT]
 	if ALBUM_ARTIST_SORT in tags:
