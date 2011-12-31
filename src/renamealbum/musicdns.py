@@ -7,6 +7,7 @@
 
 import urllib
 from xml.etree import ElementTree
+from xml.parsers import expat
 import re
 import lookups
 import memocache
@@ -42,7 +43,13 @@ def lookup_fingerprint(fingerprint, duration, musicdns_key):
 	data = urllib.urlencode(postargs)
 
 	f = urllib.urlopen(url, data)
-	tree = ElementTree.parse(f)
+	content = f.read()
+	try:
+		tree = ElementTree.fromstring(content)
+	except expat.ExpatError:
+		print "Could not parse response from %s %s:" % (url, data)
+		print repr(content)
+		raise
 	sanitize_tree(tree)
 	el = tree.find('.//title')
 	title = el.text if el is not None else None
