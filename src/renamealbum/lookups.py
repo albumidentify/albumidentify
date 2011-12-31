@@ -15,7 +15,13 @@ from urllib2 import HTTPError
 
 AMAZON_LICENSE_KEY='1WQQTEA14HEA9AERDMG2'
 
-CLIENTID='renamealbum'
+APPNAME='albumidentify'
+APPVERSION='1.0'
+APPCONTACT='http://github.com/albumidentify/albumidentify'
+
+# See http://wiki.musicbrainz.org/XML_Web_Service/Rate_Limiting
+#  Section Providing_meaningful_User-Agent_strings
+CLIENTID='%s/%s (%s)' % (APPNAME, APPVERSION, APPCONTACT)
 
 # 0 = No profile information
 # 1 = Delay information only
