@@ -33,7 +33,7 @@ WSATTEMPTS=3
 startup = time.time()
 lastwsquery = {}
 
-assert map(int,mb.__version__.split(".")) >= [0,6,0], "Need python-musicbrainz2 >= v0.6.0"
+assert map(int,mb.__version__.split(".")) >= [0,7,4], "Need python-musicbrainz2 >= v0.7.4"
 
 SUBMIT_SUPPORT = map(int, mb.__version__.split(".")) >= [0,7,0]
 
