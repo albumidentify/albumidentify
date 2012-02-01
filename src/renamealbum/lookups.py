@@ -20,7 +20,6 @@ AMAZON_LICENSE_KEY='1WQQTEA14HEA9AERDMG2'
 # 2 = Delay and webquery time
 PROFILE=2
 MINDELAY=1.25
-WSATTEMPTS=3
 
 startup = time.time()
 lastwsquery = {}
@@ -46,7 +45,7 @@ webservices = {
 	},
 }
 
-def timeout_retry(webservice="default"):
+def timeout_retry(webservice="default",attempts=3,cooldown=20):
         """ Decorator to retry failures in web service calls.
 
             For example, a 503 will result in a 20 second cooldown. A urlopen timeout
@@ -95,20 +94,20 @@ def timeout_retry(webservice="default"):
 						raise
 
 				#bail if we've made enough attempts
-				if i >= WSATTEMPTS:
+				if i >= attempts:
 					break
 				else:
 					i+=1
 
-	                        util.update_progress("waiting 20 seconds and trying again...")
-				time.sleep(20)
-				util.update_progress("20 second backoff is over. Retrying now...")
+	                        util.update_progress("waiting %d seconds and trying again..." % cooldown)
+				time.sleep(cooldown)
+				util.update_progress("%d second backoff is over. Retrying now..." % cooldown)
 	                        # Reset the timer delayed uses so that we don't
 	                        # end up with a bunch of queries causing
 	                        # another 503
 	                        lastwsquery[webservice]=time.time()
 
-			print "Giving up on call to %s after %d tries." % (webservice, WSATTEMPTS)
+			print "Giving up on call to %s after %d tries." % (webservice, attempts)
 			raise
 
                 backoff_func.__name__=func.__name__
