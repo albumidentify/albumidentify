@@ -203,7 +203,7 @@ def verify_track(release, possible_releases, impossible_releases,
 	# Step Six: Make sure the song is within 10% of the length of the 
 	# track we expect it to be.
 	track = lookups.get_track_by_id(track.id)
-	if track.getDuration() is not None:
+	if track.getDuration() is not None and trackinfo[fileid].getDuration():
 		dur_ratio = track.getDuration() * 1.0 / trackinfo[fileid].getDuration()
 		if dur_ratio < .9 or dur_ratio > 1.1:
 			print "Track lengths differ"

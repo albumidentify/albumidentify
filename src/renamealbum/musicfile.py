@@ -35,7 +35,6 @@ class MusicFile:
 		except:
 			self.dur = None
 			self.fingerprint = None
-			raise
 			return 
 		if self.puid != None:
 			return 

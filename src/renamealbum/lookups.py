@@ -15,6 +15,14 @@ from urllib2 import HTTPError
 
 AMAZON_LICENSE_KEY='1WQQTEA14HEA9AERDMG2'
 
+APPNAME='albumidentify'
+APPVERSION='1.0'
+APPCONTACT='http://github.com/albumidentify/albumidentify'
+
+# See http://wiki.musicbrainz.org/XML_Web_Service/Rate_Limiting
+#  Section Providing_meaningful_User-Agent_strings
+CLIENTID='%s/%s (%s)' % (APPNAME, APPVERSION, APPCONTACT)
+
 # 0 = No profile information
 # 1 = Delay information only
 # 2 = Delay and webquery time
@@ -24,7 +32,7 @@ MINDELAY=1.25
 startup = time.time()
 lastwsquery = {}
 
-assert map(int,mb.__version__.split(".")) >= [0,6,0], "Need python-musicbrainz2 >= v0.6.0"
+assert map(int,mb.__version__.split(".")) >= [0,7,4], "Need python-musicbrainz2 >= v0.7.4"
 
 SUBMIT_SUPPORT = map(int, mb.__version__.split(".")) >= [0,7,0]
 
@@ -162,7 +170,7 @@ if SUBMIT_SUPPORT:
 def get_tracks_by_puid(puid):
 	""" Lookup a list of musicbrainz tracks by PUID. Returns a list of Track
 	objects. """ 
-	q = ws.Query()
+	q = ws.Query(clientId=CLIENTID)
 	filter = ws.TrackFilter(puid=puid)
 	results = []
 	rs = q.getTracks(filter=filter)
@@ -174,7 +182,7 @@ def get_tracks_by_puid(puid):
 @timeout_retry("musicbrainz")
 @delayed("musicbrainz")
 def get_track_by_id(id):
-	q = ws.Query()
+	q = ws.Query(clientId=CLIENTID)
 	results = []
         includes = ws.TrackIncludes(**trackincludes)
 
@@ -186,7 +194,7 @@ def get_track_by_id(id):
 @delayed("musicbrainz")
 def get_release_by_releaseid(releaseid):
 	""" Given a musicbrainz release-id, fetch the release from musicbrainz. """
-	q = ws.Query()
+	q = ws.Query(clientId=CLIENTID)
 	requests = {
 		"artist" 	: True,
 		"counts" 	: True,
@@ -211,7 +219,7 @@ the empty list if there were no matches. """
 
 	if title == "" or performer=="":
 		return []
-	q = ws.Query()
+	q = ws.Query(clientId=CLIENTID)
 	filter = ws.ReleaseFilter(title=title, 
 				artistName=performer)
 	rels = q.getReleases(filter=filter)
@@ -228,7 +236,7 @@ the empty list if there were no matches. """
 @delayed("musicbrainz")
 def get_releases_by_discid(discid):
         """ Given a musicbrainz disc-id, fetch a list of possible releases. """
-        q = ws.Query()
+        q = ws.Query(clientId=CLIENTID)
         filter = ws.ReleaseFilter(discId=discid)
         return q.getReleases(filter=filter)
 
@@ -252,7 +260,7 @@ def get_track_artist_for_track(track):
 	if track.artist is not None:
 		return track.artist
 
-	q = ws.Query()
+	q = ws.Query(clientId=CLIENTID)
 	includes = ws.TrackIncludes(artist = True)
 	t = q.getTrackById(track.id, includes)
 
