@@ -47,7 +47,11 @@ def lookup_fingerprint(fingerprint, duration, musicdns_key):
 	try:
 		tree = ElementTree.fromstring(content)
 	except expat.ExpatError:
-		print "Could not parse response from %s %s:" % (url, data)
+		print "Could not parse response from %s?%s:" % (url, data)
+		print repr(content)
+		raise
+	except ElementTree.ParseError:
+		print "Could not parse response from %s?%s:" % (url, data)
 		print repr(content)
 		raise
 	sanitize_tree(tree)
