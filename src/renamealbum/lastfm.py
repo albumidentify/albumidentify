@@ -98,8 +98,84 @@ def get_artist_toptracks(artistname):
 	return _do_lastfm_query("artist.gettoptracks",
 		artist=artistname)
 
+def lookup_track(args):
+	r = get_track_info(args.artist, args.trackname)
+
+	print "Results for %s - %s" % (args.artist, args.trackname)
+	print r['name'][0]
+	del r['name']
+
+	print_output(r, args.filter)
+
+def lookup_artist(args):
+	r = get_artist_info(args.artist)
+
+	print "Results for %s" % (args.artist)
+
+	print_output(r, args.filter)
+
+def print_output(text, filter):
+	if filter == 'ALL':
+		import pprint
+		pprint.pprint(text)
+	elif filter != '':
+		space = 0;
+		for i in filter.split('/'):
+			for a in xrange(space):
+				print "",
+			try:
+				i = int(i)
+				text = text[i]
+				print "-> fetching item %d from list" % i
+			except:
+				text = text[i]
+				print "-> %s" % i
+			if type(text) == list and len(text) == 1:
+				text = text[0]
+			space += 1
+	if type(text) == dict:
+		print text.keys()
+	elif type(text) == list:
+		for i in text:
+			print i
+	else:
+		print text
+
+def help(args):
+	print """Filters
+
+A filter is the fields you are after separated by forward slashes. Here's an 
+example: ./lastfm.py artist "Avril Lavigne" 'tags/tag/0/name'
+As you can see the filter has 4 parts. First we want tags. Next we want the
+tag field. Next we want item 0 from the list. Finally we want the text from the
+name field. To find out what the next set of filter items are simply omit the
+term you are looking for and you will be presented with all the possibilities.
+If the results are a list, each item of the list will be printed one per line.
+To disable filtering use the keyword 'ALL' as the filter.
+"""
+
 if __name__=="__main__":
-	import pprint
-	pprint.pprint(get_track_info('Pearl Jam','Even Flow',))
+	import argparse,sys
+
+	mode_parser = argparse.ArgumentParser()
+	subparsers = mode_parser.add_subparsers(title='actions',dest='action')
+	mode_parser.add_argument('--filter-help',action='store_true',help='Explanation of output filters')
+
+	track_parser = subparsers.add_parser('track', help='Get lastfm info for a Track')
+	track_parser.add_argument('artist',help='The name of the Artist')
+	track_parser.add_argument('trackname',help='The Title of the Track')
+	track_parser.add_argument('filter',help='Output filter (see %s help)' % sys.argv[0],default="",nargs='?')
+	track_parser.set_defaults(func=lookup_track)
+
+	artist_parser = subparsers.add_parser('artist', help='Get lastfm info for an Artist')
+	artist_parser.add_argument('artist',help='The name of the Artist')
+	artist_parser.add_argument('filter',help='Output filter (see %s help)' % sys.argv[0],default="",nargs='?')
+	artist_parser.set_defaults(func=lookup_artist)
+
+	help_parser = subparsers.add_parser('help', help='Help with filters')
+	help_parser.set_defaults(func=help)
+
+	args = mode_parser.parse_args()
+	args.func(args)
 
 # vim: set sw=8 tabstop=8 noexpandtab :
