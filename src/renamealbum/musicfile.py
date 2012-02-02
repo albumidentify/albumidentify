@@ -8,7 +8,7 @@ import util
 import albumidentifyconfig
 
 # Used for reading.
-musicdns_key = 'a7f6063296c0f1c9b75c7f511861b89b'
+musicdns_key = '0736ac2cd889ef77f26f6b5e3fb8a09c'
 
 class MusicFile:
 	def __init__(self,fname):
