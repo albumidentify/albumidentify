@@ -4,10 +4,11 @@ import tag
 import fingerprint
 import musicdns
 import memocache
+import util
 import albumidentifyconfig
 
 # Used for reading.
-musicdns_key = 'a7f6063296c0f1c9b75c7f511861b89b'
+musicdns_key = '0736ac2cd889ef77f26f6b5e3fb8a09c'
 
 class MusicFile:
 	def __init__(self,fname):
@@ -26,26 +27,27 @@ class MusicFile:
 		self.fetchedpuid = True
 		try:
 			self.fingerprint, self.dur \
-				= fingerprint.populate_fingerprint_cache(self.fname)
+					= fingerprint.populate_fingerprint_cache(self.fname)
 			self.trackname, self.artist, self.puid \
-				= musicdns.lookup_fingerprint(
-					self.fingerprint, 
-					self.dur, 
-					musicdns_key)
-		except:
+					= musicdns.lookup_fingerprint(
+							self.fingerprint, 
+							self.dur, 
+							musicdns_key)
+		except Exception,e:
+			util.report("_fetchPUID of %s failed: %s" % (self.fname, e))
 			self.dur = None
 			self.fingerprint = None
-			return 
+			return
 		if self.puid != None:
 			return 
 		# Submit the PUID if it's unknown
-                genpuid_cmd = albumidentifyconfig.config.get("albumidentify","genpuid_command")
-                musicdnskey = albumidentifyconfig.config.get("albumidentify","musicdnskey")
-                if not genpuid_cmd:
+		genpuid_cmd = albumidentifyconfig.config.get("albumidentify","genpuid_command")
+		musicdnskey = albumidentifyconfig.config.get("albumidentify","musicdnskey")
+		if not genpuid_cmd:
 			print "No genpuid command specified, can't submit fingerprint for %s" % self.fname
 			return
-                elif not musicdnskey:
-                        print "No musicdnskey specified, can't submit fingerprint for %s" % self.fname
+		elif not musicdnskey:
+			print "No musicdnskey specified, can't submit fingerprint for %s" % self.fname
 			return
 		fingerprint.upload_fingerprint_any(
 				self.fname, 
@@ -56,7 +58,7 @@ class MusicFile:
 				self.dur,
 				musicdns_key)
 		return None
-		
+
 
 	def _fetchmetadata(self):
 		if self.metadata is None:
@@ -104,3 +106,4 @@ class MusicFile:
 		self._fetchmetadata()
 		return self.fname
 
+# vim: set sw=8 tabstop=8 noexpandtab :
